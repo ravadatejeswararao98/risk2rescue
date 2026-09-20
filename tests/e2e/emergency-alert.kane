@@ -1,0 +1,10 @@
+# Verify Emergency Broadcast Alert Modal and Pick on Map
+1. Open http://localhost:3000/authority-login.html
+2. Click on the "Sign In" button to enter the Authority Portal.
+3. Click on the "Broadcast Alert" button in the top right corner of the command center.
+4. Verify that the "Broadcast Emergency Alert" modal is visible.
+5. Click on the "Pick on Map" button inside the modal.
+6. Verify that the "Select Location" map overlay appears.
+7. Click anywhere on the map to select a coordinate.
+8. Click on the "Confirm Location" button.
+9. Verify that the latitude and longitude fields in the alert form have been populated with numbers.

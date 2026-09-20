@@ -1,0 +1,8 @@
+# Verify Authority Dashboard and Severity Sorting
+1. Open http://localhost:3000/authority-login.html
+2. Click on the "Sign In" button to enter the Authority Portal.
+3. Verify that we are on the Command Overview page by checking that "Command Center" is visible.
+4. Click on the "Zone Manager" button in the left side navigation dock.
+5. Wait for the "Monitored Hazards" table to load.
+6. Look at the severity tier of the first item in the table.
+7. Assert that the first item is marked as "Critical" or "Red" severity, confirming that our severity ranking logic is placing critical hazards at the top.

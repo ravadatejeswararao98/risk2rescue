@@ -10,7 +10,8 @@
     "start:all": "concurrently -n \"NODE,GEOAI\" -c \"blue,green\" \"node server.js\" \"python ai-service/app.py\"",
     "dev": "node server.js",
     "serve": "node server.js",
-    "test": "node server.js --check"
+    "test": "node server.js --check",
+    "test:ui": "kane-cli run tests/e2e/ --url http://localhost:3000"
   },
   "keywords": [
     "disaster-management",
@@ -25,6 +26,7 @@
   "author": "Teja",
   "license": "MIT",
   "devDependencies": {
+    "@testmuai/kane-cli": "^0.8.15",
     "concurrently": "^10.0.5"
   },
   "dependencies": {
