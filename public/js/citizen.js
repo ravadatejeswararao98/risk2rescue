@@ -168,6 +168,13 @@ async function updateCitizenWeatherAndRisk(lat, lng, place) {
       else chipIcon.textContent = icon || '<i class="fi fi-rr-cloud"></i>';
     }
 
+    const chipUpdated = document.getElementById('chip-updated');
+    if (chipUpdated) {
+      const timeString = new Date(data.lastUpdated || Date.now()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      chipUpdated.textContent = `Updated ${timeString}`;
+      chipUpdated.style.color = '#64748b';
+    }
+
     // Cache successful weather snapshot for offline resilience
     try {
       localStorage.setItem('rzi_weather_snapshot', JSON.stringify({
@@ -185,6 +192,7 @@ async function updateCitizenWeatherAndRisk(lat, lng, place) {
     console.warn('Live weather fetch failed, falling back to cached snapshot:', err.message);
     try {
       const cached = localStorage.getItem('rzi_weather_snapshot');
+      const chipUpdated = document.getElementById('chip-updated');
       if (cached) {
         const snap = JSON.parse(cached);
         if (chipTemp && snap.temp !== undefined && snap.temp !== null) chipTemp.textContent = `${snap.temp}°C`;
@@ -196,12 +204,21 @@ async function updateCitizenWeatherAndRisk(lat, lng, place) {
           else chipIcon.textContent = snap.icon;
         }
         if (chipCity && snap.city && !place) chipCity.textContent = snap.city;
+        if (chipUpdated) {
+          const timeString = new Date(snap.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+          chipUpdated.textContent = `Offline (As of ${timeString})`;
+          chipUpdated.style.color = '#ef4444';
+        }
       } else {
         if (chipTemp) chipTemp.textContent = '—°C';
         if (chipWind) chipWind.textContent = '— km/h';
         if (chipIcon) {
           if (typeof window !== 'undefined' && window.iconHtml) chipIcon.innerHTML = window.iconHtml('fi-rr-cloud');
           else chipIcon.textContent = '<i class="fi fi-rr-cloud"></i>';
+        }
+        if (chipUpdated) {
+          chipUpdated.textContent = 'Data Unavailable';
+          chipUpdated.style.color = '#ef4444';
         }
       }
     } catch (e) { }

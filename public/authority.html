@@ -302,35 +302,106 @@
           </div>
         </div>
         <div class="hztc-body">
-          <div class="hztc-grid">
-            <div class="hztc-stat">
-              <span class="hztc-stat-lbl">Severity Tier</span>
-              <strong id="hztc-stat-tier" class="hztc-stat-val" style="color:#ef4444;">CRITICAL (RED)</strong>
+          <div class="hztc-tabs">
+            <button class="hztc-tab active" onclick="switchHzTab('overview')">Overview</button>
+            <button class="hztc-tab" onclick="switchHzTab('live')">Live Conditions</button>
+            <button class="hztc-tab" onclick="switchHzTab('provenance')">Provenance</button>
+          </div>
+
+          <div id="hztc-tab-overview" class="hztc-tab-content" style="display:block;">
+            <div class="hztc-grid">
+              <div class="hztc-stat">
+                <span class="hztc-stat-lbl">Severity Tier</span>
+                <strong id="hztc-stat-tier" class="hztc-stat-val" style="color:#ef4444;">CRITICAL (RED)</strong>
+              </div>
+              <div class="hztc-stat">
+                <span class="hztc-stat-lbl">Pop. at Risk</span>
+                <strong id="hztc-stat-pop" class="hztc-stat-val">—</strong>
+              </div>
+              <div class="hztc-stat">
+                <span class="hztc-stat-lbl">Trigger Telemetry</span>
+                <strong id="hztc-stat-telemetry" class="hztc-stat-val" style="color:#38bdf8;">—</strong>
+              </div>
+              <div class="hztc-stat">
+                <span class="hztc-stat-lbl">Epicenter Coords</span>
+                <strong id="hztc-stat-coords" class="hztc-stat-val">—</strong>
+              </div>
             </div>
-            <div class="hztc-stat">
-              <span class="hztc-stat-lbl">Pop. at Risk</span>
-              <strong id="hztc-stat-pop" class="hztc-stat-val">—</strong>
+            <div class="hztc-sub-sec">
+              <div class="hztc-sub-lbl">Affected Habitations (Static reference data from 2011 Census):</div>
+              <div id="hztc-habs" class="hztc-chips"><span class="hztc-skeleton" style="width: 100px;"></span><span class="hztc-skeleton" style="width: 80px;"></span></div>
             </div>
-            <div class="hztc-stat">
-              <span class="hztc-stat-lbl">Live Telemetry</span>
-              <strong id="hztc-stat-telemetry" class="hztc-stat-val" style="color:#38bdf8;">140 km/h Gusts</strong>
+            <div class="hztc-sub-sec">
+              <div class="hztc-sub-lbl">Nearest Designated Safe Sites:</div>
+              <div id="hztc-shelters" class="hztc-shelter-info"><span class="hztc-skeleton" style="width: 200px;"></span></div>
             </div>
-            <div class="hztc-stat">
-              <span class="hztc-stat-lbl">Epicenter Coords</span>
-              <strong id="hztc-stat-coords" class="hztc-stat-val">16.99° N, 82.25° E</strong>
+            <div class="hztc-footer">
+              <button class="btn btn-glass" style="padding:6px 12px; font-size:11px;" onclick="switchView('habitations')">View Habitations <i class="fi fi-rr-arrow-right"></i></button>
+              <button class="btn btn-primary" style="padding:6px 12px; font-size:11px;" onclick="openEmergencyAlertModal()">Issue Emergency Alert <i class="fi fi-rr-megaphone"></i></button>
             </div>
           </div>
-          <div class="hztc-sub-sec">
-            <div class="hztc-sub-lbl">Habitations in Impact Sector:</div>
-            <div id="hztc-habs" class="hztc-chips">Kakinada Port, Uppada, Suryaraopeta, Vakalapudi</div>
+
+          <div id="hztc-tab-live" class="hztc-tab-content" style="display:none;">
+            <div class="hztc-section-header">
+              <span>Model-derived current conditions (Open-Meteo)</span>
+              <span id="hztc-live-updated" class="hztc-timestamp"></span>
+            </div>
+            <div id="hztc-live-state" class="hztc-state-container">
+              <div class="hztc-skeleton-box"></div>
+            </div>
+            <div id="hztc-live-data" style="display:none;">
+              <div class="hztc-grid" style="margin-bottom: 12px;">
+                <div class="hztc-stat"><span class="hztc-stat-lbl">Wind (Gusts)</span><strong id="hztc-live-wind" class="hztc-stat-val">—</strong></div>
+                <div class="hztc-stat"><span class="hztc-stat-lbl">Precip (24h)</span><strong id="hztc-live-precip" class="hztc-stat-val">—</strong></div>
+                <div class="hztc-stat"><span class="hztc-stat-lbl">Temp (Apparent)</span><strong id="hztc-live-temp" class="hztc-stat-val">—</strong></div>
+                <div class="hztc-stat"><span class="hztc-stat-lbl">Humidity / Press</span><strong id="hztc-live-hum" class="hztc-stat-val">—</strong></div>
+                <div class="hztc-stat" style="grid-column: span 2;"><span class="hztc-stat-lbl">Air Quality (AQI)</span><strong id="hztc-live-aqi" class="hztc-stat-val">—</strong></div>
+                <div id="hztc-marine-box" class="hztc-stat" style="grid-column: span 2; display:none;"><span class="hztc-stat-lbl">Marine (Wave/Swell)</span><strong id="hztc-live-marine" class="hztc-stat-val">—</strong></div>
+              </div>
+              <div class="hztc-sub-sec">
+                <div class="hztc-sub-lbl">48-Hour Forecast Trend (Wind & Rain)</div>
+                <div style="height: 140px; position: relative;">
+                  <canvas id="hztc-forecast-chart"></canvas>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="hztc-sub-sec">
-            <div class="hztc-sub-lbl">Nearest Designated Safe Sites:</div>
-            <div id="hztc-shelters" class="hztc-shelter-info">Kakinada Port Relief Camp (3,760 beds available)</div>
-          </div>
-          <div class="hztc-footer">
-            <button class="btn btn-glass" style="padding:6px 12px; font-size:11px;" onclick="switchView('habitations')">View Habitations <i class="fi fi-rr-arrow-right"></i></button>
-            <button class="btn btn-primary" style="padding:6px 12px; font-size:11px;" onclick="openEmergencyAlertModal()">Issue Emergency Alert <i class="fi fi-rr-megaphone"></i></button>
+
+          <div id="hztc-tab-provenance" class="hztc-tab-content" style="display:none;">
+            <div class="hztc-section-header">
+              <span>Data Provenance & Classification Logic</span>
+              <span id="hztc-prov-updated" class="hztc-timestamp"></span>
+            </div>
+            <div class="hztc-prov-box">
+              <div class="hztc-prov-item">
+                <span class="hztc-prov-lbl">Classification Source:</span>
+                <span id="hztc-prov-rule" class="hztc-prov-val">AI Engine (ai-engine.js)</span>
+              </div>
+              <div class="hztc-prov-item">
+                <span class="hztc-prov-lbl">Rule Thresholds:</span>
+                <span id="hztc-prov-thresholds" class="hztc-prov-val">Wind &ge; 95km/h = RED, &ge; 65km/h = ORANGE</span>
+              </div>
+              <div class="hztc-prov-item">
+                <span class="hztc-prov-lbl">Trigger Reasoning:</span>
+                <span id="hztc-prov-reason" class="hztc-prov-val"></span>
+              </div>
+              <div class="hztc-prov-item">
+                <span class="hztc-prov-lbl">Recurrence Multiplier:</span>
+                <span id="hztc-prov-multiplier" class="hztc-prov-val"></span>
+              </div>
+              <div class="hztc-prov-item" style="margin-top:8px; padding-top:8px; border-top: 1px solid var(--border-color);">
+                <span class="hztc-prov-lbl">Input Telemetry:</span>
+                <span class="hztc-prov-val" style="display:flex; align-items:center; gap:6px;">
+                  Open-Meteo <span class="badge-chip chip-live" style="font-size:9px;">LIVE API</span>
+                </span>
+              </div>
+              <div class="hztc-prov-item">
+                <span class="hztc-prov-lbl">Geometry Source:</span>
+                <span class="hztc-prov-val" style="display:flex; align-items:center; gap:6px;">
+                  Dynamic Radius <span class="badge-chip chip-offline" style="font-size:9px; background:#475569;">COMPUTED</span>
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -493,19 +564,19 @@
           <div class="dsb-evidence-bar" id="dsb-evidence-bar">
             <div class="dsb-ev-item">
               <span class="dsb-ev-label">Hazard Scope</span>
-              <span class="dsb-ev-val">30 TerraMind Flood Polygons &bull; Konaseema (Threshold: 0.50)</span>
+              <span class="dsb-ev-val" id="ev-prof-haz">Initializing live hazard footprint tracking...</span>
             </div>
             <div class="dsb-ev-item">
               <span class="dsb-ev-label">Population &amp; Density</span>
-              <span class="dsb-ev-val">Projected 2026: 1,865,817 &bull; Normalized population-density score: 0.356 &bull; Population-density VPI contribution: 0.0534</span>
+              <span class="dsb-ev-val" id="ev-prof-pop">Initializing live population telemetry...</span>
             </div>
             <div class="dsb-ev-item">
               <span class="dsb-ev-label">Habitations</span>
-              <span class="dsb-ev-val">268 AP SDMA Habitations &bull; 0 Direct Intersections &bull; Nearest: Peravaram (631.57 m)</span>
+              <span class="dsb-ev-val" id="ev-prof-hab">Initializing live habitation exposure model...</span>
             </div>
             <div class="dsb-ev-item">
               <span class="dsb-ev-label">Shelters &amp; Routing</span>
-              <span class="dsb-ev-val">10 Shelters (7,282 Capacity) &bull; 268 selected habitation-to-shelter OSRM routes computed successfully. Road passability during a disaster is not verified.</span>
+              <span class="dsb-ev-val" id="ev-prof-cap">Initializing active shelter capacity...</span>
             </div>
           </div>
 
@@ -592,7 +663,7 @@
           <div class="kpi-card critical" onclick="switchView('population-risk')" style="cursor:pointer;" title="Click to view population exposure breakdown">
             <div class="kpi-icon"><i class="fi fi-rr-users"></i></div>
             <div class="kpi-value" id="kpi-pop-risk">0</div>
-            <div class="kpi-label">Population at Risk <span class="data-source-badge" title="Estimated based on Census 2011 & SDMA enumeration">Est. 2011 Census</span></div>
+            <div class="kpi-label">Population at Risk <span class="data-source-badge" id="kpi-pop-badge" title="Live aggregated habitation exposure">Live Telemetry</span></div>
             <div class="kpi-trend down" id="kpi-pop-trend"><i class="fi fi-rr-check-circle" style="color:#10b981;"></i> No exposed habitations</div>
           </div>
 

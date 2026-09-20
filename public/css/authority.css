@@ -5835,3 +5835,16 @@ body.windy-mode-active .btn-map-hazard,
   flex-direction: column;
   height: 100%;
 }
+/* Hazard Zone Table Card Tabs & Live Data */
+.hztc-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 12px; }
+.hztc-tab { background: none; border: none; color: #94a3b8; padding: 6px 12px; cursor: pointer; font-size: 11px; border-bottom: 2px solid transparent; transition: all 0.2s; }
+.hztc-tab:hover { color: #fff; }
+.hztc-tab.active { color: #38bdf8; border-bottom-color: #38bdf8; font-weight: 600; }
+.hztc-section-header { display: flex; justify-content: space-between; align-items: center; color: #cbd5e1; font-size: 11px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 4px; }
+.hztc-timestamp { font-size: 9px; color: #64748b; font-style: italic; }
+.hztc-skeleton-box { background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%); background-size: 200% 100%; animation: loading 1.5s infinite; border-radius: 4px; height: 16px; margin-bottom: 8px; }
+.hztc-prov-box { background: rgba(0,0,0,0.2); border-radius: 4px; padding: 8px; font-size: 11px; }
+.hztc-prov-item { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.hztc-prov-lbl { color: #94a3b8; }
+.hztc-prov-val { color: #e2e8f0; font-weight: 500; text-align: right; }
+@keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }

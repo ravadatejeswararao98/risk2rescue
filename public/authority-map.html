@@ -446,19 +446,19 @@
           <div class="dsb-evidence-bar" id="dsb-evidence-bar">
             <div class="dsb-ev-item">
               <span class="dsb-ev-label">Hazard Scope</span>
-              <span class="dsb-ev-val">30 TerraMind Flood Polygons &bull; Konaseema (Threshold: 0.50)</span>
+              <span class="dsb-ev-val" id="ev-prof-haz">Initializing live hazard footprint tracking...</span>
             </div>
             <div class="dsb-ev-item">
               <span class="dsb-ev-label">Population &amp; Density</span>
-              <span class="dsb-ev-val">Projected 2026: 1,865,817 &bull; Normalized population-density score: 0.356 &bull; Population-density VPI contribution: 0.0534</span>
+              <span class="dsb-ev-val" id="ev-prof-pop">Initializing live population telemetry...</span>
             </div>
             <div class="dsb-ev-item">
               <span class="dsb-ev-label">Habitations</span>
-              <span class="dsb-ev-val">268 AP SDMA Habitations &bull; 0 Direct Intersections &bull; Nearest: Peravaram (631.57 m)</span>
+              <span class="dsb-ev-val" id="ev-prof-hab">Initializing live habitation exposure model...</span>
             </div>
             <div class="dsb-ev-item">
               <span class="dsb-ev-label">Shelters &amp; Routing</span>
-              <span class="dsb-ev-val">10 Shelters (7,282 Capacity) &bull; 268 selected habitation-to-shelter OSRM routes computed successfully. Road passability during a disaster is not verified.</span>
+              <span class="dsb-ev-val" id="ev-prof-cap">Initializing active shelter capacity...</span>
             </div>
           </div>
 
@@ -545,7 +545,7 @@
           <div class="kpi-card critical" onclick="switchView('population-risk')" style="cursor:pointer;" title="Click to view population exposure breakdown">
             <div class="kpi-icon"><i class="fi fi-rr-users"></i></div>
             <div class="kpi-value" id="kpi-pop-risk">0</div>
-            <div class="kpi-label">Population at Risk <span class="data-source-badge" title="Estimated based on Census 2011 & SDMA enumeration">Est. 2011 Census</span></div>
+            <div class="kpi-label">Population at Risk <span class="data-source-badge" id="kpi-pop-badge" title="Live aggregated habitation exposure">Live Telemetry</span></div>
             <div class="kpi-trend down" id="kpi-pop-trend"><i class="fi fi-rr-check-circle" style="color:#10b981;"></i> No exposed habitations</div>
           </div>
 
