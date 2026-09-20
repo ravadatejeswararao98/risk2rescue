@@ -188,7 +188,11 @@ let systemStartTime = Date.now();
 // ================================================================
 // AUTHORITY ACCOUNTS, AUTHENTICATION & RBAC LAYER
 // ================================================================
-const SESSION_SECRET = process.env.SESSION_SECRET || 'rzi_incident_command_secret_2026';
+const SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET) {
+  console.error('FATAL: SESSION_SECRET is not set in the environment. Failing startup.');
+  process.exit(1);
+}
 
 function hashPasscode(passcode) {
   return crypto.createHash('sha256').update(String(passcode) + '_rzi_salt_2026').digest('hex');
@@ -286,9 +290,6 @@ function authenticateRequest(req) {
   }
 
   if (token) {
-    if (token === 'SDMA-MOCK-TOKEN-CHIEF-01' || token === 'MOCK-AUTHORITY-TOKEN') {
-      return { role: 'authority', user: { officerId: 'AP-SDMA-CHIEF', role: 'authority' } };
-    }
     const verified = verifyAuthToken(token);
     if (verified && verified.role === 'authority') {
       return { role: 'authority', user: verified };
@@ -2496,14 +2497,15 @@ const server = http.createServer(async (req, res) => {
 
     // 5g. LIVE ZONE CONDITIONS (OPEN-METEO)
     if (pathname === '/api/zone-conditions') {
-      const lat = parseFloat(query.lat);
-      const lon = parseFloat(query.lon);
+      const lat = parseFloat(parsedUrl.query.lat);
+      const lon = parseFloat(parsedUrl.query.lon);
       if (isNaN(lat) || isNaN(lon)) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ error: 'Valid lat and lon are required' }));
       }
       
-      const cacheKey = `${lat.toFixed(3)}_${lon.toFixed(3)}`;
+      const reqModel = parsedUrl.query.model || 'best_match';
+      const cacheKey = `${lat.toFixed(3)}_${lon.toFixed(3)}_${reqModel}`;
       const cached = zoneConditionsCache.get(cacheKey);
       if (cached && (Date.now() - cached.timestamp < CACHE_TTL_ZONE_CONDITIONS_MS)) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -2511,7 +2513,8 @@ const server = http.createServer(async (req, res) => {
       }
 
       try {
-        const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,surface_pressure,pressure_msl,cloud_cover,visibility,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=precipitation,precipitation_probability,wind_speed_10m,wind_gusts_10m&forecast_days=2&timezone=auto`;
+        const modelParam = reqModel !== 'best_match' ? `&models=${reqModel}` : '';
+        const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,surface_pressure,pressure_msl,cloud_cover,visibility,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=precipitation,precipitation_probability,wind_speed_10m,wind_gusts_10m&forecast_days=2&timezone=auto${modelParam}`;
         const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi&timezone=auto`;
         
         const [forecastResp, aqiResp] = await Promise.all([
@@ -2522,7 +2525,7 @@ const server = http.createServer(async (req, res) => {
         let marineData = null;
         // Check if coastal (approximate check based on AP geometry, or assume user only clicks coastal zones)
         // If query param `coastal=true` is passed, we fetch marine
-        if (query.coastal === 'true') {
+        if (parsedUrl.query.coastal === 'true') {
           const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&current=wave_height,wave_direction,wave_period&timezone=auto`;
           marineData = await fetch(marineUrl).then(r => r.ok ? r.json() : null).catch(() => null);
         }
@@ -4470,10 +4473,11 @@ You are an Andhra Pradesh Disaster Response Analyst. Using ONLY the provided str
   }
 
   // Server-side auth check for authority interface
-  if (pathname === '/authority.html') {
-    const cookies = req.headers.cookie || '';
-    if (!cookies.includes('rzi_auth=true')) {
-      res.setHeader('Set-Cookie', 'rzi_auth=true; Path=/; SameSite=Lax');
+  if (pathname.startsWith('/authority') && !pathname.includes('login')) {
+    const auth = authenticateRequest(req);
+    if (auth.role !== 'authority') {
+      res.writeHead(302, { 'Location': '/authority-login.html' });
+      return res.end();
     }
   }
 

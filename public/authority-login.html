@@ -929,36 +929,6 @@
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
-    // Retrieve securely stored accounts with default master officer account
-    async function getStoredAuthorityAccounts() {
-      const raw = localStorage.getItem('rzi_authority_accounts');
-      let accounts = [];
-      try {
-        if (raw) accounts = JSON.parse(raw);
-      } catch (e) {
-        accounts = [];
-      }
-      if (!Array.isArray(accounts) || accounts.length === 0) {
-        const masterHash = await hashPasscode('DisasterCommand2026!');
-        accounts = [
-          {
-            email: 'commander@sdma.ap.gov.in',
-            officerId: 'AP-SDMA-CMD-001',
-            name: 'Director R. Mehra',
-            department: 'AP SDMA Incident Command',
-            district: 'Statewide',
-            clearanceLevel: 'LEVEL-3 (VERIFIED DISPATCH)',
-            passwordHash: masterHash,
-            registeredAt: new Date().toISOString()
-          }
-        ];
-        try {
-          localStorage.setItem('rzi_authority_accounts', JSON.stringify(accounts));
-        } catch (e) {}
-      }
-      return accounts;
-    }
-
     // 5. Sign In Form Handler — Secure Hashed Validation & Strict Access Control
     async function handleSignInSubmit(e) {
       e.preventDefault();
@@ -1011,36 +981,28 @@
           }
         }
 
-        const inputHash = await hashPasscode(password);
-        const accounts = await getStoredAuthorityAccounts();
-        const idLower = identifier.toLowerCase();
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier, password })
+        });
 
-        const match = accounts.find(a =>
-          (a.email.toLowerCase() === idLower || (a.officerId && a.officerId.toLowerCase() === idLower)) &&
-          a.passwordHash === inputHash
-        );
+        const data = await response.json();
 
-        if (!match) {
-          // Clear error without leaking whether the username or password was wrong
-          setError(emailInput, emailErr, 'Invalid credentials. Please verify your officer credentials and security passcode.');
-          setError(pwInput, pwErr, 'Invalid credentials. Please verify your officer credentials and security passcode.');
+        if (!response.ok || !data.success) {
+          setError(emailInput, emailErr, data.error || 'Invalid credentials. Please verify your officer credentials and security passcode.');
+          setError(pwInput, pwErr, data.error || 'Invalid credentials. Please verify your officer credentials and security passcode.');
           submitBtn.disabled = false;
           spinner.style.display = 'none';
           btnText.textContent = 'Sign In <i class="fi fi-rr-arrow-right"></i>';
           return;
         }
 
-        const profile = {
-          name: match.name || identifier.split('@')[0],
-          email: match.email,
-          officerId: match.officerId || identifier,
-          department: match.department || 'AP SDMA Incident Command',
-          district: match.district || 'Statewide',
-          clearanceLevel: match.clearanceLevel || 'LEVEL-3 (OPERATIONAL DISPATCH)',
-          authenticatedAt: new Date().toISOString()
-        };
+        const profile = data.user;
+        profile.authenticatedAt = new Date().toISOString();
 
         sessionStorage.setItem('rzi_authority_officer', JSON.stringify(profile));
+        // The token is automatically set as an HttpOnly cookie by the server
         document.cookie = "rzi_auth=true; path=/";
         btnText.textContent = 'Clearance verified <i class="fi fi-rr-arrow-right"></i>';
         setTimeout(() => {

@@ -12,15 +12,7 @@
       try {
         let officer = sessionStorage.getItem('rzi_authority_officer');
         if (!officer) {
-          const defaultOfficer = {
-            officerId: "AP-SDMA-001",
-            fullName: "AP State Incident Commander",
-            department: "Disaster Management & Emergency Relief",
-            district: "State Headquarters (Andhra Pradesh)",
-            clearanceLevel: "LEVEL_4_CHIEF"
-          };
-          sessionStorage.setItem('rzi_authority_officer', JSON.stringify(defaultOfficer));
-          document.cookie = "rzi_auth=true; path=/";
+          window.location.replace('authority-login.html');
         }
       } catch (e) {}
     })();

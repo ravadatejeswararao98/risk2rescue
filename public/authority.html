@@ -12,15 +12,7 @@
       try {
         let officer = sessionStorage.getItem('rzi_authority_officer');
         if (!officer) {
-          const defaultOfficer = {
-            officerId: "AP-SDMA-001",
-            fullName: "AP State Incident Commander",
-            department: "Disaster Management & Emergency Relief",
-            district: "State Headquarters (Andhra Pradesh)",
-            clearanceLevel: "LEVEL_4_CHIEF"
-          };
-          sessionStorage.setItem('rzi_authority_officer', JSON.stringify(defaultOfficer));
-          document.cookie = "rzi_auth=true; path=/";
+          window.location.replace('authority-login.html');
         }
       } catch (e) {}
     })();
@@ -36,7 +28,7 @@
 
   <!-- Base & Authority Styles -->
   <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/authority.css?v=21">
+  <link rel="stylesheet" href="css/authority.css?v=26">
   <link rel="stylesheet" href="css/simulation.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
@@ -379,7 +371,7 @@
               </div>
               <div class="hztc-prov-item">
                 <span class="hztc-prov-lbl">Rule Thresholds:</span>
-                <span id="hztc-prov-thresholds" class="hztc-prov-val">Wind &ge; 95km/h = RED, &ge; 65km/h = ORANGE</span>
+                <span id="hztc-prov-thresholds" class="hztc-prov-val"></span>
               </div>
               <div class="hztc-prov-item">
                 <span class="hztc-prov-lbl">Trigger Reasoning:</span>
@@ -1299,7 +1291,7 @@
   <script src="js/windy-integration.js?v=16"></script>
   <script src="js/alerts.js?v=16"></script>
   <script src="js/reports.js?v=16"></script>
-  <script src="js/authority.js?v=21"></script>
+  <script src="js/authority.js?v=27"></script>
 
   <!-- Teja Simulation & Incident Command Extensions -->
   <script src="js/simulation-engine.js?v=16"></script>
