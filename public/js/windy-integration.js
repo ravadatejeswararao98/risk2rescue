@@ -38,7 +38,7 @@ class WindyIntegrationController {
     if (mapEl) mapEl.style.display = '';
 
     if (typeof showToast === 'function') {
-      showToast('🗺️ GIS Risk Map: Active Hazard Corridors', 'info');
+      showToast('<i class="fi fi-rr-map"></i> GIS Risk Map: Active Hazard Corridors', 'info');
     }
   }
 
@@ -109,12 +109,12 @@ class WindyIntegrationController {
       }
     }
 
-    let icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-cloud-sun') : '🌤️';
-    if (precip !== null && precip >= 10) icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-thunderstorm') : '⛈️';
-    else if (precip !== null && precip > 0.5) icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-cloud-showers-heavy') : '🌧️';
-    else if (gust !== null && gust >= 50) icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-tornado') : '🌪️';
-    else if (gust !== null && gust >= 35) icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-wind') : '💨';
-    else if (temp !== null && temp >= 32) icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-sun') : '☀️';
+    let icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-cloud-sun') : '<i class="fi fi-rr-cloud-sun"></i>';
+    if (precip !== null && precip >= 10) icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-thunderstorm') : '<i class="fi fi-rr-cloud-hail-mixed"></i>';
+    else if (precip !== null && precip > 0.5) icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-cloud-showers-heavy') : '<i class="fi fi-rr-cloud-rain"></i>';
+    else if (gust !== null && gust >= 50) icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-tornado') : '<i class="fi fi-rr-tornado"></i>';
+    else if (gust !== null && gust >= 35) icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-wind') : '<i class="fi fi-rr-wind"></i>';
+    else if (temp !== null && temp >= 32) icon = typeof window !== 'undefined' && window.iconHtml ? window.iconHtml('fi-rr-sun') : '<i class="fi fi-rr-sun"></i>';
 
     // Update Topbar Weather Pill
     const chipTemp = document.getElementById('chip-temp');

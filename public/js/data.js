@@ -400,7 +400,7 @@ const APP_DATA = {
       overallRiskScore: 8.4,
       status: 'SIMULATION_DRILL_ACTIVE'
     };
-    console.log('🔴 [APP_DATA] EXPLICIT DRILL MODE ACTIVATED. Displaying simulated scenarios.');
+    console.log('<i class="fi fi-rr-cross-circle" style="color:#ef4444;"></i> [APP_DATA] EXPLICIT DRILL MODE ACTIVATED. Displaying simulated scenarios.');
     if (typeof window !== 'undefined' && typeof window.renderZoneManager === 'function') {
       window.renderZoneManager();
     }
@@ -432,7 +432,7 @@ const APP_DATA = {
       overallRiskScore: null,
       status: 'READY'
     };
-    console.log('🟢 [APP_DATA] DRILL MODE DEACTIVATED. Restoring live telemetry operational state.');
+    console.log('<i class="fi fi-rr-check-circle" style="color:#10b981;"></i> [APP_DATA] DRILL MODE DEACTIVATED. Restoring live telemetry operational state.');
     syncLiveDashboardState();
   }
 };
@@ -600,9 +600,9 @@ if (typeof document !== 'undefined') {
     // Then poll every 10 seconds for live updates
     setInterval(() => {
       syncLiveDashboardState().then(() => {
-        console.log(`[LiveSync] ✅ Data refreshed at ${new Date().toLocaleTimeString()}`);
+        console.log(`[LiveSync] <i class="fi fi-rr-check"></i> Data refreshed at ${new Date().toLocaleTimeString()}`);
       }).catch(err => {
-        console.warn('[LiveSync] ⚠️ Sync failed:', err.message);
+        console.warn('[LiveSync] <i class="fi fi-rr-triangle-warning"></i> Sync failed:', err.message);
       });
     }, 10000); // 10,000ms = 10 seconds
   });

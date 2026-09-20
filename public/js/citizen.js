@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initMapInspector();
   initReportModal();
   initLiveAlertListener();
-  initAlertWebSocket();
+  // WebSocket replaced by shared-client.js
   initOfflineSupport();
 
   // Initialize Windy Multi-Layer Integration & Point Forecast Controller
@@ -99,22 +99,22 @@ function getWeatherConditionIcon(summary) {
     }
     return window.iconHtml('fi-rr-cloud-sun');
   }
-  if (!summary) return '🌤️';
-  if (summary.isSevereWind || (summary.currentWindKmh && summary.currentWindKmh >= 60)) return '🌪️';
-  if (summary.isExtremeRain || (summary.maxPrecipPerHourMm && summary.maxPrecipPerHourMm >= 10)) return '⛈️';
-  if (summary.maxPrecipPerHourMm && summary.maxPrecipPerHourMm > 0.5) return '🌧️';
+  if (!summary) return '<i class="fi fi-rr-cloud-sun"></i>';
+  if (summary.isSevereWind || (summary.currentWindKmh && summary.currentWindKmh >= 60)) return '<i class="fi fi-rr-tornado"></i>';
+  if (summary.isExtremeRain || (summary.maxPrecipPerHourMm && summary.maxPrecipPerHourMm >= 10)) return '<i class="fi fi-rr-cloud-hail-mixed"></i>';
+  if (summary.maxPrecipPerHourMm && summary.maxPrecipPerHourMm > 0.5) return '<i class="fi fi-rr-cloud-rain"></i>';
 
   const code = summary.weatherCode;
   if (code !== undefined) {
-    if ([95, 96, 99].includes(code)) return '⛈️';
-    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return '🌧️';
-    if ([71, 73, 75, 77, 85, 86].includes(code)) return '🌨️';
-    if ([45, 48].includes(code)) return '🌫️';
-    if ([1, 2, 3].includes(code)) return '⛅';
-    if (code === 0) return '☀️';
+    if ([95, 96, 99].includes(code)) return '<i class="fi fi-rr-cloud-hail-mixed"></i>';
+    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return '<i class="fi fi-rr-cloud-rain"></i>';
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return '<i class="fi fi-rr-cloud-snow"></i>';
+    if ([45, 48].includes(code)) return '<i class="fi fi-rr-smog"></i>';
+    if ([1, 2, 3].includes(code)) return '<i class="fi fi-rr-cloud-sun"></i>';
+    if (code === 0) return '<i class="fi fi-rr-sun"></i>';
   }
 
-  return '🌤️';
+  return '<i class="fi fi-rr-cloud-sun"></i>';
 }
 
 /**
@@ -165,7 +165,7 @@ async function updateCitizenWeatherAndRisk(lat, lng, place) {
     if (chipWind) chipWind.textContent = wind !== null ? `${wind} km/h` : '— km/h';
     if (chipIcon) {
       if (typeof icon === 'string' && icon.startsWith('<')) chipIcon.innerHTML = icon;
-      else chipIcon.textContent = icon || '☁️';
+      else chipIcon.textContent = icon || '<i class="fi fi-rr-cloud"></i>';
     }
 
     // Cache successful weather snapshot for offline resilience
@@ -201,7 +201,7 @@ async function updateCitizenWeatherAndRisk(lat, lng, place) {
         if (chipWind) chipWind.textContent = '— km/h';
         if (chipIcon) {
           if (typeof window !== 'undefined' && window.iconHtml) chipIcon.innerHTML = window.iconHtml('fi-rr-cloud');
-          else chipIcon.textContent = '☁️';
+          else chipIcon.textContent = '<i class="fi fi-rr-cloud"></i>';
         }
       }
     } catch (e) { }
@@ -524,7 +524,7 @@ function flyToShelter(id, lat, lng, name) {
   }, 350);
 
   if (typeof showToast === 'function') {
-    showToast(`📍 Evacuation target: ${name || fallbackSite.name}`, 'info');
+    showToast(`<i class="fi fi-rr-map-marker"></i> Evacuation target: ${name || fallbackSite.name}`, 'info');
   }
 }
 window.flyToShelter = flyToShelter;
@@ -618,7 +618,7 @@ function buildCitizenPopupHtml(lat, lng, place, risk) {
     return `
             <button type="button" class="location-popup-shelter-btn" onclick="flyToShelter('${sId}', ${sLat}, ${sLng}, '${sNameEsc}')" title="Navigate to ${escapeHtml(s.name)} on map">
               <span class="shelter-btn-left">
-                <span class="shelter-btn-icon">🛡️</span>
+                <span class="shelter-btn-icon"><i class="fi fi-rr-shield"></i></span>
                 <span class="shelter-btn-name">${escapeHtml(s.name)}</span>
               </span>
               <span class="shelter-btn-dist">${s.dist_km} km &rsaquo;</span>
@@ -633,7 +633,7 @@ function buildCitizenPopupHtml(lat, lng, place, risk) {
     <div class="location-popup">
       <div class="location-popup-header">
         <div class="location-popup-title-row">
-          <span class="location-popup-icon">📍</span>
+          <span class="location-popup-icon"><i class="fi fi-rr-map-marker"></i></span>
           <span class="location-popup-title">You are here</span>
         </div>
         <div class="location-popup-risk" style="background:${risk.riskColor}20; color:${risk.riskColor};">
@@ -648,7 +648,7 @@ function buildCitizenPopupHtml(lat, lng, place, risk) {
         <span class="location-popup-zone-name">${escapeHtml(risk.zone || 'General Safe Zone')}</span>
       </div>
       <div class="location-popup-advisory">
-        <span class="location-popup-advisory-icon">⚠️</span>
+        <span class="location-popup-advisory-icon"><i class="fi fi-rr-triangle-warning"></i></span>
         <span class="location-popup-advisory-text">${escapeHtml(risk.advisory || 'Follow standard civil defense guidance.')}</span>
       </div>
       ${sheltersHtml}
@@ -922,11 +922,11 @@ function initSearch() {
   }
 
   function renderItem(p) {
-    const riskIcons = { RED: '🔴', ORANGE: '🟠', YELLOW: '🟡', GREEN: '🟢' };
+    const riskIcons = { RED: '<i class="fi fi-rr-cross-circle" style="color:#ef4444;"></i>', ORANGE: '<i class="fi fi-rr-info" style="color:#f97316;"></i>', YELLOW: '<i class="fi fi-rr-info" style="color:#eab308;"></i>', GREEN: '<i class="fi fi-rr-check-circle" style="color:#10b981;"></i>' };
     const item = document.createElement('div');
     item.className = 'windy-search-item';
     const osmTag = p.isOsm ? '<span class="windy-search-osm-tag">via OpenStreetMap</span>' : '';
-    const icon = riskIcons[p.risk] || '🟢';
+    const icon = riskIcons[p.risk] || '<i class="fi fi-rr-check-circle" style="color:#10b981;"></i>';
     const riskBadgeClass = `risk-${(p.risk || 'green').toLowerCase()}`;
     const riskBadgeText = p.risk || 'GREEN';
 
@@ -1189,7 +1189,7 @@ window.initSearch = initSearch;
 // ================================================================
 function initLeftTools() {
   document.getElementById('tool-locate').addEventListener('click', () => {
-    showToast('📍 Detecting your location…', 'info');
+    showToast('<i class="fi fi-rr-map-marker"></i> Detecting your location…', 'info');
     RZILocationService.detectLocation()
       .then(async ({ lat, lng }) => {
         const place = await RZILocationService.reverseGeocode(lat, lng);
@@ -1209,10 +1209,10 @@ function initLeftTools() {
         if (chipCity) chipCity.textContent = place.display;
         placeAndActivateCitizenLocation(lat, lng, place.display);
         updateCitizenWeatherAndRisk(lat, lng, place.display);
-        showToast(`📍 Located: ${place.display}`, 'success');
+        showToast(`<i class="fi fi-rr-map-marker"></i> Located: ${place.display}`, 'success');
       })
       .catch((err) => {
-        showToast(`⚠️ ${err.message}`, 'warning');
+        showToast(`<i class="fi fi-rr-triangle-warning"></i> ${err.message}`, 'warning');
       });
   });
 
@@ -1251,7 +1251,7 @@ function guideToNearestShelter() {
     const distText = (typeof currentEvacuationTarget.distanceKm === 'number' && !isNaN(currentEvacuationTarget.distanceKm))
       ? ` (${currentEvacuationTarget.distanceKm.toFixed(1)} km away)`
       : '';
-    showToast(`🚶 Evacuation route: Heading to ${currentEvacuationTarget.name}${distText}`, 'success');
+    showToast(`<i class="fi fi-rr-walking"></i> Evacuation route: Heading to ${currentEvacuationTarget.name}${distText}`, 'success');
   } else {
     const s = HAZARD_INTEL[currentHazard]?.safeSites?.[0];
     if (s) {
@@ -1462,7 +1462,7 @@ function openInspector(zoneOrName, coords, risk, wind, surge, shelter) {
         card.className = `windy-safesite-card ${idx === 0 ? 'selected' : ''}`;
         card.innerHTML = `
           <div class="windy-safesite-top">
-            <span class="windy-safesite-icon">🛡️</span>
+            <span class="windy-safesite-icon"><i class="fi fi-rr-shield"></i></span>
             <div class="windy-safesite-info">
               <div class="windy-safesite-name">${site.name}</div>
               <div class="windy-safesite-dist">${site.distanceKm.toFixed(1)} km away</div>
@@ -1487,7 +1487,7 @@ function openInspector(zoneOrName, coords, risk, wind, surge, shelter) {
           currentEvacuationTarget = site;
           flyToCitizenMap(site.lat, site.lng, 13);
           if (site._marker) site._marker.openPopup();
-          showToast(`📍 Selected shelter: ${site.name} (${site.distanceKm.toFixed(1)} km)`, 'info');
+          showToast(`<i class="fi fi-rr-map-marker"></i> Selected shelter: ${site.name} (${site.distanceKm.toFixed(1)} km)`, 'info');
         });
 
         listEl.appendChild(card);
@@ -1519,7 +1519,7 @@ function updateReportLocationField() {
     repLoc.style.background = 'rgba(34,197,94,0.08)';
     repLoc.style.borderColor = 'rgba(34,197,94,0.4)';
     if (badge) badge.style.display = 'inline-block';
-    if (note) note.textContent = '🔒 Coordinates locked from your GPS device.';
+    if (note) note.textContent = '<i class="fi fi-rr-lock"></i> Coordinates locked from your GPS device.';
   } else {
     repLoc.readOnly = false;
     repLoc.style.background = '';
@@ -1639,7 +1639,7 @@ function initReportModal() {
 
       // Optimistic instant feedback (< 300ms)
       modal.classList.remove('active');
-      showToast('✅ Report submitted! Transmitted to Incident Command.', 'success');
+      showToast('<i class="fi fi-rr-check"></i> Report submitted! Transmitted to Incident Command.', 'success');
 
       // Local storage snapshot for immediate cross-portal availability
       try {
@@ -1702,53 +1702,7 @@ let socketRetryTimeout = null;
 const MAX_SOCKET_RETRY_DELAY = 30000;
 let emergencyBannerTimer = null;
 
-function initAlertWebSocket() {
-  if (alertSocket && (alertSocket.readyState === WebSocket.OPEN || alertSocket.readyState === WebSocket.CONNECTING)) {
-    return;
-  }
-
-  try {
-    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${location.host}`;
-    alertSocket = new WebSocket(wsUrl);
-    window.alertSocket = alertSocket;
-    window.socketRetryDelay = socketRetryDelay;
-
-    alertSocket.onopen = () => {
-      socketRetryDelay = 2000;
-      window.socketRetryDelay = socketRetryDelay;
-    };
-
-    alertSocket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'authority_alert' && data.alert) {
-          handleIncomingAuthorityAlert(data.alert);
-        } else if (data.type === 'live_state_update' && data.data) {
-          handleIncomingLiveStateUpdate(data.data);
-        }
-      } catch (e) {
-        // Degrade silently
-      }
-    };
-
-    alertSocket.onerror = () => {
-      // Degrade silently — no notifications, no errors shown to citizen
-    };
-
-    alertSocket.onclose = () => {
-      // Reconnect gracefully with exponential backoff
-      if (socketRetryTimeout) clearTimeout(socketRetryTimeout);
-      socketRetryTimeout = setTimeout(() => {
-        socketRetryDelay = Math.min(MAX_SOCKET_RETRY_DELAY, Math.round(socketRetryDelay * 1.5));
-        window.socketRetryDelay = socketRetryDelay;
-        initAlertWebSocket();
-      }, socketRetryDelay);
-    };
-  } catch (err) {
-    // Degrade silently
-  }
-}
+// initAlertWebSocket removed: handled by shared-client.js
 
 function showAuthorityAlertBanner(title, message, area) {
   const banner = document.getElementById('citizen-emergency-banner');
@@ -1816,43 +1770,6 @@ function handleIncomingAuthorityAlert(alert) {
   checkAlertZoneProximityAndTriggerEvacuation(alert, createdZone);
 }
 
-function handleIncomingLiveStateUpdate(state) {
-  if (!state) return;
-
-  // 1. Update risk zones in memory and map engine
-  if (Array.isArray(state.zones)) {
-    if (window.APP_DATA) {
-      window.APP_DATA.riskZones = state.zones;
-    }
-    if (window.hazardEngine && window.hazardEngine.aiState) {
-      window.hazardEngine.aiState.allZones = state.zones;
-      window.hazardEngine.aiState.zones = state.zones;
-      if (typeof window.hazardEngine.render === 'function') {
-        window.hazardEngine.render(window.hazardEngine.currentHazard || 'all', true);
-      }
-    }
-  }
-
-  // 2. Refresh citizen location risk badge
-  if (typeof updateCitizenRiskBadge === 'function') {
-    updateCitizenRiskBadge(window.citizenCurrentLocation);
-  }
-
-  // 3. Ingest active alerts into notifications
-  if (Array.isArray(state.alerts) && state.alerts.length > 0) {
-    state.alerts.forEach(a => {
-      if (typeof addCitizenNotification === 'function') {
-        addCitizenNotification({
-          type: 'official alert',
-          title: a.title || a.headline || 'Official Alert',
-          message: `${a.event || 'Advisory'}: ${a.areaDesc || 'Andhra Pradesh'}`,
-          timestamp: a.effective ? new Date(a.effective).getTime() : Date.now(),
-          read: false
-        });
-      }
-    });
-  }
-}
 
 function checkAlertZoneProximityAndTriggerEvacuation(alert, createdZone = null) {
   // Retrieve current citizen coordinates
@@ -1922,7 +1839,7 @@ function triggerSafeLocationFlow(zone, coords) {
   // Auto-open Task 8 hazard dialog with safe sites ready
   openInspector(zone, coords);
 
-  showToast(`🛡️ Evacuation Guidance: Move to a safe location for ${zone.name}`, 'warning');
+  showToast(`<i class="fi fi-rr-shield"></i> Evacuation Guidance: Move to a safe location for ${zone.name}`, 'warning');
 }
 
 // Real-time Emergency Alert Listener from Authority Command Center (Firebase fallback)
@@ -1944,7 +1861,7 @@ function initLiveAlertListener() {
 // TOAST
 // ================================================================
 function showToast(msg, type = 'info') {
-  const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', danger: '🚨' };
+  const icons = { info: '<i class="fi fi-rr-info"></i>', success: '<i class="fi fi-rr-check"></i>', warning: '<i class="fi fi-rr-triangle-warning"></i>', danger: '<i class="fi fi-rr-siren"></i>' };
   let container = document.getElementById('toast-container');
   if (!container) {
     container = document.createElement('div');
@@ -2039,7 +1956,7 @@ function renderCitizenNotifications() {
   if (window.citizenNotifications.length === 0) {
     list.innerHTML = `
       <div class="notif-empty">
-        <span class="notif-empty-icon">🔔</span>
+        <span class="notif-empty-icon"><i class="fi fi-rr-bell"></i></span>
         No alerts or notifications at this time.<br>Official warnings will appear here.
       </div>`;
     return;
@@ -2052,7 +1969,7 @@ function renderCitizenNotifications() {
   sorted.forEach(notif => {
     const isAuthority = notif.type === 'authority' || notif.type === 'authority alert';
     const isHazard = notif.type === 'hazard';
-    const icon = isHazard ? '⚠️' : (isAuthority ? '🏛️' : '✅');
+    const icon = isHazard ? '<i class="fi fi-rr-triangle-warning"></i>' : (isAuthority ? '<i class="fi fi-rr-bank"></i>' : '<i class="fi fi-rr-check"></i>');
     const typeLabel = isHazard ? 'Hazard Alert' : (isAuthority ? 'Authority Alert' : 'Status Update');
     const safeType = notif.type.toLowerCase().replace(/[^a-z0-9]/g, '-');
     const card = document.createElement('div');

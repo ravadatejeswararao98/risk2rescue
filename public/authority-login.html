@@ -615,7 +615,7 @@
                 onclick="togglePwVisibility('signin-pw', this)" 
                 aria-label="Toggle password visibility"
               >
-                👁️
+                <i class="fi fi-rr-eye"></i>
               </button>
             </div>
             <div class="input-err-msg" id="signin-pw-err">Please enter your authorized security passcode.</div>
@@ -624,7 +624,7 @@
           <!-- Submit Button -->
           <button type="submit" class="btn-submit" id="signin-submit-btn">
             <span class="btn-spinner" id="signin-spinner" aria-hidden="true"></span>
-            <span id="signin-btn-text">Sign In ➔</span>
+            <span id="signin-btn-text">Sign In <i class="fi fi-rr-arrow-right"></i></span>
           </button>
 
           <!-- View Switch Divider -->
@@ -750,7 +750,7 @@
                 onclick="togglePwVisibility('reg-pw', this)" 
                 aria-label="Toggle password visibility"
               >
-                👁️
+                <i class="fi fi-rr-eye"></i>
               </button>
             </div>
             <div class="input-err-msg" id="reg-pw-err">Password must be at least 8 characters long.</div>
@@ -774,7 +774,7 @@
                 onclick="togglePwVisibility('reg-confirm-pw', this)" 
                 aria-label="Toggle password visibility"
               >
-                👁️
+                <i class="fi fi-rr-eye"></i>
               </button>
             </div>
             <div class="input-err-msg" id="reg-confirm-pw-err">Passcodes do not match. Please verify.</div>
@@ -783,7 +783,7 @@
           <!-- Submit Button -->
           <button type="submit" class="btn-submit" id="create-submit-btn">
             <span class="btn-spinner" id="create-spinner" aria-hidden="true"></span>
-            <span id="create-btn-text">Create Account & Continue ➔</span>
+            <span id="create-btn-text">Create Account & Continue <i class="fi fi-rr-arrow-right"></i></span>
           </button>
 
           <!-- Back to Sign In Link -->
@@ -887,11 +887,11 @@
       if (!field) return;
       if (field.type === 'password') {
         field.type = 'text';
-        btnEl.textContent = '🔒';
+        btnEl.textContent = '<i class="fi fi-rr-lock"></i>';
         btnEl.setAttribute('aria-label', 'Hide password');
       } else {
         field.type = 'password';
-        btnEl.textContent = '👁️';
+        btnEl.textContent = '<i class="fi fi-rr-eye"></i>';
         btnEl.setAttribute('aria-label', 'Show password');
       }
     }
@@ -1001,7 +1001,7 @@
         if (window.rziClient && typeof window.rziClient.login === 'function') {
           try {
             await window.rziClient.login(identifier, password);
-            btnText.textContent = 'Clearance verified ➔';
+            btnText.textContent = 'Clearance verified <i class="fi fi-rr-arrow-right"></i>';
             setTimeout(() => {
               window.location.href = 'authority.html';
             }, 350);
@@ -1026,7 +1026,7 @@
           setError(pwInput, pwErr, 'Invalid credentials. Please verify your officer credentials and security passcode.');
           submitBtn.disabled = false;
           spinner.style.display = 'none';
-          btnText.textContent = 'Sign In ➔';
+          btnText.textContent = 'Sign In <i class="fi fi-rr-arrow-right"></i>';
           return;
         }
 
@@ -1042,7 +1042,7 @@
 
         sessionStorage.setItem('rzi_authority_officer', JSON.stringify(profile));
         document.cookie = "rzi_auth=true; path=/";
-        btnText.textContent = 'Clearance verified ➔';
+        btnText.textContent = 'Clearance verified <i class="fi fi-rr-arrow-right"></i>';
         setTimeout(() => {
           window.location.href = 'authority.html';
         }, 350);
@@ -1051,7 +1051,7 @@
         setError(pwInput, pwErr, 'Authentication system error. Please retry.');
         submitBtn.disabled = false;
         spinner.style.display = 'none';
-        btnText.textContent = 'Sign In ➔';
+        btnText.textContent = 'Sign In <i class="fi fi-rr-arrow-right"></i>';
       }
     }
 
@@ -1213,7 +1213,7 @@
 
           sessionStorage.setItem('rzi_authority_officer', JSON.stringify(officerData));
           document.cookie = "rzi_auth=true; path=/";
-          btnText.textContent = 'Account created ➔ Redirecting...';
+          btnText.textContent = 'Account created <i class="fi fi-rr-arrow-right"></i> Redirecting...';
           setTimeout(() => {
             window.location.href = 'authority.html';
           }, 400);
@@ -1224,7 +1224,7 @@
             setError(emailInput, emailErr, 'This official email or Officer ID is already registered. Please sign in instead.');
             submitBtn.disabled = false;
             spinner.style.display = 'none';
-            btnText.textContent = 'Create Account & Continue ➔';
+            btnText.textContent = 'Create Account & Continue <i class="fi fi-rr-arrow-right"></i>';
             return;
           }
         }
@@ -1261,7 +1261,7 @@
 
           sessionStorage.setItem('rzi_authority_officer', JSON.stringify(officerData));
           document.cookie = "rzi_auth=true; path=/";
-          btnText.textContent = 'Account created ➔ Redirecting...';
+          btnText.textContent = 'Account created <i class="fi fi-rr-arrow-right"></i> Redirecting...';
           setTimeout(() => {
             window.location.href = 'authority.html';
           }, 450);
@@ -1272,20 +1272,20 @@
             setError(emailInput, emailErr, 'This official email is already registered. Please sign in instead.');
             submitBtn.disabled = false;
             spinner.style.display = 'none';
-            btnText.textContent = 'Create Account & Continue ➔';
+            btnText.textContent = 'Create Account & Continue <i class="fi fi-rr-arrow-right"></i>';
             return;
           } else if (authErr.code === 'auth/weak-password') {
             setError(pwInput, pwErr, 'Passcode is too weak. Please use at least 8 characters.');
             submitBtn.disabled = false;
             spinner.style.display = 'none';
-            btnText.textContent = 'Create Account & Continue ➔';
+            btnText.textContent = 'Create Account & Continue <i class="fi fi-rr-arrow-right"></i>';
             return;
           }
 
           // Fallback for offline/demo environment
           sessionStorage.setItem('rzi_authority_officer', JSON.stringify(officerData));
           document.cookie = "rzi_auth=true; path=/";
-          btnText.textContent = 'Account created ➔ Redirecting...';
+          btnText.textContent = 'Account created <i class="fi fi-rr-arrow-right"></i> Redirecting...';
           setTimeout(() => {
             window.location.href = 'authority.html';
           }, 500);

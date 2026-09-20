@@ -59,10 +59,12 @@
   <nav class="rzi-dock" id="rzi-dock" aria-label="Primary Navigation">
     <div class="dock-nav-group">
       <!-- Home / Live GIS Risk Map (DEFAULT LANDING PAGE) -->
-      <a href="authority-map.html" class="dock-item " style="--item-accent: var(--accent-cyan); text-decoration: none;" title="Home"><span class="dock-icon"><i class="fi fi-rr-home" aria-hidden="true"></i></span><span class="dock-label">Home</span></a>
+      <button class="dock-item" data-view="map-view" style="--item-accent: var(--accent-cyan)" title="Home">
+        <span class="dock-icon"><i class="fi fi-br-home" aria-hidden="true"></i></span><span class="dock-label">Home</span>
+      </button>
 
       <!-- Command Center -->
-      <button class="dock-item" data-view="command" style="--item-accent: var(--accent-blue)" title="Command Center">
+      <button class="dock-item active" data-view="command" style="--item-accent: var(--accent-blue)" title="Command Center">
         <span class="dock-icon"><i class="fi fi-rr-settings-sliders" aria-hidden="true"></i></span><span class="dock-label">Command Center</span>
       </button>
 
@@ -70,11 +72,11 @@
       <div class="dock-divider"></div>
 
       <!-- Red Zones & Habitations -->
-      <a href="authority-queue.html" class="dock-item " style="--item-accent: var(--risk-red); text-decoration: none;" title="Red Zones & Habitations">
+      <button class="dock-item" data-view="habitations" style="--item-accent: var(--risk-red)" title="Red Zones & Habitations">
         <span class="dock-icon"><i class="fi fi-rr-house-building" aria-hidden="true"></i></span>
         <span class="dock-label">Red Zones &amp; Habitations</span>
         <span class="dock-badge" id="dock-habs-badge" style="display:none;">0</span>
-      </a>
+      </button>
 
       <!-- Zone Manager -->
       <button class="dock-item" data-view="zone-manager" style="--item-accent: var(--risk-orange)" title="Zone Manager">
@@ -94,60 +96,34 @@
       <div class="dock-divider"></div>
 
       <!-- Citizen Report Queue -->
-      <a href="authority-citizen.html" class="dock-item" style="--item-accent: var(--risk-orange); text-decoration: none;" title="Citizen Report Queue"><span class="dock-icon"><i class="fi fi-rr-inbox-in" aria-hidden="true"></i></span><span class="dock-label">Citizen Report Queue</span><span class="dock-badge" id="dock-queue-badge">0</span></a>
+      <button class="dock-item" data-view="reports" style="--item-accent: var(--risk-orange)" title="Citizen Report Queue">
+        <span class="dock-icon"><i class="fi fi-rr-inbox-in" aria-hidden="true"></i></span>
+        <span class="dock-label">Citizen Report Queue</span>
+        <span class="dock-badge" id="dock-queue-badge">0</span>
+      </button>
 
       <!-- Safe Sites & Capacity (Repositioned right before Sensor Data Sources) -->
-      <a href="authority-capacity.html" class="dock-item" style="--item-accent: var(--risk-green); text-decoration: none;" title="Safe Sites & Capacity"><span class="dock-icon"><i class="fi fi-rr-person-shelter" aria-hidden="true"></i></span><span class="dock-label">Safe Sites &amp; Capacity</span></a>
+      <button class="dock-item" data-view="safesites" style="--item-accent: var(--risk-green)" title="Safe Sites & Capacity">
+        <span class="dock-icon"><i class="fi fi-rr-person-shelter" aria-hidden="true"></i></span><span class="dock-label">Safe Sites &amp; Capacity</span>
+      </button>
 
       <!-- AI Decision Support -->
-      <a href="authority-ai.html" class="dock-item active" style="--item-accent: var(--accent-purple, #8b5cf6); text-decoration: none;" title="AI Decision Support"><span class="dock-icon"><i class="fi fi-br-robot" aria-hidden="true"></i></span><span class="dock-label">AI Decision Support</span></a>
+      <button class="dock-item" data-view="decision-support" style="--item-accent: var(--accent-purple, #8b5cf6)" title="AI Decision Support">
+        <span class="dock-icon"><i class="fi fi-rr-robot" aria-hidden="true"></i></span><span class="dock-label">AI Decision Support</span>
+      </button>
 
       <!-- Sensor Data Sources -->
       <button class="dock-item" data-view="datasources" style="--item-accent: var(--accent-blue)" title="Sensor Data Sources">
         <span class="dock-icon"><i class="fi fi-rr-satellite-dish" aria-hidden="true"></i></span><span class="dock-label">Sensor Data Sources</span>
       </button>
+
+      <!-- Data Log -->
+      <button class="dock-item" data-view="data-log" style="--item-accent: #10b981" title="Data Log">
+        <span class="dock-icon"><i class="fi fi-rr-rectangle-list" aria-hidden="true"></i></span>
+        <span class="dock-label">Data Log</span>
+      </button>
     </div>
 
-    <!-- Compact Modern Profile Panel fixed to the bottom-left of the dock -->
-    <div class="dock-profile-card" id="dock-profile-card" aria-label="Officer Profile">
-      <div class="dock-profile-header">
-        <div class="dock-profile-avatar-wrap">
-          <div class="dock-profile-avatar" id="dock-officer-avatar">AP</div>
-          <span class="dock-profile-status-dot" title="Active Clearance Session"></span>
-        </div>
-        <div class="dock-profile-meta">
-          <div class="dock-profile-name" id="dock-officer-name" title="Officer Name">Officer In-Charge</div>
-          <div class="dock-profile-id-badge" id="dock-officer-id" title="Officer ID">ID: AP-SDMA-4029</div>
-        </div>
-      </div>
-
-      <div class="dock-profile-details">
-        <div class="dock-profile-detail-row">
-          <span class="dock-profile-detail-label">Role</span>
-          <span class="dock-profile-detail-val" id="dock-officer-role">Command Authority</span>
-        </div>
-        <div class="dock-profile-detail-row">
-          <span class="dock-profile-detail-label">Dept</span>
-          <span class="dock-profile-detail-val" id="dock-officer-dept">AP SDMA Incident Command</span>
-        </div>
-        <div class="dock-profile-detail-row" id="dock-officer-station-row">
-          <span class="dock-profile-detail-label">Station</span>
-          <span class="dock-profile-detail-val" id="dock-officer-station">Statewide HQ</span>
-        </div>
-      </div>
-
-      <!-- Sign Out Button (sign-out lives only inside this profile panel) -->
-      <button class="dock-profile-signout-btn" id="dock-profile-signout" onclick="authoritySignOut()" title="Sign Out of Authority Command">
-        <svg class="dock-signout-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-          <polyline points="16 17 21 12 16 7"></polyline>
-          <line x1="21" y1="12" x2="9" y2="12"></line>
-        </svg>
-        <span>Sign Out</span>
-      </button>
-      <div style="font-size: 10px; color: #94a3b8; text-align: center; margin-top: 8px;">
-        Icons: Uicons by <a href="https://www.flaticon.com/uicons" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline;">Flaticon</a>
-      </div>
     </div>
   </nav>
 
@@ -170,7 +146,7 @@
         </div>
         <div class="sync-status-indicator offline" id="sync-status-indicator" style="display: none !important;" aria-hidden="true">
           <span class="sync-dot"></span>
-          <span class="sync-text">⚪ Live (Sync Active)</span>
+          <span class="sync-text"><i class="fi fi-rr-circle"></i> Live (Sync Active)</span>
         </div>
       </div>
 
@@ -195,10 +171,10 @@
       <!-- Pill 5: Action Buttons Cluster -->
       <div class="topbar-actions-cluster topbar-pill">
         <button class="btn btn-glass topbar-decision-btn" style="padding: 6px 12px; font-size: 11px; white-space: nowrap; color: #a855f7; border-color: rgba(168, 85, 247, 0.35);" onclick="switchToDecisionBrief()" title="Open DeepSeek-R1 Decision Support Brief">
-          🧠 <span class="btn-text-full">Decision Brief</span>
+          <i class="fi fi-rr-brain"></i> <span class="btn-text-full">Decision Brief</span>
         </button>
         <button class="btn btn-primary topbar-alert-btn" style="padding: 6px 14px; font-size: 11px; white-space: nowrap;" onclick="openEmergencyAlertModal()" title="Broadcast Regional Alert">
-          📢 <span class="btn-text-full">Alert</span>
+          <i class="fi fi-rr-megaphone"></i> <span class="btn-text-full">Alert</span>
         </button>
       </div>
     </header>
@@ -238,7 +214,7 @@
 
       <!-- Floating Hazard Button (Top Right — Clear of Zoom & Topbar) -->
       <button id="btn-map-hazard" class="btn-map-hazard" onclick="toggleMapHazardDropdown(event)" title="Active Monitored Hazards">
-        <span class="hazard-btn-icon">⚠️</span>
+        <span class="hazard-btn-icon"><i class="fi fi-rr-triangle-warning"></i></span>
         <span class="hazard-btn-text">Hazards</span>
         <span class="hazard-badge-count" id="hazard-badge-count">0</span>
       </button>
@@ -247,7 +223,7 @@
       <div id="map-hazard-dropdown" class="map-hazard-dropdown" style="display:none;" onclick="event.stopPropagation()">
         <div class="mhd-header">
           <div class="mhd-title">
-            <span>⚠️</span>
+            <span><i class="fi fi-rr-triangle-warning"></i></span>
             <span>Active Monitored Hazards</span>
           </div>
           <span class="mhd-chip">LIVE TELEMETRY</span>
@@ -261,7 +237,7 @@
       <div id="hazard-zone-table-card" class="hazard-zone-table-card" style="display:none;" onclick="event.stopPropagation()">
         <div class="hztc-header">
           <div class="hztc-title-group">
-            <span id="hztc-icon" style="font-size:22px;">🌀</span>
+            <span id="hztc-icon" style="font-size:22px;"><i class="fi fi-rr-tornado"></i></span>
             <div>
               <div id="hztc-name" class="hztc-name">Cyclone Titli</div>
               <div id="hztc-type" class="hztc-type">Coastal Cyclone Warning Corridor</div>
@@ -300,8 +276,8 @@
             <div id="hztc-shelters" class="hztc-shelter-info">Kakinada Port Relief Camp (3,760 beds available)</div>
           </div>
           <div class="hztc-footer">
-            <button class="btn btn-glass" style="padding:6px 12px; font-size:11px;" onclick="switchView('habitations')">View Habitations ➔</button>
-            <button class="btn btn-primary" style="padding:6px 12px; font-size:11px;" onclick="openEmergencyAlertModal()">Issue Emergency Alert 📢</button>
+            <button class="btn btn-glass" style="padding:6px 12px; font-size:11px;" onclick="switchView('habitations')">View Habitations <i class="fi fi-rr-arrow-right"></i></button>
+            <button class="btn btn-primary" style="padding:6px 12px; font-size:11px;" onclick="openEmergencyAlertModal()">Issue Emergency Alert <i class="fi fi-rr-megaphone"></i></button>
           </div>
         </div>
       </div>
@@ -370,10 +346,67 @@
       </div>
 
 
-        <!-- ========================================================
-             TASK 18: AI DECISION SUPPORT PANEL
-             Integrated DeepSeek-R1 8B Evidence-Grounded Decision Brief
-             ======================================================== -->
+      <!-- ========================================================
+           NEW VIEW: ZONE MANAGER PANEL
+           ======================================================== -->
+      <section id="view-zone-manager" style="display:none; padding: 20px;">
+        <div class="dsb-card" style="padding: 24px; border: 1px solid var(--border, rgba(15, 23, 42, 0.1)); border-radius: 12px; background: var(--bg-surface, #ffffff); box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+          <div class="dsb-header" style="margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+            <div class="dsb-title-wrap" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+              <div style="display:flex; align-items:center;">
+                <div class="dsb-icon-wrap" style="background: rgba(249,115,22,0.1); color: var(--risk-orange); margin-right:12px;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 9.36l-7.1 7.1a1 1 0 0 1-1.4 0l-2.83-2.83a1 1 0 0 1 0-1.4l7.1-7.1a6 6 0 0 1 9.36-7.94l-3.77 3.77z"></path></svg>
+                </div>
+                <div>
+                  <div class="dsb-title" style="font-size: 1.25rem; display: flex; align-items: center; gap: 12px;">
+                    Active Zone Manager
+                    <span id="zm-live-status" style="background: rgba(16, 185, 129, 0.1); color: var(--risk-green, #10b981); border: 1px solid rgba(16,185,129,0.2); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; display: flex; align-items: center; gap: 6px;">
+                      <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--risk-green, #10b981); box-shadow: 0 0 8px var(--risk-green, #10b981);"></span>
+                      Synced Just Now
+                    </span>
+                  </div>
+                  <div class="dsb-subtitle">Live Operational Hazard Zones & Evacuation Corridors</div>
+                </div>
+              </div>
+              
+              <!-- Zone Manager Filter Tabs -->
+              <div class="mhd-filter-tabs" style="margin:0;">
+                <button class="mhd-filter-btn active" id="zm-filter-all" onclick="setZoneManagerFilter('ALL')">All</button>
+                <button class="mhd-filter-btn filter-active" id="zm-filter-red" onclick="setZoneManagerFilter('RED')">Red</button>
+                <button class="mhd-filter-btn filter-monitoring" id="zm-filter-orange" style="color:#f97316; border-color:rgba(249,115,22,0.3); background:rgba(249,115,22,0.1);" onclick="setZoneManagerFilter('ORANGE')">Orange</button>
+                <button class="mhd-filter-btn filter-monitoring" id="zm-filter-yellow" style="color:#eab308; border-color:rgba(234,179,8,0.3); background:rgba(234,179,8,0.1);" onclick="setZoneManagerFilter('YELLOW')">Yellow</button>
+                <button class="mhd-filter-btn filter-normal" id="zm-filter-green" onclick="setZoneManagerFilter('GREEN')">Green</button>
+              </div>
+              
+              <button class="btn" id="zm-refresh-btn" onclick="forceRefreshZoneManager()" style="background: rgba(56,189,248,0.1); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); padding: 8px 16px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-left: 16px;">
+                <i class="fi fi-rr-refresh"></i> Refresh
+              </button>
+            </div>
+          </div>
+          <div class="dsb-body" style="overflow-x: auto;">
+            <table class="data-table" id="zone-manager-table" style="width: 100%; border-collapse: separate; border-spacing: 0;">
+              <thead>
+                <tr style="background: rgba(0,0,0,0.02);">
+                  <th style="padding: 12px 16px; text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); border-bottom: 1px solid var(--border, rgba(15, 23, 42, 0.1)); border-top-left-radius: 8px; font-weight: 700;">Zone ID</th>
+                  <th style="padding: 12px 16px; text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); border-bottom: 1px solid var(--border);">Name</th>
+                  <th style="padding: 12px 16px; text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); border-bottom: 1px solid var(--border);">Risk Level</th>
+                  <th style="padding: 12px 16px; text-align: right; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); border-bottom: 1px solid var(--border);">Pop. at Risk</th>
+                  <th style="padding: 12px 16px; text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); border-bottom: 1px solid var(--border);">Epicenter Coords</th>
+                  <th style="padding: 12px 16px; text-align: center; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); border-bottom: 1px solid var(--border, rgba(15, 23, 42, 0.1)); border-top-right-radius: 8px; font-weight: 700;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="zone-manager-tbody">
+                <!-- Populated via js/authority.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           VIEW 2: AI DECISION SUPPORT PANEL
+           Integrated DeepSeek-R1 8B Evidence-Grounded Decision Brief
+           ======================================================== -->
       <section id="view-decision-support" style="display:none;">
         <div class="dsb-card" id="ai-decision-support-panel">
           <div class="dsb-header">
@@ -391,7 +424,7 @@
             </div>
             <div class="dsb-header-actions">
               <span class="dsb-model-badge" id="dsb-status-badge">DeepSeek-R1 8B • Evidence Grounded</span>
-              <span class="dsb-read-only-pill">⚠️ READ-ONLY ADVISORY</span>
+              <span class="dsb-read-only-pill"><i class="fi fi-rr-triangle-warning"></i> READ-ONLY ADVISORY</span>
               <button class="dsb-btn-generate" id="btn-generate-brief" onclick="generateDecisionBrief(false)" title="Generate evidence-grounded decision brief">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
                 <span>Generate Brief</span>
@@ -448,11 +481,10 @@
               <span class="dsb-prov-val" id="dsb-meta-time" style="display:none;"></span>
             </div>
             <div class="dsb-prov-disclaimer">
-              🛡️ Operational decision-support brief generated by DeepSeek-R1:8b. Deterministic evidence layers provided by TerraMind satellite processing, AP SDMA GIS boundary files, Census projections, and OSRM routing engine. Automated alerts disabled; human authorization required.
+              <i class="fi fi-rr-shield"></i> Operational decision-support brief generated by DeepSeek-R1:8b. Deterministic evidence layers provided by TerraMind satellite processing, AP SDMA GIS boundary files, Census projections, and OSRM routing engine. Automated alerts disabled; human authorization required.
             </div>
           </div>
         </div>
-      </section>
 
         <!-- Hidden backward-compatibility container for legacy scripts -->
         <div id="ai-situational-brief" style="display:none;" aria-hidden="true">
@@ -461,44 +493,67 @@
           <span id="ai-brief-timestamp"></span>
           <span id="ai-refresh-spinner"></span>
         </div>
+      </section>
+
+      <!-- ========================================================
+           VIEW 1: OPERATIONAL COMMAND CENTER
+           ======================================================== -->
+      <section id="view-command" style="display:none;">
+        <!-- Live Telemetry Status Banner -->
+        <div class="command-live-banner" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.25); border-radius:10px; padding:10px 18px; margin-bottom:16px; backdrop-filter:blur(8px);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="pulse-dot green" style="width:9px; height:9px; box-shadow:0 0 8px #22c55e;"></span>
+            <strong style="color:#38bdf8; font-size:12px; letter-spacing:0.06em;">LIVE TELEMETRY STREAMING</strong>
+            <span style="color:var(--text-muted);">&bull;</span>
+            <span style="font-size:12px; color:var(--text-secondary);">Canonical Multi-Source Engine</span>
+            <span style="color:var(--text-muted);">&bull;</span>
+            <span id="command-live-sync-time" style="font-size:12px; color:#22c55e; font-weight:600;">Synced: Active</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:11px; color:var(--text-muted); background:rgba(255,255,255,0.06); padding:4px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">15 Feeds Live (Open-Meteo, USGS, CWC, CPCB, NASA, IMD)</span>
+            <button class="btn btn-glass" style="padding:4px 12px; font-size:11px; border-color:rgba(56,189,248,0.4);" onclick="fetchDashboardState(); showToast('Live telemetry refreshed', 'info');">
+              <i class="fi fi-rr-refresh"></i> Refresh Now
+            </button>
+          </div>
+        </div>
 
         <!-- 8 Core KPIs (Clickable for Instant Drilldown) -->
         <div class="dashboard-kpis">
           <!-- Active Hazards -->
           <div class="kpi-card critical" onclick="switchView('hazards')" style="cursor:pointer;" title="Click to view all monitored hazards">
-            <div class="kpi-icon">🌀</div>
+            <div class="kpi-icon"><i class="fi fi-rr-tornado"></i></div>
             <div class="kpi-value" id="kpi-active-hazards">0</div>
             <div class="kpi-label">Active Monitored Hazards</div>
-            <div class="kpi-trend down">🟢 0 Active Threats</div>
+            <div class="kpi-trend down"><i class="fi fi-rr-check-circle" style="color:#10b981;"></i> 0 Active Threats</div>
           </div>
 
           <!-- High Risk Habitations -->
           <div class="kpi-card warning" onclick="switchView('habitations')" style="cursor:pointer;" title="Click to view habitations ranking">
-            <div class="kpi-icon">🏘️</div>
+            <div class="kpi-icon"><i class="fi fi-rr-house-building"></i></div>
             <div class="kpi-value" id="kpi-high-risk-habs">0</div>
             <div class="kpi-label">High-Risk Habitations</div>
-            <div class="kpi-trend down" id="kpi-high-risk-trend">🟢 Normal monitoring</div>
+            <div class="kpi-trend down" id="kpi-high-risk-trend"><i class="fi fi-rr-check-circle" style="color:#10b981;"></i> Normal monitoring</div>
           </div>
 
           <!-- Population at Risk (Honest Baseline) -->
           <div class="kpi-card critical" onclick="switchView('population-risk')" style="cursor:pointer;" title="Click to view population exposure breakdown">
-            <div class="kpi-icon">👥</div>
+            <div class="kpi-icon"><i class="fi fi-rr-users"></i></div>
             <div class="kpi-value" id="kpi-pop-risk">0</div>
             <div class="kpi-label">Population at Risk <span class="data-source-badge" title="Estimated based on Census 2011 & SDMA enumeration">Est. 2011 Census</span></div>
-            <div class="kpi-trend down" id="kpi-pop-trend">🟢 No exposed habitations</div>
+            <div class="kpi-trend down" id="kpi-pop-trend"><i class="fi fi-rr-check-circle" style="color:#10b981;"></i> No exposed habitations</div>
           </div>
 
           <!-- Safe Site Capacity (Honest Baseline) -->
           <div class="kpi-card safe" onclick="switchView('safesites')" style="cursor:pointer;" title="Click to view safe shelters">
-            <div class="kpi-icon">🏕️</div>
+            <div class="kpi-icon"><i class="fi fi-rr-person-shelter"></i></div>
             <div class="kpi-value" id="kpi-shelter-cap">28.0k</div>
             <div class="kpi-label">Safe Shelter Capacity <span class="data-source-badge" title="AP SDMA registered civil facility capacity">SDMA Base</span></div>
-            <div class="kpi-trend down" id="kpi-shelter-trend">ESTIMATED OCCUPANCY: UNKNOWN &bull; SDMA Base ➔</div>
+            <div class="kpi-trend down" id="kpi-shelter-trend">ESTIMATED OCCUPANCY: UNKNOWN &bull; SDMA Base <i class="fi fi-rr-arrow-right"></i></div>
           </div>
 
           <!-- Immediate Priority Areas -->
           <div class="kpi-card warning" onclick="switchView('habitations')" style="cursor:pointer;" title="Click to view priority sectors">
-            <div class="kpi-icon">🎯</div>
+            <div class="kpi-icon"><i class="fi fi-rr-crosshairs"></i></div>
             <div class="kpi-value" id="kpi-priority-sectors">0</div>
             <div class="kpi-label">Immediate Priority Sectors</div>
             <div class="kpi-trend neutral" id="kpi-priority-trend">All sectors reporting standard operational state</div>
@@ -506,26 +561,26 @@
 
           <!-- Live Coastal Doppler Telemetry -->
           <div class="kpi-card critical" id="kpi-card-gusts" onclick="openTelemetryInspector('wind')" style="cursor:pointer;" title="Click to view live Doppler telemetry">
-            <div class="kpi-icon">🌪️</div>
+            <div class="kpi-icon"><i class="fi fi-rr-tornado"></i></div>
             <div class="kpi-value" id="kpi-gust-speed">-- km/h</div>
             <div class="kpi-label">Radar Peak Gusts <span class="data-source-badge" id="kpi-gust-source">Live Weather</span></div>
-            <div class="kpi-trend up" id="kpi-gust-trend">Connecting Doppler stream… ➔</div>
+            <div class="kpi-trend up" id="kpi-gust-trend">Connecting Doppler stream… <i class="fi fi-rr-arrow-right"></i></div>
           </div>
 
           <!-- Live USGS Seismic Feed -->
           <div class="kpi-card warning" id="kpi-card-seismic" onclick="openTelemetryInspector('seismic')" style="cursor:pointer;" title="Click to view USGS earthquake stream">
-            <div class="kpi-icon">🚨</div>
+            <div class="kpi-icon"><i class="fi fi-rr-siren"></i></div>
             <div class="kpi-value" id="kpi-seismic-mag">-- M</div>
             <div class="kpi-label">Latest Quake Event <span class="data-source-badge">USGS Live</span></div>
-            <div class="kpi-trend neutral" id="kpi-seismic-trend">Querying USGS feed… ➔</div>
+            <div class="kpi-trend neutral" id="kpi-seismic-trend">Querying USGS feed… <i class="fi fi-rr-arrow-right"></i></div>
           </div>
 
           <!-- AI Model Confidence & False Alarm Rate -->
           <div class="kpi-card info">
-            <div class="kpi-icon">🧠</div>
+            <div class="kpi-icon"><i class="fi fi-rr-brain"></i></div>
             <div class="kpi-value" id="kpi-ai-confidence">Active</div>
             <div class="kpi-label">AI Engine Prediction Confidence</div>
-            <div class="kpi-trend down" id="kpi-ai-trend">🛡️ Grounded in Canonical Data</div>
+            <div class="kpi-trend down" id="kpi-ai-trend"><i class="fi fi-rr-shield"></i> Grounded in Canonical Data</div>
           </div>
         </div>
 
@@ -535,10 +590,10 @@
           <div class="section-card">
             <div class="section-card-header">
               <div class="section-card-title">
-                <span>⚡</span>
+                <span><i class="fi fi-rr-bolt"></i></span>
                 <span>Hazard Intel & Early Threat Stream</span>
               </div>
-              <div class="section-card-action" onclick="switchView('hazards')">View Hazard Intel ➔</div>
+              <div class="section-card-action" onclick="viewHazardIntel()" style="cursor:pointer;" title="View intelligence for active hazard">View Hazard Intel <i class="fi fi-rr-arrow-right"></i></div>
             </div>
             <div class="section-card-body">
               <div class="alert-feed" id="command-alert-feed"></div>
@@ -549,7 +604,7 @@
           <div class="dashboard-right">
             <div class="ai-panel">
               <div class="ai-panel-header">
-                <div class="ai-indicator">🤖</div>
+                <div class="ai-indicator"><i class="fi fi-rr-robot"></i></div>
                 <div>
                   <div class="ai-panel-title">AI Hazard Explanation Assistant</div>
                   <div class="ai-panel-sub" id="ai-explanation-sub">Real-Time Operational Assessment</div>
@@ -563,8 +618,8 @@
                 <!-- Injected dynamically via authority.js -->
               </div>
               <div style="padding: 0 18px 14px;">
-                <button class="ai-refresh-btn" onclick="updateAIExplanation('command'); showToast('AI Assistant re-queried satellite & radar data', 'info');">
-                  🔄 Re-synthesize Hazard Explanations
+                <button class="ai-refresh-btn" onclick="reSynthesizeHazardExplanation(window.currentSelectedHazard || 'command')">
+                  <i class="fi fi-rr-refresh"></i> Re-synthesize Hazard Explanations
                 </button>
               </div>
             </div>
@@ -573,7 +628,7 @@
             <div class="section-card">
               <div class="section-card-header">
                 <div class="section-card-title">
-                  <span>🛡️</span>
+                  <span><i class="fi fi-rr-shield"></i></span>
                   <span>Low False Alarm Cross-Check</span>
                 </div>
               </div>
@@ -606,7 +661,7 @@
         <div class="section-card">
           <div class="section-card-header">
             <div class="section-card-title">
-              <span>🌀</span>
+              <span><i class="fi fi-rr-tornado"></i></span>
               <span>Active Hazard Registry & Early Threat Detection</span>
             </div>
             <span class="risk-badge risk-green" id="hazard-registry-badge">0 Active Hazards</span>
@@ -644,23 +699,23 @@
         <div class="section-card priority-queue-card">
           <div class="section-card-header priority-queue-header">
             <div class="section-card-title">
-              <span>🚨</span>
+              <span><i class="fi fi-rr-siren"></i></span>
               <span>Priority Incident Queue (Deterministic Engine)</span>
             </div>
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
               <span id="vpi-summary-chip">Updating...</span>
               <button type="button" class="btn btn-warning btn-demo-simulate" onclick="simulateSensorAlert()">
-                📡 DEMO: SIMULATE SENSOR ALERT
+                <i class="fi fi-rr-satellite-dish"></i> DEMO: SIMULATE SENSOR ALERT
               </button>
               <button type="button" class="btn btn-glass btn-refresh-priorities" onclick="loadPriorityRanking(true)">
-                🔄 Refresh Priorities
+                <i class="fi fi-rr-refresh"></i> Refresh Priorities
               </button>
             </div>
           </div>
           <div class="section-card-body priority-queue-body">
             <div id="priority-queue-container">
               <div style="text-align:center; padding:30px; color:var(--text-muted);">
-                ⏳ Evaluating disaster prioritization...
+                <i class="fi fi-rr-hourglass"></i> Evaluating disaster prioritization...
               </div>
             </div>
           </div>
@@ -672,7 +727,7 @@
         <div class="modal-card why-modal-box">
           <div class="why-modal-header">
             <div style="display:flex; align-items:center; gap:10px;">
-              <span style="font-size:20px;">💡</span>
+              <span style="font-size:20px;"><i class="fi fi-rr-bulb"></i></span>
               <div>
                 <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary, #0f172a);">Why this decision?</h3>
                 <span style="font-size:11px; color:var(--text-muted, #64748b);">Priority Engine Analysis &bull; Multi-Factor Score Rationale</span>
@@ -696,18 +751,18 @@
         <div class="section-card" style="margin-bottom:16px;">
           <div class="section-card-header">
             <div class="section-card-title">
-              <span>🏕️</span>
+              <span><i class="fi fi-rr-person-shelter"></i></span>
               <span>Designated Evacuation Shelters & Carrying Capacity (Greedy Allocation)</span>
             </div>
             <div style="display:flex; align-items:center; gap:10px;">
               <span id="safesites-capacity-summary" style="font-size:12px; color:#22c55e; font-weight:600;">Loading capacity telemetry...</span>
-              <button class="btn btn-glass" style="padding:5px 10px; font-size:11px;" onclick="loadPriorityRanking(true)">🔄 Sync Shelters</button>
+              <button class="btn btn-glass" style="padding:5px 10px; font-size:11px;" onclick="loadPriorityRanking(true)"><i class="fi fi-rr-refresh"></i> Sync Shelters</button>
             </div>
           </div>
           <div class="section-card-body">
             <!-- Step 7: Calibrated OSRM Routing Status Banner -->
             <div class="routing-status-banner" style="margin-bottom:16px; padding:12px 16px; background:rgba(37,99,235,0.06); border:1px solid rgba(37,99,235,0.22); border-radius:10px; font-size:12px; color:var(--text-secondary); display:flex; align-items:center; gap:10px;">
-              <span style="font-size:18px;">🛣️</span>
+              <span style="font-size:18px;"><i class="fi fi-rr-road"></i></span>
               <div>
                 <strong style="color:var(--text-primary);">Road Routing &amp; Evacuation Accessibility:</strong>
                 <span> 268 selected habitation-to-shelter OSRM routes computed successfully.</span>
@@ -725,7 +780,7 @@
         <div class="section-card">
           <div class="section-card-header">
             <div class="section-card-title">
-              <span>⚠️</span>
+              <span><i class="fi fi-rr-triangle-warning"></i></span>
               <span>Zone Carrying Capacity Deficit Reports</span>
             </div>
             <span style="font-size:11px; color:var(--text-muted);">Real-time allocation gap between at-risk population and reachable open capacity</span>
@@ -746,181 +801,130 @@
         <div id="datasources-root-container"></div>
       </section>
 
+      <!-- ============================================================
+           DATA LOG PANEL
+           ============================================================ -->
+      <section id="view-data-log" style="display:none; padding: 20px;">
+        <div class="section-card" style="height: calc(100vh - 120px); display: flex; flex-direction: column;">
+          <!-- Header -->
+          <div class="section-card-header" style="flex-wrap: wrap; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+            <div class="section-card-title" style="display: flex; align-items: center; gap: 10px;">
+              <span style="color: #10b981; font-size: 18px;"><i class="fi fi-rr-rectangle-list" aria-hidden="true"></i></span>
+              <span>Data Source Log</span>
+            </div>
+            <div class="dl-header-meta" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <span class="dl-session-label" style="font-size: 11px; color: var(--text-muted);">Session started: <span id="dl-session-start">—</span></span>
+              <span class="dl-auto-badge" id="dl-auto-badge">⟳ Auto-refresh 10s</span>
+              <button class="btn btn-glass dl-refresh-all-btn" id="dl-refresh-all-btn" style="padding: 4px 12px; font-size: 11px;" title="Refresh all sources now">
+                <i class="fi fi-rr-rotate-right" aria-hidden="true"></i> Refresh Now
+              </button>
+            </div>
+          </div>
+
+          <!-- Source list -->
+          <div class="section-card-body" style="padding: 0; flex: 1; overflow-y: auto; position: relative;">
+            <div class="dl-source-list" id="dl-source-list">
+              <div class="dl-loading" style="padding: 32px; text-align: center; color: var(--text-muted);"><i class="fi fi-rr-hourglass"></i> Loading data sources…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sliding log drawer (slides up from bottom) -->
+        <div class="dl-drawer" id="dl-drawer" style="display:none;">
+          <div class="dl-drawer-header">
+            <div class="dl-drawer-title" id="dl-drawer-title">Source Log</div>
+            <div class="dl-drawer-actions">
+              <button class="dl-drawer-refresh-btn" id="dl-drawer-refresh-btn" title="Refresh this source">
+                <i class="fi fi-rr-rotate-right" aria-hidden="true"></i>
+              </button>
+              <button class="dl-drawer-close-btn" id="dl-drawer-close-btn" title="Close log">
+                <i class="fi fi-rr-cross" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          <div class="dl-drawer-body" id="dl-drawer-body">
+            <div class="dl-loading">Loading log…</div>
+          </div>
+        </div>
+      </section>
+
       <!-- ========================================================
            VIEW: POPULATION AT RISK (Hazard-Specific Breakdown)
            ======================================================== -->
       <section id="view-population-risk" style="display:none;">
         <div class="view-header">
-          <h2 class="view-title">⚠️ Population at Risk</h2>
+          <h2 class="view-title"><i class="fi fi-rr-triangle-warning"></i> Population at Risk</h2>
           <p class="view-subtitle">Hazard-specific exposure demographics grouped by active threat zone and epicenter coordinates</p>
         </div>
 
         <!-- Demographic Summary Overview -->
         <div class="pop-risk-grid" id="pop-risk-grid">
-          <div class="pop-risk-card level-red" onclick="switchView('map-view')" style="cursor:pointer;" title="Click to view Red Zones on Map">
-            <div class="prc-tier-tag">🔴 CRITICAL</div>
+          <div class="pop-risk-card level-red" id="pop-card-red" style="cursor:default;" title="Red Zones: Direct danger core">
+            <div class="prc-tier-tag"><i class="fi fi-rr-cross-circle" style="color:#ef4444;"></i> CRITICAL</div>
             <div class="prc-value" id="prc-val-red">0</div>
             <div class="prc-label">Within RED Zones (direct danger)</div>
-            <div class="prc-zones" id="prc-zones-red">Kakinada Port & Uppada Coastal Belt</div>
+            <div class="prc-zones" id="prc-zones-red">No active red zones</div>
+            <button class="btn btn-glass" style="margin-top:8px; font-size:11px; padding:4px 10px; width:fit-content; border-color:rgba(239,68,68,0.4); color:#ef4444;" onclick="locateRiskTierOnMap('RED', event)">
+              <i class="fi fi-rr-map"></i> Locate on Map
+            </button>
           </div>
-          <div class="pop-risk-card level-orange" onclick="switchView('map-view')" style="cursor:pointer;" title="Click to view Orange Zones on Map">
-            <div class="prc-tier-tag">🟠 HIGH ALERT</div>
-            <div class="prc-value" id="prc-val-orange">1,20,000</div>
+          <div class="pop-risk-card level-orange" id="pop-card-orange" style="cursor:default;" title="Orange Zones: Imminent danger">
+            <div class="prc-tier-tag"><i class="fi fi-rr-info" style="color:#f97316;"></i> HIGH ALERT</div>
+            <div class="prc-value" id="prc-val-orange">0</div>
             <div class="prc-label">Within ORANGE Zones (imminent)</div>
-            <div class="prc-zones" id="prc-zones-orange">Godavari Delta Riverbank Corridor</div>
+            <div class="prc-zones" id="prc-zones-orange">No active orange zones</div>
+            <button class="btn btn-glass" style="margin-top:8px; font-size:11px; padding:4px 10px; width:fit-content; border-color:rgba(249,115,22,0.4); color:#f97316;" onclick="locateRiskTierOnMap('ORANGE', event)">
+              <i class="fi fi-rr-map"></i> Locate on Map
+            </button>
           </div>
-          <div class="pop-risk-card level-yellow" onclick="switchView('map-view')" style="cursor:pointer;" title="Click to view Yellow Zones on Map">
-            <div class="prc-tier-tag">🟡 MODERATE</div>
-            <div class="prc-value" id="prc-val-yellow">49,000</div>
+          <div class="pop-risk-card level-yellow" id="pop-card-yellow" style="cursor:default;" title="Yellow Zones: Elevated risk monitoring">
+            <div class="prc-tier-tag"><i class="fi fi-rr-info" style="color:#eab308;"></i> MODERATE</div>
+            <div class="prc-value" id="prc-val-yellow">0</div>
             <div class="prc-label">Within YELLOW Zones (elevated)</div>
-            <div class="prc-zones" id="prc-zones-yellow">Eastern Ghats & Rayalaseema Advisory</div>
+            <div class="prc-zones" id="prc-zones-yellow">All sectors monitoring normal</div>
+            <button class="btn btn-glass" style="margin-top:8px; font-size:11px; padding:4px 10px; width:fit-content; border-color:rgba(234,179,8,0.4); color:#eab308;" onclick="locateRiskTierOnMap('YELLOW', event)">
+              <i class="fi fi-rr-map"></i> Locate on Map
+            </button>
           </div>
-          <div class="pop-risk-card level-total">
-            <div class="prc-tier-tag">📊 TOTAL AT RISK</div>
-            <div class="prc-value" id="prc-val-total">2,72,500</div>
+          <div class="pop-risk-card level-total" id="pop-card-total" style="cursor:default;">
+            <div class="prc-tier-tag"><i class="fi fi-rr-chart-pie"></i> TOTAL AT RISK</div>
+            <div class="prc-value" id="prc-val-total">0</div>
             <div class="prc-label">Combined across all hazard tiers</div>
-            <div class="prc-zones">Multi-Sensor AI Enumeration Baseline</div>
+            <div class="prc-zones" id="prc-zones-total">Live Canonical Exposure State</div>
+            <button class="btn btn-glass" style="margin-top:8px; font-size:11px; padding:4px 10px; width:fit-content; border-color:rgba(56,189,248,0.4); color:#38bdf8;" onclick="locateRiskTierOnMap('ALL', event)">
+              <i class="fi fi-rr-map"></i> Locate All Zones
+            </button>
           </div>
         </div>
 
-        <!-- Hazard-Specific Groups with Zone Breakdown & Coordinates (Requirement H5) -->
+        <!-- Dynamic Hazard Exposure Groups (Data-driven from live risk zones) -->
         <div class="hazard-pop-groups-container" style="margin-top:20px; display:flex; flex-direction:column; gap:16px;">
-          
-          <!-- Hazard Group 1: Cyclone Titli -->
-          <div class="section-card hazard-pop-group-card">
-            <div class="section-card-header" style="cursor:pointer;" onclick="focusHazardOnMap('cyclone')">
+          <div id="dynamic-hazard-pop-groups" style="display:flex; flex-direction:column; gap:16px;">
+            <div class="section-card" style="padding:28px; text-align:center; color:var(--text-secondary);">
+              <span style="font-size:24px; display:block; margin-bottom:8px;"><i class="fi fi-rr-shield"></i></span>
+              <div style="font-weight:600; color:var(--text-primary); font-size:14px;">All Operational Sectors Baseline Safe</div>
+              <div style="font-size:12px; margin-top:4px;">No active disaster hazard footprints or populations at risk currently reported inside Andhra Pradesh.</div>
+            </div>
+          </div>
+
+          <!-- CWC Live Basin River Gauges (Continuous Official Telemetry) -->
+          <div class="section-card" id="cwc-river-gauges-card">
+            <div class="section-card-header">
               <div class="section-card-title">
-                <span>🌀</span>
-                <span>Cyclone Titli — Coastal Surge Sector</span>
+                <span><i class="fi fi-rr-water"></i></span>
+                <span>CWC Live Basin Gauges (Godavari, Krishna &amp; Pennar Telemetry)</span>
               </div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span class="risk-badge risk-red">CRITICAL &bull; 1,42,000 POPULATION</span>
-                <span style="font-size:11px; color:#38bdf8;">Click to Locate GIS ➔</span>
-              </div>
+              <span class="risk-badge risk-green" style="font-size: 10px;">● Live Sensor Feed</span>
             </div>
             <div class="section-card-body">
-              <table class="hab-table">
-                <thead><tr><th>Sub-Zone Name</th><th>Severity Tier</th><th>Epicenter Coords</th><th>Population</th><th>Key Habitations</th><th>Action</th></tr></thead>
-                <tbody>
-                  <tr onclick="focusCoordinates(16.9891, 82.2475, 12)" style="cursor:pointer;">
-                    <td><strong>Core Coastal Inundation Zone</strong></td>
-                    <td><span class="risk-badge risk-red">RED</span></td>
-                    <td><code>16.99° N, 82.25° E</code></td>
-                    <td><strong>45,000</strong></td>
-                    <td>Kakinada Port, Uppada Beach, Suryaraopeta</td>
-                    <td><button class="btn btn-glass" style="padding:3px 8px; font-size:11px;">Inspect 🔍</button></td>
-                  </tr>
-                  <tr onclick="focusCoordinates(17.0500, 82.3000, 11)" style="cursor:pointer;">
-                    <td><strong>High-Velocity Surge Buffer Zone</strong></td>
-                    <td><span class="risk-badge risk-orange">ORANGE</span></td>
-                    <td><code>17.05° N, 82.30° E</code></td>
-                    <td><strong>62,000</strong></td>
-                    <td>Vakalapudi, Samalkota Coastal Fringe</td>
-                    <td><button class="btn btn-glass" style="padding:3px 8px; font-size:11px;">Inspect 🔍</button></td>
-                  </tr>
-                  <tr onclick="focusCoordinates(17.1500, 82.3500, 10)" style="cursor:pointer;">
-                    <td><strong>Peripheral Squall Advisory Belt</strong></td>
-                    <td><span class="risk-badge risk-yellow">YELLOW</span></td>
-                    <td><code>17.15° N, 82.35° E</code></td>
-                    <td><strong>35,000</strong></td>
-                    <td>Peddapuram North, Pithapuram Corridors</td>
-                    <td><button class="btn btn-glass" style="padding:3px 8px; font-size:11px;">Inspect 🔍</button></td>
-                  </tr>
+              <table class="hab-table" style="font-size: 11px;">
+                <thead><tr><th>Station</th><th>River (Basin)</th><th>Water Level</th><th>Time Acquired</th><th>Map Locate</th></tr></thead>
+                <tbody id="cwc-river-gauges-tbody">
+                  <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Loading CWC basin telemetry...</td></tr>
                 </tbody>
               </table>
             </div>
           </div>
-
-          <!-- Hazard Group 2: Godavari Flood -->
-          <div class="section-card hazard-pop-group-card">
-            <div class="section-card-header" style="cursor:pointer;" onclick="focusHazardOnMap('flood')">
-              <div class="section-card-title">
-                <span>🌊</span>
-                <span>Godavari Inundation — Delta Lowland Basin</span>
-              </div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span class="risk-badge risk-red">CRITICAL &bull; 98,500 POPULATION</span>
-                <span style="font-size:11px; color:#38bdf8;">Click to Locate GIS ➔</span>
-              </div>
-            </div>
-            <div class="section-card-body">
-              <table class="hab-table">
-                <thead><tr><th>Sub-Zone Name</th><th>Severity Tier</th><th>Epicenter Coords</th><th>Population</th><th>Key Habitations</th><th>Action</th></tr></thead>
-                <tbody>
-                  <tr onclick="focusCoordinates(16.7500, 81.8000, 12)" style="cursor:pointer;">
-                    <td><strong>Lowland Riverbank Flash Zone</strong></td>
-                    <td><span class="risk-badge risk-red">RED</span></td>
-                    <td><code>16.75° N, 81.80° E</code></td>
-                    <td><strong>58,500</strong></td>
-                    <td>Konaseema Riverbanks, Papi Hills Basin</td>
-                    <td><button class="btn btn-glass" style="padding:3px 8px; font-size:11px;">Inspect 🔍</button></td>
-                  </tr>
-                  <tr onclick="focusCoordinates(16.8500, 81.9000, 11)" style="cursor:pointer;">
-                    <td><strong>Embankment Backwater Zone</strong></td>
-                    <td><span class="risk-badge risk-orange">ORANGE</span></td>
-                    <td><code>16.85° N, 81.90° E</code></td>
-                    <td><strong>40,000</strong></td>
-                    <td>Rajahmundry Lowlands, Dowleswaram Fringe</td>
-                    <td><button class="btn btn-glass" style="padding:3px 8px; font-size:11px;">Inspect 🔍</button></td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <!-- CWC Live Basin River Gauges -->
-              <div style="margin-top: 14px; padding: 12px 14px; background: rgba(14, 165, 233, 0.05); border: 1px solid rgba(14, 165, 233, 0.2); border-radius: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                  <div style="font-weight: 700; font-size: 12px; color: #0284c7; display: flex; align-items: center; gap: 6px;">
-                    <span>🌊</span> <span>CWC Live Basin Gauges (Godavari, Krishna & Pennar Telemetry)</span>
-                  </div>
-                  <span class="risk-badge risk-green" style="font-size: 10px;">● Live Sensor Feed</span>
-                </div>
-                <table class="hab-table" style="font-size: 11px;">
-                  <thead><tr><th>Station</th><th>River (Basin)</th><th>Water Level</th><th>Time Acquired</th><th>Map Locate</th></tr></thead>
-                  <tbody id="cwc-river-gauges-tbody">
-                    <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Loading CWC basin telemetry...</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <!-- Hazard Group 3: Landslide -->
-          <div class="section-card hazard-pop-group-card">
-            <div class="section-card-header" style="cursor:pointer;" onclick="focusHazardOnMap('landslide')">
-              <div class="section-card-title">
-                <span>⛰️</span>
-                <span>Eastern Ghats Landslide — Araku Slopes</span>
-              </div>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span class="risk-badge risk-orange">HIGH ALERT &bull; 32,000 POPULATION</span>
-                <span style="font-size:11px; color:#38bdf8;">Click to Locate GIS ➔</span>
-              </div>
-            </div>
-            <div class="section-card-body">
-              <table class="hab-table">
-                <thead><tr><th>Sub-Zone Name</th><th>Severity Tier</th><th>Epicenter Coords</th><th>Population</th><th>Key Habitations</th><th>Action</th></tr></thead>
-                <tbody>
-                  <tr onclick="focusCoordinates(18.3200, 82.8800, 12)" style="cursor:pointer;">
-                    <td><strong>High-Debris Slope Catchment</strong></td>
-                    <td><span class="risk-badge risk-orange">ORANGE</span></td>
-                    <td><code>18.32° N, 82.88° E</code></td>
-                    <td><strong>18,000</strong></td>
-                    <td>Araku Valley Ghat, Borra Settlement</td>
-                    <td><button class="btn btn-glass" style="padding:3px 8px; font-size:11px;">Inspect 🔍</button></td>
-                  </tr>
-                  <tr onclick="focusCoordinates(18.2500, 82.9500, 11)" style="cursor:pointer;">
-                    <td><strong>Downhill Buffer Sector</strong></td>
-                    <td><span class="risk-badge risk-yellow">YELLOW</span></td>
-                    <td><code>18.25° N, 82.95° E</code></td>
-                    <td><strong>14,000</strong></td>
-                    <td>Ananthagiri Foothills Corridor</td>
-                    <td><button class="btn btn-glass" style="padding:3px 8px; font-size:11px;">Inspect 🔍</button></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
         </div>
       </section>
 
@@ -929,7 +933,7 @@
            ======================================================== -->
       <section id="view-reports" style="display:none;">
         <div class="view-header">
-          <h2 class="view-title">📥 Citizen Report Queue</h2>
+          <h2 class="view-title"><i class="fi fi-rr-box-open"></i> Citizen Report Queue</h2>
           <p class="view-subtitle">Incoming field reports from citizens awaiting authority verification</p>
         </div>
         <div id="reports-queue-container">
@@ -948,7 +952,7 @@
     <div class="shelter-modal-box">
       <div class="shelter-modal-header">
         <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:22px;">🏕️</span>
+          <span style="font-size:22px;"><i class="fi fi-rr-person-shelter"></i></span>
           <div>
             <h3 id="modal-shelter-name" style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary, #0f172a);">Update Shelter Occupancy</h3>
             <span id="modal-shelter-meta" style="font-size:11px; color:var(--text-muted);">ID: - &bull; District: -</span>
@@ -985,9 +989,9 @@
           <div style="margin-bottom:14px;">
             <label style="display:block; font-size:11px; font-weight:700; color:var(--text-secondary); margin-bottom:6px;">SHELTER OPERATIONAL STATUS</label>
             <select id="edit-shelter-status" class="input-field" style="cursor:pointer;">
-              <option value="open">🟢 Open (Actively Receiving Evacuees)</option>
-              <option value="full">🔴 Full (At Maximum Safe Capacity)</option>
-              <option value="closed">⚫ Closed (Structural / Surge Risk)</option>
+              <option value="open"><i class="fi fi-rr-check-circle" style="color:#10b981;"></i> Open (Actively Receiving Evacuees)</option>
+              <option value="full"><i class="fi fi-rr-cross-circle" style="color:#ef4444;"></i> Full (At Maximum Safe Capacity)</option>
+              <option value="closed"><i class='fi fi-rr-circle'></i> Closed (Structural / Surge Risk)</option>
             </select>
           </div>
 
@@ -999,7 +1003,7 @@
           <div style="display:flex; justify-content:flex-end; gap:8px;">
             <button type="button" class="btn btn-glass" onclick="closeShelterModal()" style="padding:8px 16px; font-size:12px;">Cancel</button>
             <button type="submit" class="btn btn-primary" id="btn-save-shelter" style="padding:8px 18px; font-size:12px;">
-              💾 Save & Broadcast Live
+              <i class="fi fi-rr-disk"></i> Save & Broadcast Live
             </button>
           </div>
         </form>
@@ -1014,7 +1018,7 @@
     <div class="shelter-modal-box" style="max-width:540px;">
       <div class="shelter-modal-header" style="border-bottom:1px solid rgba(239,68,68,0.2);">
         <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:24px;">📢</span>
+          <span style="font-size:24px;"><i class="fi fi-rr-megaphone"></i></span>
           <div>
             <h3 style="margin:0; font-size:16px; font-weight:700; color:#b91c1c;">Issue Regional Emergency Broadcast</h3>
             <span style="font-size:11px; color:var(--text-muted);">State Disaster Management Authority &bull; Real-Time Siren Relay</span>
@@ -1028,36 +1032,41 @@
             <div>
               <label style="display:block; font-size:11px; font-weight:700; color:var(--text-secondary); margin-bottom:6px;">ALERT TYPE</label>
               <select id="ea-type" class="input-field">
-                <option value="Cyclone Warning">🌀 Cyclone Landfall / Storm Surge</option>
-                <option value="Flash Flood Inundation">🌊 Flash Flood Inundation</option>
-                <option value="Severe Landslide Alert">⛰️ Severe Slope Landslide Alert</option>
-                <option value="Extreme Weather Squall">⛈️ Extreme Gale & Cloudburst</option>
-                <option value="Seismic Event">📳 Major Seismic Activity</option>
+                <option value="Cyclone Warning"><i class="fi fi-rr-tornado"></i> Cyclone Landfall / Storm Surge</option>
+                <option value="Flash Flood Inundation"><i class="fi fi-rr-water"></i> Flash Flood Inundation</option>
+                <option value="Severe Landslide Alert"><i class='fi fi-rr-mountain'></i> Severe Slope Landslide Alert</option>
+                <option value="Extreme Weather Squall"><i class="fi fi-rr-cloud-hail-mixed"></i> Extreme Gale & Cloudburst</option>
+                <option value="Seismic Event"><i class='fi fi-rr-mobile-notch'></i> Major Seismic Activity</option>
               </select>
             </div>
             <div>
               <label style="display:block; font-size:11px; font-weight:700; color:var(--text-secondary); margin-bottom:6px;">SEVERITY TIER</label>
               <select id="ea-tier" class="input-field">
-                <option value="CRITICAL">🔴 CRITICAL (Red Zone Evacuation)</option>
-                <option value="HIGH">🟠 HIGH ALERT (Orange Zone High Alert)</option>
-                <option value="MODERATE">🟡 ADVISORY (Yellow Zone Watch)</option>
+                <option value="CRITICAL"><i class="fi fi-rr-cross-circle" style="color:#ef4444;"></i> CRITICAL (Red Zone Evacuation)</option>
+                <option value="HIGH"><i class="fi fi-rr-info" style="color:#f97316;"></i> HIGH ALERT (Orange Zone High Alert)</option>
+                <option value="MODERATE"><i class="fi fi-rr-info" style="color:#eab308;"></i> ADVISORY (Yellow Zone Watch)</option>
               </select>
             </div>
           </div>
 
-          <div style="margin-bottom:12px;">
-            <label style="display:block; font-size:11px; font-weight:700; color:var(--text-secondary); margin-bottom:6px;">TARGET SECTOR / REGION</label>
-            <input type="text" id="ea-region" class="input-field" value="Kakinada Coastal Sector / Uppada Corridors" required>
+          <div style="margin-bottom:12px; display:flex; gap:12px; align-items:flex-end;">
+            <div style="flex:1;">
+              <label style="display:block; font-size:11px; font-weight:700; color:var(--text-secondary); margin-bottom:6px;">TARGET SECTOR / REGION</label>
+              <input type="text" id="ea-region" class="input-field" value="" placeholder="Enter target region name" required>
+            </div>
+            <button type="button" class="btn btn-glass" onclick="pickEmergencyLocation()" style="padding:8px 12px; font-size:11px; height: 36px; white-space: nowrap;">
+              <i class="fi fi-rr-map-marker"></i> Pick on Map
+            </button>
           </div>
 
           <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:12px;">
             <div>
               <label style="display:block; font-size:11px; font-weight:700; color:var(--text-secondary); margin-bottom:6px;">EPICENTER LAT</label>
-              <input type="number" step="0.0001" id="ea-lat" class="input-field" value="16.9891" required>
+              <input type="number" step="0.0001" id="ea-lat" class="input-field" value="" placeholder="Latitude" required>
             </div>
             <div>
               <label style="display:block; font-size:11px; font-weight:700; color:var(--text-secondary); margin-bottom:6px;">EPICENTER LNG</label>
-              <input type="number" step="0.0001" id="ea-lng" class="input-field" value="82.2475" required>
+              <input type="number" step="0.0001" id="ea-lng" class="input-field" value="" placeholder="Longitude" required>
             </div>
             <div>
               <label style="display:block; font-size:11px; font-weight:700; color:var(--text-secondary); margin-bottom:6px;">RADIUS (KM)</label>
@@ -1080,13 +1089,13 @@
 
           <!-- Mandatory Legal Disclaimer (Requirement F5) -->
           <div style="margin-bottom:16px; background:#f8fafc; padding:10px 12px; border-radius:8px; border:1px solid rgba(15,23,42,0.08); font-size:11px; color:var(--text-secondary, #475569); line-height:1.45;">
-            🛡️ <strong>Legal Disclaimer:</strong> This emergency broadcast is issued under the authority of the State Disaster Management Authority (SDMA). Unauthorized broadcast or dissemination of false distress alarms is punishable under the Disaster Management Act, 2005.
+            <i class="fi fi-rr-shield"></i> <strong>Legal Disclaimer:</strong> This emergency broadcast is issued under the authority of the State Disaster Management Authority (SDMA). Unauthorized broadcast or dissemination of false distress alarms is punishable under the Disaster Management Act, 2005.
           </div>
 
           <div style="display:flex; justify-content:flex-end; gap:8px;">
             <button type="button" class="btn btn-glass" onclick="closeEmergencyAlertModal()" style="padding:8px 16px; font-size:12px;">Cancel</button>
             <button type="submit" class="btn btn-primary" id="btn-submit-alert" style="padding:8px 20px; font-size:12px; background:#dc2626; border-color:#b91c1c; border-radius:var(--radius-full);">
-              📢 Broadcast Alert & Create Zone
+              <i class="fi fi-rr-megaphone"></i> Broadcast Alert & Create Zone
             </button>
           </div>
         </form>
@@ -1094,12 +1103,12 @@
     </div>
   </div>
 
-  <!-- Entity Inspection Modal -->
+  <!-- Entity Inspection Modal (Issue 5) -->
   <div id="modal-inspect-entity" class="inspect-entity-modal" style="display:none;" onclick="if(event.target===this) closeEntityInspector()">
     <div class="iem-box">
       <div class="iem-header">
         <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:20px;" id="iem-icon">🔍</span>
+          <span style="font-size:20px;" id="iem-icon"><i class="fi fi-rr-search"></i></span>
           <div>
             <h3 id="iem-title" style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary, #0f172a);">Entity Inspector</h3>
             <span id="iem-subtitle" style="font-size:11px; color:var(--text-muted, #64748b);">Detailed Field Metadata</span>
@@ -1137,7 +1146,7 @@
       </div>
       <div class="iem-footer">
         <button type="button" class="btn btn-glass" style="font-size:12px; padding:6px 14px;" onclick="closeEntityInspector()">Close</button>
-        <button type="button" class="btn btn-primary" id="iem-locate-btn" style="font-size:12px; padding:6px 16px;" onclick="locateInspectedEntity()">🗺️ Locate on GIS Map</button>
+        <button type="button" class="btn btn-primary" id="iem-locate-btn" style="font-size:12px; padding:6px 16px;" onclick="locateInspectedEntity()"><i class="fi fi-rr-map"></i> Locate on GIS Map</button>
       </div>
     </div>
   </div>
@@ -1160,13 +1169,13 @@
   <script src="js/live-state.js?v=20"></script>
   <script src="js/priority-engine.js?v=16"></script>
   <script src="js/ap-boundary.js?v=16"></script>
-  <script src="js/map.js?v=16"></script>
+  <script src="js/map.js?v=21"></script>
   <script src="js/hazards.js?v=16"></script>
   <script src="js/location-service.js?v=16"></script>
   <script src="js/windy-integration.js?v=16"></script>
   <script src="js/alerts.js?v=16"></script>
   <script src="js/reports.js?v=16"></script>
-  <script src="js/authority.js?v=16"></script>
+  <script src="js/authority.js?v=21"></script>
 
   <!-- Teja Simulation & Incident Command Extensions -->
   <script src="js/simulation-engine.js?v=16"></script>
@@ -1224,6 +1233,37 @@
       const modal = document.getElementById('modal-emergency-alert');
       if (modal) modal.style.display = 'none';
     }
+
+    function pickEmergencyLocation() {
+      closeEmergencyAlertModal();
+      if (typeof showToast === 'function') {
+        showToast('Click anywhere on the map to set the emergency epicenter.', 'info');
+      }
+      
+      const map = window.authMapInstance ? window.authMapInstance.getMap() : null;
+      if (!map) return;
+      
+      const mapContainer = document.getElementById('map');
+      if (mapContainer) mapContainer.style.cursor = 'crosshair';
+      
+      const onMapClick = (e) => {
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
+        
+        map.off('click', onMapClick);
+        if (mapContainer) mapContainer.style.cursor = '';
+        
+        openEmergencyAlertModal({ lat: lat, lng: lng });
+        
+        setTimeout(() => {
+          const regionInput = document.getElementById('ea-region');
+          if (regionInput && !regionInput.value) regionInput.focus();
+        }, 100);
+      };
+      
+      map.on('click', onMapClick);
+    }
+
     window.openEmergencyAlertModal = openEmergencyAlertModal;
     window.closeEmergencyAlertModal = closeEmergencyAlertModal;
 
@@ -1232,8 +1272,17 @@
       const type = document.getElementById('ea-type').value;
       const tier = document.getElementById('ea-tier').value;
       const region = document.getElementById('ea-region').value;
-      const lat = parseFloat(document.getElementById('ea-lat').value) || 16.9891;
-      const lng = parseFloat(document.getElementById('ea-lng').value) || 82.2475;
+      const latVal = document.getElementById('ea-lat').value;
+      const lngVal = document.getElementById('ea-lng').value;
+      
+      if (!latVal || !lngVal) {
+        alert('Please provide Epicenter LAT and LNG, or use "Pick on Map".');
+        if (submitBtn) submitBtn.disabled = false;
+        return;
+      }
+      
+      const lat = parseFloat(latVal);
+      const lng = parseFloat(lngVal);
       const radius = parseInt(document.getElementById('ea-radius').value, 10) || 25;
       const msg = document.getElementById('ea-message').value;
       const createZone = document.getElementById('ea-create-zone').checked;
@@ -1261,7 +1310,7 @@
         severity: tier,
         tier: tier,
         type: 'authority alert',
-        title: `🚨 ${tier}: ${type.toUpperCase()}`,
+        title: `<i class="fi fi-rr-siren"></i> ${tier}: ${type.toUpperCase()}`,
         message: msg.trim(),
         zone: region,
         area: region,
@@ -1310,7 +1359,7 @@
 
       closeEmergencyAlertModal();
       if (submitBtn) submitBtn.disabled = false;
-      showToast("🚨 Regional Emergency Alert broadcast pushed live to all citizen devices!", "danger");
+      showToast('<i class="fi fi-rr-siren"></i> Regional Emergency Alert broadcast pushed live to all citizen devices!', 'danger');
       if (typeof switchView === 'function') switchView('map-view');
       if (window.authMapInstance && window.authMapInstance.flyToLocation) {
         window.authMapInstance.flyToLocation(lat, lng, 11);
@@ -1349,12 +1398,16 @@
         if (dockDept) dockDept.textContent = displayDept;
         if (dockStation) dockStation.textContent = displayStation;
 
-        if (dockAvatar && displayName) {
+        if (displayName) {
           const parts = displayName.trim().split(/\s+/);
           const initials = parts.length > 1
             ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
             : parts[0].slice(0, 2).toUpperCase();
-          dockAvatar.textContent = initials;
+          if (dockAvatar) dockAvatar.textContent = initials;
+          const topbarAv = document.getElementById('topbar-officer-avatar');
+          const pdmAv = document.getElementById('pdm-officer-avatar');
+          if (topbarAv) topbarAv.textContent = initials;
+          if (pdmAv) pdmAv.textContent = initials;
         }
 
         // Secondary / legacy targets
@@ -1380,5 +1433,6 @@
 
     document.addEventListener('DOMContentLoaded', initOfficerProfile);
   </script>
+  <script src="js/data-log.js"></script>
 </body>
 </html>

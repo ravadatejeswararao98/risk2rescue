@@ -87,7 +87,7 @@ class DisasterSimulationEngine {
       this.isSirenSounding = true;
       this.lfoRef = lfo;
       if (typeof showToast === 'function') {
-        showToast("🚨 Emergency Warning Siren Active", "danger");
+        showToast('<i class="fi fi-rr-siren"></i> Emergency Warning Siren Active', "danger");
       }
     } catch (e) {
       console.warn("Web Audio Siren error:", e);
@@ -158,7 +158,7 @@ class DisasterSimulationEngine {
     }, 4000);
 
     if (typeof showToast === 'function') {
-      showToast(`🎮 Simulation Drill Started: ${this.scenario.name}`, "info");
+      showToast(`<i class="fi fi-rr-gamepad"></i> Simulation Drill Started: ${this.scenario.name}`, "info");
     }
   }
 
@@ -211,7 +211,7 @@ class DisasterSimulationEngine {
       const cls = isCurrent ? 'drill-phase-step active' : isDone ? 'drill-phase-step completed' : 'drill-phase-step upcoming';
       return `
         <div class="${cls}" title="${st.desc}">
-          <span class="drill-phase-dot">${isDone ? '✓' : i + 1}</span>
+          <span class="drill-phase-dot">${isDone ? '<i class="fi fi-rr-check"></i>' : i + 1}</span>
           <span class="drill-phase-label">${st.label}</span>
         </div>
         ${i < this.steps.length - 1 ? '<span class="drill-phase-sep">→</span>' : ''}
@@ -248,10 +248,10 @@ class DisasterSimulationEngine {
 
       <div style="display:flex; align-items:center; gap:8px;">
         <button class="siren-badge-btn ${this.isSirenSounding ? 'sounding' : ''}" id="drill-siren-btn" onclick="window.simulationEngine.toggleSiren()">
-          <span>${this.isSirenSounding ? '🔊 Mute Siren' : '🚨 Sound Siren'}</span>
+          <span>${this.isSirenSounding ? '<i class="fi fi-rr-volume-up"></i> Mute Siren' : '<i class="fi fi-rr-siren"></i> Sound Siren'}</span>
         </button>
         <button class="btn btn-glass" style="padding:6px 12px; font-size:11px; border-radius:8px;" onclick="window.simulationEngine.advanceStep()">
-          <span>Next Phase ➔</span>
+          <span>Next Phase <i class="fi fi-rr-arrow-right"></i></span>
         </button>
         <button class="btn btn-glass" style="padding:6px 10px; font-size:11px; border-radius:8px; color:#94a3b8;" onclick="window.simulationEngine.stopDrill()" title="Stop Drill">
           &times;
@@ -272,20 +272,20 @@ class DisasterSimulationEngine {
     if (btn) {
       if (this.isSirenSounding) {
         btn.classList.add('sounding');
-        btn.innerHTML = '<span>🔊 Mute Siren</span>';
+        btn.innerHTML = '<span><i class="fi fi-rr-volume-up"></i> Mute Siren</span>';
       } else {
         btn.classList.remove('sounding');
-        btn.innerHTML = '<span>🚨 Sound Siren</span>';
+        btn.innerHTML = '<span><i class="fi fi-rr-siren"></i> Sound Siren</span>';
       }
     }
     const topSirenBtn = document.getElementById('topbar-siren-toggle');
     if (topSirenBtn) {
       if (this.isSirenSounding) {
         topSirenBtn.classList.add('sounding');
-        topSirenBtn.innerHTML = '<span>🔊 Siren Sounding</span>';
+        topSirenBtn.innerHTML = '<span><i class="fi fi-rr-volume-up"></i> Siren Sounding</span>';
       } else {
         topSirenBtn.classList.remove('sounding');
-        topSirenBtn.innerHTML = '<span>🚨 Test Siren</span>';
+        topSirenBtn.innerHTML = '<span><i class="fi fi-rr-siren"></i> Test Siren</span>';
       }
     }
   }

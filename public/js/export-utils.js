@@ -63,7 +63,7 @@ class SitRepExporter {
         <div class="sitrep-header">
           <div>
             <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-size:24px;">🛡️</span>
+              <span style="font-size:24px;"><i class="fi fi-rr-shield"></i></span>
               <h2 style="font-size:20px; font-weight:800; color:#38bdf8; margin:0;">
                 OPERATIONAL SITUATION REPORT (SITREP)
               </h2>
@@ -135,10 +135,10 @@ class SitRepExporter {
           </div>
           <div style="display:flex; gap:8px;">
             <button class="btn btn-primary" onclick="window.print()">
-              🖨️ Print / Save PDF
+              <i class="fi fi-rr-print"></i> Print / Save PDF
             </button>
             <button class="btn btn-glass" onclick="window.sitRepExporter.downloadJSON()">
-              📥 Download JSON
+              <i class='fi fi-rr-box-open'></i> Download JSON
             </button>
             <button class="btn btn-glass" onclick="document.getElementById('teja-sitrep-modal').remove()">
               Close

@@ -160,7 +160,7 @@ class EmergencySOSBeacon {
 
       // Geolocation failure confirmation dialog
       const proceedWithoutLocation = confirm(
-        "⚠️ LOCATION ACCESS UNAVAILABLE\n\nYour current location could not be accessed.\n\nDo you want to send the SOS with 'Location unavailable' so authorities are alerted to your emergency?"
+        "WARNING: LOCATION ACCESS UNAVAILABLE\n\nYour current location could not be accessed.\n\nDo you want to send the SOS with 'Location unavailable' so authorities are alerted to your emergency?"
       );
 
       if (!proceedWithoutLocation) {
@@ -341,7 +341,7 @@ class EmergencySOSBeacon {
 
     modal.innerHTML = `
       <div class="modal-box" style="border: 2px solid #ef4444; box-shadow: 0 0 50px rgba(239,68,68,0.5); max-width: 480px; text-align: center;">
-        <div style="font-size: 54px; animation: beaconGlow 1s infinite alternate;">🚨</div>
+        <div style="font-size: 54px; animation: beaconGlow 1s infinite alternate;"><i class="fi fi-rr-siren"></i></div>
         
         <h2 style="color: #ef4444; font-size: 22px; font-weight: 800; margin-top: 10px;">
           EMERGENCY RESCUE BEACON ACTIVE
@@ -362,16 +362,16 @@ class EmergencySOSBeacon {
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px;">
           <a href="tel:1078" class="btn" style="background: #2563eb; color: #fff; text-decoration: none; padding: 10px; font-weight: 700; border-radius: 8px; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-            📞 NDRF 1078
+            <i class="fi fi-rr-phone-call"></i> NDRF 1078
           </a>
           <a href="tel:112" class="btn" style="background: #059669; color: #fff; text-decoration: none; padding: 10px; font-weight: 700; border-radius: 8px; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-            🚓 Police 112
+            <i class='fi fi-rr-police-car'></i> Police 112
           </a>
         </div>
 
         <div style="display: flex; gap: 8px;">
           <button class="btn btn-primary" style="flex: 1; padding: 10px;" onclick="window.emergencySOS.closeSOS(); if (typeof showShelters === 'function') showShelters();">
-            <span>🗺️ Show Safe Route</span>
+            <span><i class="fi fi-rr-map"></i> Show Safe Route</span>
           </button>
           <button class="btn btn-glass" style="padding: 10px 18px;" onclick="window.emergencySOS.closeSOS()">
             Dismiss

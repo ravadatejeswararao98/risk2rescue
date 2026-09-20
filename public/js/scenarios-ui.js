@@ -39,7 +39,7 @@ class ScenarioController {
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <div>
             <h3 style="font-size:18px; font-weight:800; color:#f1f5f9; margin:0;">
-              🌍 Select Hazard Simulation Scenario
+              <i class="fi fi-rr-globe"></i> Select Hazard Simulation Scenario
             </h3>
             <p style="font-size:12px; color:#94a3b8; margin-top:2px;">
               Load pre-configured multi-hazard scenarios to test evacuation routing and command operations.
@@ -57,12 +57,12 @@ class ScenarioController {
                   <span class="risk-badge" style="font-size:10px;">${sc.severity}</span>
                 </div>
                 <h4 style="font-size:14px; font-weight:700; color:#fff; margin:6px 0 2px;">${sc.name}</h4>
-                <div style="font-size:11px; color:#94a3b8;">📍 ${sc.region}</div>
+                <div style="font-size:11px; color:#94a3b8;"><i class="fi fi-rr-map-marker"></i> ${sc.region}</div>
               </div>
               <div style="display:flex; justify-content:space-between; margin-top:12px; font-size:11px; color:#cbd5e1; border-top:1px solid rgba(255,255,255,0.08); padding-top:8px;">
-                <span>💨 ${sc.windGustsKmH} km/h</span>
-                <span>🌊 ${sc.surgeMeters}m surge</span>
-                <span>👥 ${(sc.populationImpacted / 1000).toFixed(0)}k at risk</span>
+                <span><i class="fi fi-rr-wind"></i> ${sc.windGustsKmH} km/h</span>
+                <span><i class="fi fi-rr-water"></i> ${sc.surgeMeters}m surge</span>
+                <span><i class="fi fi-rr-users"></i> ${(sc.populationImpacted / 1000).toFixed(0)}k at risk</span>
               </div>
             </div>
           `).join('')}

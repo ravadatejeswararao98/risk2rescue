@@ -13,7 +13,7 @@ function initFirebaseStatusUI() {
       <div class="modal-box" style="max-width:520px; border:1px solid var(--glass-border, rgba(15,23,42,0.12)); box-shadow:0 20px 50px rgba(15,23,42,0.15); background:#ffffff; color:#0f172a;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
           <div style="display:flex; align-items:center; gap:10px;">
-            <div style="font-size:24px;">🔥</div>
+            <div style="font-size:24px;"><i class="fi fi-rr-flame"></i></div>
             <div>
               <h3 style="font-size:16px; font-weight:700; color:var(--text-primary, #0f172a); margin:0;">Firebase Live Database Settings</h3>
               <p style="font-size:11px; color:var(--text-secondary, #475569); margin:2px 0 0 0;">Multi-device real-time sync for hazards, reports & alerts</p>
@@ -48,10 +48,10 @@ function initFirebaseStatusUI() {
 
         <div style="display:flex; gap:8px; margin-top:16px;">
           <button id="fb-save-config-btn" class="btn btn-primary" style="flex:2; padding:10px; font-size:12px; border-radius:var(--radius-full);">
-            💾 Save & Connect Cloud
+            <i class="fi fi-rr-disk"></i> Save & Connect Cloud
           </button>
           <button id="fb-seed-btn" class="btn btn-glass" style="flex:1.4; padding:10px; font-size:12px; color:#0284c7; border-color:rgba(2,132,199,0.3); border-radius:var(--radius-full);">
-            🌱 Seed Scenarios
+            <i class='fi fi-rr-leaf'></i> Seed Scenarios
           </button>
           <button id="fb-reset-btn" class="btn btn-glass" style="flex:1; padding:10px; font-size:12px; color:#dc2626; border-color:rgba(220,38,38,0.3); border-radius:var(--radius-full);">
             ↺ Reset
@@ -107,7 +107,7 @@ function initFirebaseStatusUI() {
         await window.firebaseLive.seedCloudReports();
         alert('Initial disaster hazards, reports, and regional alerts seeded to database!');
       }
-      btn.textContent = '🌱 Seed Scenarios';
+      btn.textContent = '<i class="fi fi-rr-leaf"></i> Seed Scenarios';
       btn.disabled = false;
     });
 
@@ -142,7 +142,7 @@ function updateBadgeUI(mode, label) {
 
   const isCloud = mode === 'cloud';
   const color = isCloud ? '#12d67d' : '#38bdf8';
-  const icon = isCloud ? '🟢' : '⚡';
+  const icon = isCloud ? '<i class="fi fi-rr-check-circle" style="color:#10b981;"></i>' : '<i class="fi fi-rr-bolt"></i>';
   const shortText = isCloud ? 'Firebase Live' : 'Live Sync Mesh';
 
   if (badge) {

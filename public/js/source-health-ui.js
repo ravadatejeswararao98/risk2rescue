@@ -22,15 +22,15 @@
 
   /* ── Category Definitions (matches source-registry.js) ──────── */
   const CATEGORY_TITLES = {
-    'seismic': '🌍 Seismic & Earthquake Sensors',
-    'weather': '🌪️ Meteorological & Doppler Weather Feeds',
-    'hydrology': '🌊 River Basin Hydrological Gauges & Inundation',
-    'air': '🌫️ Atmospheric Quality & Ground Stations',
-    'alerts': '🔔 Official CAP Broadcasts',
-    'satellite': '🛰️ Earth Observation Satellites & Thermal Feeds',
-    'routing': '🛣️ Road Infrastructure & Safe Corridors',
-    'reference': '🏛️ Official Enumerated Civil Infrastructure & Baselines',
-    'ai': '🧠 Neural Inference & Decision Support Models'
+    'seismic': '<i class="fi fi-rr-globe"></i> Seismic & Earthquake Sensors',
+    'weather': '<i class="fi fi-rr-tornado"></i> Meteorological & Doppler Weather Feeds',
+    'hydrology': '<i class="fi fi-rr-water"></i> River Basin Hydrological Gauges & Inundation',
+    'air': '<i class="fi fi-rr-smog"></i> Atmospheric Quality & Ground Stations',
+    'alerts': '<i class="fi fi-rr-bell"></i> Official CAP Broadcasts',
+    'satellite': '<i class="fi fi-rr-satellite"></i> Earth Observation Satellites & Thermal Feeds',
+    'routing': '<i class="fi fi-rr-road"></i> Road Infrastructure & Safe Corridors',
+    'reference': '<i class="fi fi-rr-bank"></i> Official Enumerated Civil Infrastructure & Baselines',
+    'ai': '<i class="fi fi-rr-brain"></i> Neural Inference & Decision Support Models'
   };
 
   const CATEGORIES = [
@@ -98,16 +98,16 @@
     const map = {
       LIVE:           ['status-pill-live',         '● LIVE'],
       DEGRADED:       ['status-pill-degraded',      '▲ DEGRADED'],
-      STALE:          ['status-pill-stale',         '⏳ STALE'],
-      UNAVAILABLE:    ['status-pill-unavailable',   '✕ UNAVAILABLE'],
+      STALE:          ['status-pill-stale',         '<i class="fi fi-rr-hourglass"></i> STALE'],
+      UNAVAILABLE:    ['status-pill-unavailable',   '<i class="fi fi-rr-cross"></i> UNAVAILABLE'],
       NOT_CONFIGURED: ['status-pill-notconfigured', '◌ NOT CONFIGURED'],
       BASELINE:       ['status-pill-baseline',      'ℹ BASELINE'],
-      REFERENCE:      ['status-pill-reference',     '📁 REFERENCE'],
-      ARCHIVED:       ['status-pill-archived',      '📜 ARCHIVED'],
-      HISTORICAL:     ['status-pill-historical',    '📜 HISTORICAL'],
-      DERIVED:        ['status-pill-derived',       '⚙ DERIVED'],
-      SIMULATED:      ['status-pill-drill',         '⚡ DRILL'],
-      DRILL:          ['status-pill-drill',         '⚡ DRILL'],
+      REFERENCE:      ['status-pill-reference',     '<i class="fi fi-rr-folder"></i> REFERENCE'],
+      ARCHIVED:       ['status-pill-archived',      '<i class="fi fi-rr-document"></i> ARCHIVED'],
+      HISTORICAL:     ['status-pill-historical',    '<i class="fi fi-rr-document"></i> HISTORICAL'],
+      DERIVED:        ['status-pill-derived',       '<i class="fi fi-rr-settings"></i> DERIVED'],
+      SIMULATED:      ['status-pill-drill',         '<i class="fi fi-rr-bolt"></i> DRILL'],
+      DRILL:          ['status-pill-drill',         '<i class="fi fi-rr-bolt"></i> DRILL'],
     };
     const [cls, label] = map[status] || ['', esc(status)];
     const title = status === 'NOT_CONFIGURED' ? ` title="Add ${esc(requiresKey || '')} to .env"` : '';
@@ -150,7 +150,7 @@
       if (!btn) return;
       btn.disabled = true;
       const orig = btn.textContent;
-      btn.textContent = '⏳';
+      btn.textContent = '<i class="fi fi-rr-hourglass"></i>';
       try {
         const resp = await fetch('/api/sources/health?refresh=1');
         if (resp.ok) {
@@ -196,14 +196,14 @@
       const errMsg  = esc(src.error || src.detail ||
         (isUncfg ? `Set ${src.requiresKey || 'required env var'} in .env and restart.` : 'No upstream diagnostic available.'));
       const reqKey  = src.requiresKey ? `<span class="dsm-inspect-hint">Required: <code>${esc(src.requiresKey)}</code></span>` : '';
-      const epHtml  = host ? `<div class="dsm-inspect-endpoint">📡 <code>${host}</code></div>` : '';
+      const epHtml  = host ? `<div class="dsm-inspect-endpoint"><i class="fi fi-rr-satellite-dish"></i> <code>${host}</code></div>` : '';
 
       inspectRowHtml = `
         <tr class="dsm-inspect-row" id="dsm-irow-${safeId}">
           <td colspan="6" style="padding:0;">
             <div class="dsm-inspect-drawer" id="dsm-inspect-${safeId}">
               <div class="dsm-inspect-inner">
-                <div class="dsm-inspect-label">${isUncfg ? '⚙️ Configuration Required' : '⚠️ Upstream Diagnostic'}</div>
+                <div class="dsm-inspect-label">${isUncfg ? '<i class="fi fi-rr-settings"></i> Configuration Required' : '<i class="fi fi-rr-triangle-warning"></i> Upstream Diagnostic'}</div>
                 <div class="dsm-inspect-msg">${errMsg}</div>
                 ${epHtml}
                 <div class="dsm-inspect-actions">
@@ -217,7 +217,7 @@
     }
 
     const inspectBtn = needsAttention
-      ? `<button class="error-toggle-btn dsm-inspect-btn" onclick="window._dsmToggleInspect('${safeId}')">Inspect ⚠️</button>`
+      ? `<button class="error-toggle-btn dsm-inspect-btn" onclick="window._dsmToggleInspect('${safeId}')">Inspect <i class="fi fi-rr-triangle-warning"></i></button>`
       : '';
 
     const rowHtml = `
@@ -269,8 +269,8 @@
     const cnt = {};
     allCatSources.forEach(s => { cnt[s.status] = (cnt[s.status] || 0) + 1; });
     const parts = [];
-    if (cnt.LIVE)           parts.push(`<span class="cat-count-live">${cnt.LIVE}✓</span>`);
-    if (cnt.UNAVAILABLE)    parts.push(`<span class="cat-count-err">${cnt.UNAVAILABLE}✕</span>`);
+    if (cnt.LIVE)           parts.push(`<span class="cat-count-live">${cnt.LIVE}<i class="fi fi-rr-check"></i></span>`);
+    if (cnt.UNAVAILABLE)    parts.push(`<span class="cat-count-err">${cnt.UNAVAILABLE}<i class='fi fi-rr-cross'></i></span>`);
     if (cnt.NOT_CONFIGURED) parts.push(`<span class="cat-count-cfg">${cnt.NOT_CONFIGURED}◌</span>`);
     if (cnt.DEGRADED)       parts.push(`<span class="cat-count-deg">${cnt.DEGRADED}▲</span>`);
     if (cnt.BASELINE || cnt.REFERENCE || cnt.ARCHIVED) {
@@ -361,7 +361,7 @@
         <div class="truth-strip-actions">
           <span class="probed-age-text" id="dsm-probed-age">Probing…</span>
           <button class="btn btn-glass reprobe-action-btn" id="datasources-reprobe-btn"
-                  onclick="window.SourceHealthUI.reprobe()">🔄 Re-probe All</button>
+                  onclick="window.SourceHealthUI.reprobe()"><i class="fi fi-rr-refresh"></i> Re-probe All</button>
         </div>
       </div>`;
   }
@@ -380,7 +380,7 @@
     if (!sources || sources.length === 0) {
       container.innerHTML = `
         <div class="datasources-no-telemetry-banner">
-          ⏳ <strong>Loading Data Sources…</strong> Fetching probe results.
+          <i class="fi fi-rr-hourglass"></i> <strong>Loading Data Sources…</strong> Fetching probe results.
         </div>`;
       return;
     }
@@ -391,7 +391,7 @@
     if (liveCount === 0) {
       html += `
         <div class="datasources-no-telemetry-banner">
-          ⚠️ <strong>NO LIVE TELEMETRY REACHABLE</strong> — Operating strictly on reference baselines. Do not use for live rescue dispatch.
+          <i class="fi fi-rr-triangle-warning"></i> <strong>NO LIVE TELEMETRY REACHABLE</strong> — Operating strictly on reference baselines. Do not use for live rescue dispatch.
         </div>`;
     }
 
@@ -417,7 +417,7 @@
     const knownKeys = new Set(CATEGORIES.map(c => c.key));
     const orphaned = sources.filter(s => !knownKeys.has(s.category || ''));
     if (orphaned.length > 0) {
-      const block = buildCategoryBlock('other', '📡 Other Data Sources', orphaned);
+      const block = buildCategoryBlock('other', '<i class="fi fi-rr-satellite-dish"></i> Other Data Sources', orphaned);
       if (block) { html += block; hasRows = true; }
     }
 
@@ -438,7 +438,7 @@
     if (isReprobing) return;
     isReprobing = true;
     const btn = document.getElementById('datasources-reprobe-btn');
-    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Probing…'; }
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fi fi-rr-hourglass"></i> Probing…'; }
 
     try {
       const resp = await fetch(`/api/sources/health${forceRefresh ? '?refresh=1' : ''}`);
@@ -451,13 +451,13 @@
       if (latestSources.length === 0) {
         const container = document.getElementById('datasources-root-container');
         if (container) {
-          container.innerHTML = `<div class="datasources-no-telemetry-banner">⚠️ <strong>Health Engine Unreachable:</strong> ${esc(e.message)}</div>`;
+          container.innerHTML = `<div class="datasources-no-telemetry-banner"><i class="fi fi-rr-triangle-warning"></i> <strong>Health Engine Unreachable:</strong> ${esc(e.message)}</div>`;
         }
       }
     } finally {
       isReprobing = false;
       const b = document.getElementById('datasources-reprobe-btn');
-      if (b) { b.disabled = false; b.innerHTML = '🔄 Re-probe All'; }
+      if (b) { b.disabled = false; b.innerHTML = '<i class="fi fi-rr-refresh"></i> Re-probe All'; }
     }
   }
 

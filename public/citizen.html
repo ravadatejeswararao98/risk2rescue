@@ -222,17 +222,17 @@
         <div class="form-group">
           <label class="form-label">What is happening?</label>
           <select class="input-field" id="rep-type">
-            <option value="Flood">🌊 Flood / high water</option>
-            <option value="Cyclone">🌀 Fallen trees / roof damage</option>
-            <option value="Landslide">⛰️ Landslide / blocked road</option>
-            <option value="Cloudburst">⛈️ Sudden heavy rain</option>
+            <option value="Flood"><i class="fi fi-rr-water"></i> Flood / high water</option>
+            <option value="Cyclone"><i class="fi fi-rr-tornado"></i> Fallen trees / roof damage</option>
+            <option value="Landslide"><i class="fi fi-rr-mountain"></i> Landslide / blocked road</option>
+            <option value="Cloudburst"><i class='fi fi-rr-cloud-hail-mixed'></i> Sudden heavy rain</option>
             <option value="Stranded">🆘 People trapped, need rescue</option>
           </select>
         </div>
         <div class="form-group">
           <label class="form-label" style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
             <span>Where are you?</span>
-            <span id="rep-loc-badge" style="font-size:11px; color:#047857; background:#ecfdf5; padding:3px 8px; border-radius:6px; border:1px solid #a7f3d0; display:none; font-weight:600; line-height:1.4; white-space:nowrap;">🔒 Auto-detected GPS</span>
+            <span id="rep-loc-badge" style="font-size:11px; color:#047857; background:#ecfdf5; padding:3px 8px; border-radius:6px; border:1px solid #a7f3d0; display:none; font-weight:600; line-height:1.4; white-space:nowrap;"><i class='fi fi-rr-lock'></i> Auto-detected GPS</span>
           </label>
           <input type="text" class="input-field" id="rep-loc" value="Kakinada Coastal Sector (16.99° N, 82.25° E)" required>
           <div id="rep-loc-note" style="font-size:11px; color:var(--text-muted, #64748b); margin-top:7px; line-height:1.55;">Position auto-locked to your GPS coordinates. If inaccurate, location will fall back to manual entry.</div>

@@ -341,170 +341,27 @@ class DisasterMap {
     }
     this.riskZoneCircles = [];
 
-    // Concentric multi-ring configuration:
-    // Simplified to 2 rings to reduce visual clutter
-    const CONCENTRIC_TIERS = [
-      { level: 'YELLOW', multiplier: 1.00, subLabel: 'MODERATE', fillOpacity: 0.15, strokeOpacity: 0.60, ringName: 'Monitoring Zone' },
-      { level: 'RED', multiplier: 0.35, subLabel: 'CRITICAL', fillOpacity: 0.30, strokeOpacity: 0.90, ringName: 'Critical Active Core' }
-    ];
-
-    APP_DATA.riskZones.forEach(zone => {
-      const lat = zone.epicenter ? zone.epicenter.lat : zone.lat;
-      const lng = zone.epicenter ? zone.epicenter.lng : zone.lng;
-      // Removed strict isInsideAndhraPradesh filter here because hazard epicenters 
-      // (like earthquakes or cyclones) can originate offshore or in neighboring states 
-      // but their radius still impacts Andhra Pradesh.
-      const baseRadius = zone.baseRadius || zone.radius || 16000;
-      const hazardType = zone.hazardType || (zone.name.toLowerCase().includes('cyclone') ? 'cyclone' : zone.name.toLowerCase().includes('flood') ? 'flood' : zone.name.toLowerCase().includes('landslide') ? 'landslide' : zone.name.toLowerCase().includes('fire') ? 'fire' : zone.name.toLowerCase().includes('earthquake') ? 'earthquake' : 'cyclone');
-
-      const hasExactPolygon = Boolean(
-        (zone.geometry && Array.isArray(zone.geometry.coordinates) && zone.geometry.coordinates[0]) ||
-        Array.isArray(zone.polygon) ||
-        Array.isArray(zone.coordinates)
-      );
-
-      if (hasExactPolygon) {
-        // Direct rendering for verified live telemetry / satellite polygons
-        const rawCoords = (zone.geometry && zone.geometry.coordinates[0]) || zone.polygon || zone.coordinates;
-        const colors = RISK_COLORS[zone.level] || RISK_COLORS.RED;
-        const geojsonFeature = {
-          type: "Feature",
-          properties: {
-            name: zone.name,
-            level: zone.level,
-            pop: zone.pop || 0,
-            desc: zone.desc || 'Live sensor hazard boundary',
-            source: zone.source
-          },
-          geometry: {
-            type: "Polygon",
-            coordinates: [rawCoords]
-          }
-        };
-
-        const polygonLayer = L.geoJSON(geojsonFeature, {
-          style: () => ({
-            fillColor: colors.fill,
-            fillOpacity: zone.level === 'RED' ? 0.35 : 0.28,
-            color: colors.stroke,
-            weight: zone.level === 'RED' ? 2.5 : 1.8,
-            opacity: colors.strokeOpacity || 0.85,
-            className: `hazard-polygon level-${(zone.level || 'red').toLowerCase()}`
-          })
-        }).addTo(this.map);
-
-        polygonLayer.bindPopup(this.createRiskPopup(zone), { className: 'custom-popup' });
-        polygonLayer.bindTooltip(zone.name, { permanent: false, sticky: true, className: 'zone-tooltip' });
-        this.riskZoneCircles.push({ zone, circle: polygonLayer, rings: [polygonLayer], label: null });
-        if (!this.hazardPolygons) this.hazardPolygons = [];
-        this.hazardPolygons.push({ polygon: geojsonFeature, level: zone.level, hazardType, layer: polygonLayer });
-
-      } else if (zone.epicenter || zone.baseRadius) {
-        // Multi-ring concentric hazard epicenter rendering
-        const rings = [];
-        let primaryCircle = null;
-
-        CONCENTRIC_TIERS.forEach(tier => {
-          const colors = RISK_COLORS[tier.level] || RISK_COLORS.YELLOW;
-          const rMeters = baseRadius * tier.multiplier;
-          // All 4 rings share same lat, lng, hazardType, and orientation seed (zone.name)
-          const polygonCoords = generateOrganicZonePolygon(lat, lng, rMeters, zone.name, hazardType);
-
-          const ringZoneData = {
-            ...zone,
-            level: tier.level,
-            radius: rMeters,
-            ringLabel: tier.subLabel,
-            ringName: `${zone.name} — ${tier.ringName} (${tier.subLabel})`,
-            desc: tier.level === 'RED' ? (zone.desc || 'Critical active hazard core. Direct impact corridor.') :
-              tier.level === 'ORANGE' ? 'High alert buffer zone. Imminent severe impact watch.' :
-                tier.level === 'YELLOW' ? 'Moderate risk monitoring zone. Squall & waterlogging monitoring.' :
-                  'Low risk perimeter. Advisory monitoring zone.'
-          };
-
-          const geojsonFeature = {
-            type: "Feature",
-            properties: {
-              name: ringZoneData.ringName,
-              level: tier.level,
-              pop: tier.level === 'RED' ? zone.pop : Math.round(zone.pop * (1 + (tier.multiplier - 0.35) * 0.8)),
-              desc: ringZoneData.desc
-            },
-            geometry: {
-              type: "Polygon",
-              coordinates: [polygonCoords]
-            }
-          };
-
-          const polygonLayer = L.geoJSON(geojsonFeature, {
-            style: () => ({
-              fillColor: colors.fill,
-              fillOpacity: tier.fillOpacity,
-              color: colors.stroke,
-              weight: tier.level === 'RED' ? 2.5 : 1.8,
-              opacity: tier.strokeOpacity,
-              className: `hazard-polygon level-${tier.level.toLowerCase()}`
-            })
-          }).addTo(this.map);
-
-          polygonLayer.bindPopup(this.createRiskPopup(ringZoneData), { className: 'custom-popup' });
-          polygonLayer.bindTooltip(zone.name, { permanent: false, sticky: true, className: 'zone-tooltip' });
-          rings.push(polygonLayer);
-
-          if (!this.hazardPolygons) this.hazardPolygons = [];
-          this.hazardPolygons.push({
-            polygon: geojsonFeature,
-            level: tier.level,
-            hazardType: hazardType
-          });
-          if (tier.level === 'RED') {
-            primaryCircle = polygonLayer;
-          }
-        });
-
-        this.riskZoneCircles.push({
-          zone,
-          circle: primaryCircle || rings[rings.length - 1],
-          rings,
-          label: null // removed floating labels to reduce visual clutter
-        });
-
-      } else {
-        // Single Regional Zone (e.g. distinct district safe zone)
-        const colors = RISK_COLORS[zone.level] || RISK_COLORS.YELLOW;
-        const polygonCoords = generateOrganicZonePolygon(lat, lng, zone.radius, zone.name, hazardType);
-
-        const geojsonFeature = {
-          type: "Feature",
-          properties: {
-            name: zone.name,
-            level: zone.level,
-            pop: zone.pop,
-            desc: zone.desc
-          },
-          geometry: {
-            type: "Polygon",
-            coordinates: [polygonCoords]
-          }
-        };
-
-        const polygonLayer = L.geoJSON(geojsonFeature, {
-          style: () => ({
-            fillColor: colors.fill,
-            fillOpacity: colors.fillOpacity || 0.28,
-            color: colors.stroke,
-            weight: 2,
-            opacity: colors.strokeOpacity || 0.8,
-            className: `hazard-polygon level-${zone.level.toLowerCase()}`
-          })
-        }).addTo(this.map);
-
-        polygonLayer.bindPopup(this.createRiskPopup(zone), { className: 'custom-popup' });
-        polygonLayer.bindTooltip(zone.name, { permanent: false, sticky: true, className: 'zone-tooltip' });
-
-        this.riskZoneCircles.push({ zone, circle: polygonLayer, rings: [polygonLayer], label: null });
+    // Delegate entirely to the shared AI HazardEngine for true parity
+    const engine = typeof window !== 'undefined' ? (window.authHazardEngine || window.hazardEngine) : null;
+    if (engine && typeof engine.render === 'function') {
+      const allZ = APP_DATA.riskZones || [];
+      if (engine.aiState) {
+        engine.aiState.allZones = allZ;
+        engine.aiState.zones = allZ;
       }
-    });
+      if (typeof window.HAZARD_INTEL !== 'undefined') {
+        Object.keys(window.HAZARD_INTEL).forEach(k => {
+          window.HAZARD_INTEL[k].zones = [];
+        });
+        allZ.forEach(z => {
+          const ht = z.hazardType || (z.name.toLowerCase().includes('cyclone') ? 'cyclone' : z.name.toLowerCase().includes('flood') ? 'flood' : z.name.toLowerCase().includes('landslide') ? 'landslide' : z.name.toLowerCase().includes('fire') ? 'fire' : z.name.toLowerCase().includes('earthquake') ? 'earthquake' : 'cyclone');
+          if (window.HAZARD_INTEL[ht]) {
+            window.HAZARD_INTEL[ht].zones.push(z);
+          }
+        });
+      }
+      engine.render(engine.activeKey || 'cyclone', true);
+    }
   }
 
   createRiskPopup(zone) {
@@ -931,7 +788,7 @@ class DisasterMap {
       markerColor = '#dc2626';
       pulseBg = 'rgba(220,38,38,0.38)';
       dotShadow = 'rgba(220,38,38,0.95)';
-      badgeLabel = '🚨 SOS DISTRESS';
+      badgeLabel = '<i class="fi fi-rr-siren"></i> SOS DISTRESS';
     } else if (lvl === 'ORANGE' || lvl === 'HIGH') {
       markerColor = '#f97316';
       pulseBg = 'rgba(249,115,22,0.25)';

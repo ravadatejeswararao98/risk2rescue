@@ -41,7 +41,7 @@
     const map = {
       LIVE:           { cls: 'dl-pill-live',    label: '● LIVE' },
       DEGRADED:       { cls: 'dl-pill-degraded',label: '▲ DEGRADED' },
-      UNAVAILABLE:    { cls: 'dl-pill-unavail', label: '✖ UNAVAILABLE' },
+      UNAVAILABLE:    { cls: 'dl-pill-unavail', label: '<i class="fi fi-rr-cross"></i> UNAVAILABLE' },
       NOT_CONFIGURED: { cls: 'dl-pill-noconf',  label: '○ NOT CONFIGURED' },
       STALE:          { cls: 'dl-pill-stale',   label: '◑ STALE' },
       BASELINE:       { cls: 'dl-pill-base',    label: '□ BASELINE' },
@@ -182,7 +182,7 @@
               ${e.recordCount != null ? `<span class="dl-log-records">${e.recordCount} records</span>` : ''}
               ${i === 0 ? '<span class="dl-log-live-badge">● LATEST</span>' : ''}
             </div>
-            ${e.error ? `<div class="dl-log-error">⚠ ${escHtml(e.error)}</div>` : ''}
+            ${e.error ? `<div class="dl-log-error"><i class="fi fi-rr-triangle-warning"></i> ${escHtml(e.error)}</div>` : ''}
             ${e.rawSnippet ? `
               <details class="dl-log-raw">
                 <summary>View raw payload snippet</summary>
@@ -198,7 +198,7 @@
       const data = await fetchSourceRaw(sourceId);
       const m = data.metrics || {};
       const rawSnippet = data.rawPayload
-        ? JSON.stringify(data.rawPayload, null, 2).slice(0, 600) + (JSON.stringify(data.rawPayload).length > 600 ? '\n…' : '')
+        ? JSON.stringify(data.rawPayload, null, 2)
         : null;
 
       addLogEntry(sourceId, {
@@ -251,7 +251,7 @@
       }
     } catch (err) {
       const list = document.getElementById('dl-source-list');
-      if (list) list.innerHTML = `<div class="dl-loading">⚠ Could not reach server: ${escHtml(err.message)}</div>`;
+      if (list) list.innerHTML = `<div class="dl-loading"><i class="fi fi-rr-triangle-warning"></i> Could not reach server: ${escHtml(err.message)}</div>`;
     } finally {
       if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fi fi-rr-rotate-right" aria-hidden="true"></i> Refresh Now'; }
     }

@@ -95,7 +95,7 @@ class AlertRouter {
           triggeredAt: new Date().toISOString()
         };
 
-        console.log(`[AlertRouter] 🚨 Escalation detected for ${zone.name}: ${prevTier} -> ${currentTier} (Peak: ${forecastPeakTier})`);
+        console.log(`[AlertRouter] <i class="fi fi-rr-siren"></i> Escalation detected for ${zone.name}: ${prevTier} -> ${currentTier} (Peak: ${forecastPeakTier})`);
 
         // Dispatch email notification
         const dispatchResult = await this.sendEscalationEmail(alertPayload);
@@ -130,7 +130,7 @@ class AlertRouter {
     const directive = alert.directive || alert.recommendation || 'Initiate priority evacuation protocol immediately.';
     const timeStr = alert.triggeredAt || new Date().toISOString();
 
-    const subject = `🚨 [NDRF-SDMA ALERT] ${zoneTitle} Escalated to ${newTier} (${hazType})`;
+    const subject = `<i class="fi fi-rr-siren"></i> [NDRF-SDMA ALERT] ${zoneTitle} Escalated to ${newTier} (${hazType})`;
 
     const html = `
       <!DOCTYPE html>
@@ -193,7 +193,7 @@ class AlertRouter {
       </html>
     `;
 
-    const text = `🚨 [NDRF-SDMA ALERT] ${zoneTitle} reached ${newTier} (${hazType})
+    const text = `<i class="fi fi-rr-siren"></i> [NDRF-SDMA ALERT] ${zoneTitle} reached ${newTier} (${hazType})
 Population At Risk: ${Number(popVal).toLocaleString()}
 +12h Forecast Peak: ${peakTier}
 Primary Shelter: ${shelter}

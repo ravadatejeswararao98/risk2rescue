@@ -480,11 +480,11 @@
         const isSynced = this.isCloudConnected;
         el.className = `sync-status-indicator ${isSynced ? 'synced' : 'offline'}`;
         el.title = isSynced
-          ? '🟢 Live Server & Database Connected & Synchronized'
-          : '⚪ Operating in offline local storage / mesh fallback mode';
+          ? '<i class="fi fi-rr-check-circle" style="color:#10b981;"></i> Live Server & Database Connected & Synchronized'
+          : '<i class="fi fi-rr-circle"></i> Operating in offline local storage / mesh fallback mode';
         el.innerHTML = `
           <span class="sync-dot"></span>
-          <span class="sync-text">${isSynced ? '🟢 Synced' : '⚪ Offline (local only)'}</span>
+          <span class="sync-text">${isSynced ? '<i class="fi fi-rr-check-circle" style="color:#10b981;"></i> Synced' : '<i class="fi fi-rr-circle"></i> Offline (local only)'}</span>
         `;
       });
     }

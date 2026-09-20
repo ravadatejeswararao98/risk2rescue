@@ -359,7 +359,7 @@ class HazardEngine {
     if (!HAZARD_INTEL[normHazard]) {
       HAZARD_INTEL[normHazard] = {
         label: normHazard.charAt(0).toUpperCase() + normHazard.slice(1),
-        icon: '⚠️',
+        icon: '<i class="fi fi-rr-triangle-warning"></i>',
         accent: '#ef4444',
         summary: 'Live official emergency monitoring active.',
         zones: [],
@@ -500,8 +500,8 @@ class HazardEngine {
 
   render(key, force = false) {
     this.activeKey = key;
-    const h = HAZARD_INTEL[key];
-    if (!h) return null;
+    let keysToRender = key === 'ALL' ? Object.keys(HAZARD_INTEL) : [key];
+    if (keysToRender.length === 1 && !HAZARD_INTEL[keysToRender[0]]) return null;
 
     this.group.clearLayers();
     this.renderedZoneLayers = [];
@@ -528,12 +528,17 @@ class HazardEngine {
     const greenZoneData = [];    // Collect green zones for merging
     const dangerPolygons = [];   // Collect non-green polygons to carve out of green hull
     const tieredPolygons = { RED: [], ORANGE: [], YELLOW: [] }; // Collect danger polygons for smart union
-    // 1. Dynamic GIS Hazard Zones (Derived directly from AI Engine live + forecast state)
-    (h.zones || []).forEach(z => {
+
+    keysToRender.forEach(k => {
+      const h = HAZARD_INTEL[k];
+      if (!h) return;
+      
+      // 1. Dynamic GIS Hazard Zones (Derived directly from AI Engine live + forecast state)
+      (h.zones || []).forEach(z => {
       const lat = z.epicenter ? z.epicenter.lat : z.lat;
       const lng = z.epicenter ? z.epicenter.lng : z.lng;
       const baseRadius = z.baseRadius || z.radius || 28000;
-      const hazardType = z.hazardType || key;
+      const hazardType = z.hazardType || k;
 
       const currentTier = z.current_tier || z.level || 'GREEN';
       const activeTier = (this.timelineStep === 0)
@@ -605,7 +610,8 @@ class HazardEngine {
       } else {
         this.renderedZoneLayers.push({ labelMarker, zone: z, hazard: h, level: activeTier });
       }
-    });
+    }); // End zones loop
+    }); // End keysToRender.forEach for zones
 
     // ── Smart Overlay for Non-Green Zones (No Darkening, Preserve Shape) ──
     ['RED', 'ORANGE', 'YELLOW'].forEach(tier => {
@@ -857,47 +863,60 @@ class HazardEngine {
     }
 
     // 2. Designated Safe Shelters
-    (h.safeSites || []).forEach((s, idx) => {
-      if (window.APBoundaryService && !window.APBoundaryService.isPointInside([s.lng, s.lat])) return;
+    keysToRender.forEach(k => {
+      const h = HAZARD_INTEL[k];
+      if (!h) return;
+      (h.safeSites || []).forEach((s, idx) => {
+        if (window.APBoundaryService && !window.APBoundaryService.isPointInside([s.lng, s.lat])) return;
       const free = s.capacity - s.current;
-      const marker = L.marker([s.lat, s.lng], { icon: this.shelterIcon(idx * 40) })
-        .bindPopup(this.popup('Safe Zone', 'green', s.name, [
-          ['Capacity', s.capacity.toLocaleString()],
-          ['Occupancy', `${s.current.toLocaleString()} (${Math.round((s.current / s.capacity) * 100)}%)`],
-          ['Available beds', free.toLocaleString()],
-          ['Resources', s.resources ? s.resources.join(', ') : 'Medical, Water, Power']
-        ], 'Designated cyclone / flood multi-purpose safe shelter.'), { className: 'custom-popup' });
-      bucket.safe.push(marker);
-      if (this.visible.safe) this.group.addLayer(marker);
+        const marker = L.marker([s.lat, s.lng], { icon: this.shelterIcon(idx * 40) })
+          .bindPopup(this.popup('Safe Zone', 'green', s.name, [
+            ['Capacity', s.capacity.toLocaleString()],
+            ['Occupancy', `${s.current.toLocaleString()} (${Math.round((s.current / s.capacity) * 100)}%)`],
+            ['Available beds', free.toLocaleString()],
+            ['Resources', s.resources ? s.resources.join(', ') : 'Medical, Water, Power']
+          ], 'Designated cyclone / flood multi-purpose safe shelter.'), { className: 'custom-popup' });
+        bucket.safe.push(marker);
+        if (this.visible.safe) this.group.addLayer(marker);
+      });
     });
 
     // 3. Live Sensor Threat Warnings / Alerts
-    (h.alerts || []).forEach((a, i) => {
-      if (!a.lat || !a.lng || !Number.isFinite(Number(a.lat)) || !Number.isFinite(Number(a.lng))) {
+    keysToRender.forEach(k => {
+      const h = HAZARD_INTEL[k];
+      if (!h) return;
+      (h.alerts || []).forEach((a, i) => {
+        if (!a.lat || !a.lng || !Number.isFinite(Number(a.lat)) || !Number.isFinite(Number(a.lng))) {
         return; // Do not fabricate map geometry for alerts lacking valid coordinates
       }
       const coords = [Number(a.lat), Number(a.lng)];
       if (window.APBoundaryService && !window.APBoundaryService.isPointInside([coords[1], coords[0]])) return;
       const color = a.level === 'CRITICAL' ? 'red' : a.level === 'HIGH' ? 'orange' : 'yellow';
-      const marker = L.marker(coords, { icon: this.alertIcon(color, i * 40) })
-        .bindPopup(this.popup('Live Warning', color, a.title, [
-          ['Severity', a.level],
-          ['Area', a.area],
-          ['Issued', a.time]
-        ], 'Real-time alert propagated from IMD/NDMA early-warning grid.'), { className: 'custom-popup' });
-      bucket.alerts.push(marker);
-      if (this.visible.alerts) this.group.addLayer(marker);
+        const marker = L.marker(coords, { icon: this.alertIcon(color, i * 40) })
+          .bindPopup(this.popup('Live Warning', color, a.title, [
+            ['Severity', a.level],
+            ['Area', a.area],
+            ['Issued', a.time]
+          ], 'Real-time alert propagated from IMD/NDMA early-warning grid.'), { className: 'custom-popup' });
+        bucket.alerts.push(marker);
+        if (this.visible.alerts) this.group.addLayer(marker);
+      });
     });
 
     // 4. At-Risk Habitations
     let habCluster = null;
-    if (h.habitations && h.habitations.length > 0) {
+    keysToRender.forEach(k => {
+      const h = HAZARD_INTEL[k];
+      if (!h) return;
+      if (h.habitations && h.habitations.length > 0) {
+        if (!habCluster) {
       habCluster = L.markerClusterGroup({
-        maxClusterRadius: 70,
-        disableClusteringAtZoom: 11
-      });
+          maxClusterRadius: 70,
+          disableClusteringAtZoom: 11
+        });
+        }
 
-      h.habitations.forEach((hab, i) => {
+        h.habitations.forEach((hab, i) => {
         if (window.APBoundaryService && !window.APBoundaryService.isPointInside([hab.lng || hab.lon, hab.lat])) return;
         
         // Turf dynamic risk check vs rendered non-green danger polygons for THIS hazard
@@ -945,14 +964,20 @@ class HazardEngine {
         
         habCluster.addLayer(marker);
       });
-      
+      }
+    }); // end keysToRender habitations
+
+    if (habCluster) {
       bucket.habitations.push(habCluster);
       if (this.visible.habitations) this.group.addLayer(habCluster);
     }
 
     // 6. Emergency Hospitals & Trauma Centers
-    if (h.hospitals) {
-      h.hospitals.forEach((hosp, i) => {
+    keysToRender.forEach(k => {
+      const h = HAZARD_INTEL[k];
+      if (!h) return;
+      if (h.hospitals) {
+        h.hospitals.forEach((hosp, i) => {
         const marker = L.marker([hosp.lat, hosp.lng], { icon: this.hospitalIcon(i * 35) })
           .bindPopup(this.popup('Emergency Care', 'red', hosp.name, [
             ['Total Beds', hosp.beds.toLocaleString()],
@@ -961,7 +986,8 @@ class HazardEngine {
         bucket.hospitals.push(marker);
         if (this.visible.hospitals) this.group.addLayer(marker);
       });
-    }
+      }
+    }); // end keysToRender hospitals
 
     // Apply active status visibility filter if one is active
     if (typeof window !== 'undefined' && window.currentHazardStatusFilter && window.currentHazardStatusFilter !== 'ALL') {
@@ -1219,7 +1245,7 @@ class HazardEngine {
             <div class="popup-stat"><span>Depth</span><strong>${eq.depthKm} km</strong></div>
             <div class="popup-stat"><span>Coordinates</span><strong>${eq.lat.toFixed(2)}° N, ${eq.lng.toFixed(2)}° E</strong></div>
             <div class="popup-stat"><span>Recorded</span><strong>${dateStr}</strong></div>
-            <div class="popup-stat"><span>Tsunami Watch</span><strong>${eq.tsunamiAlert ? '⚠️ ALERT ACTIVE' : 'None'}</strong></div>
+            <div class="popup-stat"><span>Tsunami Watch</span><strong>${eq.tsunamiAlert ? '<i class="fi fi-rr-triangle-warning"></i> ALERT ACTIVE' : 'None'}</strong></div>
             <div class="popup-desc" style="margin-top:8px;">
               <div style="font-size:10px; color:#38bdf8; margin-bottom:6px; font-weight:600;">Data Source: USGS Earthquake Hazards Program</div>
               <a href="${eq.url}" target="_blank" rel="noopener noreferrer" style="display:inline-block; padding:4px 8px; border-radius:4px; background:#2563eb; color:#ffffff; text-decoration:none; font-size:11px; font-weight:600;">View Official USGS Record ↗</a>
@@ -1436,7 +1462,7 @@ function getZoneForCoordinates(lat, lng) {
   const finalLevel = bestLevel || 'GREEN';
   let statusText = 'NORMAL';
   let color = '#22c55e';
-  let badgeText = '🟢 GREEN / NORMAL';
+  let badgeText = '<i class="fi fi-rr-check-circle"></i> GREEN / NORMAL';
   let badgeBg = 'rgba(34, 197, 94, 0.15)';
   let badgeColor = '#15803d';
   let badgeBorder = 'rgba(34, 197, 94, 0.35)';
@@ -1444,21 +1470,21 @@ function getZoneForCoordinates(lat, lng) {
   if (finalLevel === 'RED') {
     statusText = 'RED ZONE';
     color = '#ef4444';
-    badgeText = '🔴 RED RISK';
+    badgeText = '<i class="fi fi-rr-triangle-warning"></i> RED RISK';
     badgeBg = 'rgba(239, 68, 68, 0.15)';
     badgeColor = '#dc2626';
     badgeBorder = 'rgba(239, 68, 68, 0.35)';
   } else if (finalLevel === 'ORANGE') {
     statusText = 'HIGH ALERT';
     color = '#f97316';
-    badgeText = '🟠 ORANGE RISK';
+    badgeText = '<i class="fi fi-rr-info"></i> ORANGE RISK';
     badgeBg = 'rgba(249, 115, 22, 0.15)';
     badgeColor = '#ea580c';
     badgeBorder = 'rgba(249, 115, 22, 0.35)';
   } else if (finalLevel === 'YELLOW') {
     statusText = 'MONITORING';
     color = '#eab308';
-    badgeText = '🟡 YELLOW RISK';
+    badgeText = '<i class="fi fi-rr-bell"></i> YELLOW RISK';
     badgeBg = 'rgba(234, 179, 8, 0.18)';
     badgeColor = '#a16207';
     badgeBorder = 'rgba(234, 179, 8, 0.4)';
