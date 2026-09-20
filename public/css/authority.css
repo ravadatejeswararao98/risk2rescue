@@ -200,6 +200,26 @@
   user-select: none;
 }
 
+.windy-time-bar {
+  top: auto;
+  bottom: 24px;
+  background: rgba(10, 16, 30, 0.95);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(245, 158, 11, 0.25);
+}
+.windy-time-bar .wrlb-status {
+  color: #f59e0b;
+}
+
+@media (max-width: 640px) {
+  .windy-time-bar {
+    bottom: 80px; /* Above mobile dock */
+    flex-direction: column;
+    padding: 8px;
+    border-radius: 12px;
+  }
+}
+
 .wrlb-status {
   display: flex;
   align-items: center;

@@ -683,48 +683,14 @@ class DisasterMap {
   }
 
   setBasemap(name) {
-    if (name === 'windy') {
-      // Keep standard base map underneath so geography, coastlines and roads remain visible
-      if (!this.map.hasLayer(this.baseLayers.standard)) {
-        this.baseLayers.standard.addTo(this.map);
+    Object.entries(this.baseLayers).forEach(([key, layer]) => {
+      if (key === name) {
+        if (!this.map.hasLayer(layer)) layer.addTo(this.map);
+      } else {
+        if (this.map.hasLayer(layer)) this.map.removeLayer(layer);
       }
-      if (this.baseLayers.windy) {
-        if (window.WINDY_MAP_KEY) {
-          const key = window.WINDY_MAP_KEY;
-          const currentType = this.activeWindyLayerType || 'radar';
-          this.baseLayers.windy.setUrl(`https://tiles.windy.com/tiles/v1.0/${currentType}/{z}/{x}/{y}.png?key=${encodeURIComponent(key)}`);
-        } else if (LAYER_CONFIG.windy && LAYER_CONFIG.windy.url) {
-          this.baseLayers.windy.setUrl(LAYER_CONFIG.windy.url);
-        }
-        if (!this.map.hasLayer(this.baseLayers.windy)) {
-          this.baseLayers.windy.addTo(this.map);
-        }
-        if (typeof this.baseLayers.windy.bringToFront === 'function') {
-          this.baseLayers.windy.bringToFront();
-        }
-      }
-      if (this.map.hasLayer(this.baseLayers.satellite)) this.map.removeLayer(this.baseLayers.satellite);
-      if (this.map.hasLayer(this.baseLayers.topo)) this.map.removeLayer(this.baseLayers.topo);
-    } else {
-      if (this.baseLayers.windy && this.map.hasLayer(this.baseLayers.windy)) {
-        this.map.removeLayer(this.baseLayers.windy);
-      }
-      Object.entries(this.baseLayers).forEach(([key, layer]) => {
-        if (key === 'windy') return;
-        if (key === name) { if (!this.map.hasLayer(layer)) layer.addTo(this.map); }
-        else if (this.map.hasLayer(layer)) this.map.removeLayer(layer);
-      });
-    }
+    });
     this.activeBaseLayer = name;
-  }
-
-  setWindySubLayer(layerType = 'radar') {
-    this.activeWindyLayerType = layerType;
-    const key = window.WINDY_MAP_KEY;
-    if (key && this.baseLayers.windy) {
-      const targetUrl = `https://tiles.windy.com/tiles/v1.0/${layerType}/{z}/{x}/{y}.png?key=${encodeURIComponent(key)}`;
-      this.baseLayers.windy.setUrl(targetUrl);
-    }
   }
 
   flyToLocation(lat, lng, zoom = 10) {

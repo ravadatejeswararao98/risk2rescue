@@ -1429,12 +1429,14 @@ function openInspector(zoneOrName, coords, risk, wind, surge, shelter) {
 
   // 4. Wind / Gust (live value, km/h)
   const seriesItem = z.forecast_series?.[stepIndex];
-  const windDisplay = seriesItem ? `${seriesItem.gustKmh} km/h` : (z.current_telemetry ? `${z.current_telemetry.windGustKmh} km/h` : (activeTier === 'RED' ? '140 km/h' : '30 km/h'));
+  const windGust = seriesItem?.gustKmh ?? z.current_telemetry?.windGustKmh ?? null;
+  const windDisplay = windGust != null ? `${windGust} km/h` : '\u2014 km/h';
   const windEl = document.getElementById('insp-wind');
   if (windEl) windEl.textContent = windDisplay;
 
   // 5. Atmospheric Pressure (live value, hPa)
-  const pressureDisplay = seriesItem ? `${seriesItem.pressureHpa} hPa` : (z.current_telemetry ? `${z.current_telemetry.pressureHpa} hPa` : (activeTier === 'RED' ? '984 hPa' : '1008 hPa'));
+  const pressureHpa = seriesItem?.pressureHpa ?? z.current_telemetry?.pressureHpa ?? null;
+  const pressureDisplay = pressureHpa != null ? `${pressureHpa} hPa` : '\u2014 hPa';
   const pressureEl = document.getElementById('insp-pressure');
   if (pressureEl) pressureEl.textContent = pressureDisplay;
 

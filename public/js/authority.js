@@ -1395,18 +1395,73 @@ function showHazardZoneTableCard(hazard) {
   if (popEl) popEl.textContent = (hazard.population || hazard.pop || 'Unknown').toLocaleString();
   if (coordsEl && hazard.lat && hazard.lng) coordsEl.textContent = `${hazard.lat.toFixed(2)}° N, ${hazard.lng.toFixed(2)}° E`;
   
-  // Update Trigger Telemetry from ai-engine payload if available
+  // Update Trigger Telemetry — show BOTH wind gust AND pressure for cyclone zones
   if (teleEl) {
-    if (hazard.current_telemetry && hazard.current_telemetry.windGustKmh) {
-      teleEl.textContent = `${hazard.current_telemetry.windGustKmh} km/h Gusts`;
+    const tele = hazard.current_telemetry || {};
+    const hType = (hazard.hazardType || hazard.key || 'cyclone').toLowerCase();
+    if (hType === 'cyclone' || hType.includes('cyclone')) {
+      const gustStr = tele.windGustKmh != null ? `${tele.windGustKmh} km/h Gusts` : '—';
+      const pressStr = tele.pressureHpa != null ? `${tele.pressureHpa} hPa Pressure` : null;
+      // Mark which parameter actually triggered RED
+      const gustRed = (tele.windGustKmh || 0) >= 95;
+      const pressRed = tele.pressureHpa != null && (1013 - Math.max(0, 1013 - tele.pressureHpa)) <= 980;
+      let trigger = gustStr;
+      if (pressStr) {
+        trigger = gustRed ? `${gustStr} ⚡ ${pressStr}` : pressRed ? `${gustStr} • ${pressStr} ⚡` : `${gustStr} • ${pressStr}`;
+      }
+      teleEl.textContent = trigger;
+    } else if (hType === 'flood' || hType === 'landslide' || hType === 'cloudburst') {
+      const precipStr = tele.precipMm != null ? `${tele.precipMm} mm/h Precipitation` : null;
+      teleEl.textContent = precipStr || '+2.8m River Inundation';
     } else {
-      teleEl.textContent = hazard.key === 'cyclone' ? '115 km/h Peak Gusts' : hazard.key === 'flood' ? '+2.8m River Inundation' : 'Active Telemetry';
+      teleEl.textContent = tele.windGustKmh ? `${tele.windGustKmh} km/h Gusts` : 'Active Telemetry';
     }
   }
 
-  // Populate Provenance Tab
+  // Populate Provenance Tab — computed dynamically per zone hazard type
   const provReason = document.getElementById('hztc-prov-reason');
   const provMult = document.getElementById('hztc-prov-multiplier');
+  const provThresh = document.getElementById('hztc-prov-thresholds');
+  const hType = (hazard.hazardType || hazard.key || 'cyclone').toLowerCase();
+  const tele = hazard.current_telemetry || {};
+
+  // --- Dynamic threshold description per hazard type ---
+  if (provThresh) {
+    let threshText = '';
+    if (hType === 'cyclone' || hType.includes('cyclone')) {
+      const gustRed = (tele.windGustKmh || 0) >= 95;
+      const pressRed = tele.pressureHpa != null && tele.pressureHpa <= 980;
+      const pressOrange = tele.pressureHpa != null && tele.pressureHpa <= 995;
+      threshText = `Wind ≥95km/h OR Pressure ≤980hPa = RED`;
+      if (pressOrange && !pressRed) threshText += ` • Wind ≥65km/h OR Pressure ≤995hPa = ORANGE`;
+      if (pressRed) {
+        threshText += ` • ⚡ Triggered by: Pressure (${tele.pressureHpa ?? '—'} hPa)`;
+        if (gustRed) threshText += ` + Wind (${tele.windGustKmh} km/h)`;
+      } else if (gustRed) {
+        threshText += ` • ⚡ Triggered by: Wind Gust (${tele.windGustKmh} km/h)`;
+      } else {
+        threshText += ` • Wind ≥65km/h OR Pressure ≤995hPa = ORANGE`;
+        if (tele.windGustKmh != null) threshText += ` • Current: ${tele.windGustKmh} km/h, ${tele.pressureHpa ?? '—'} hPa`;
+      }
+    } else if (hType === 'flood') {
+      const precipMm = tele.precipMm || 0;
+      threshText = `Precip ≥25mm/h = RED • ≥12mm/h = ORANGE • ≥5mm/h = YELLOW`;
+      threshText += ` • ⚡ Current: ${precipMm} mm/h${precipMm >= 25 ? ' (RED trigger)' : precipMm >= 12 ? ' (ORANGE trigger)' : ''}`;
+    } else if (hType === 'landslide') {
+      const precipMm = tele.precipMm || 0;
+      threshText = `Precip ≥30mm/h + Vulnerability ≥0.85 = RED • ≥18mm/h = ORANGE • ≥8mm/h = YELLOW`;
+      threshText += ` • ⚡ Current: ${precipMm} mm/h precip`;
+    } else if (hType === 'cloudburst') {
+      threshText = `Precip ≥35mm/h = RED • ≥20mm/h = ORANGE • ≥10mm/h = YELLOW`;
+      if (tele.precipMm != null) threshText += ` • Current: ${tele.precipMm} mm/h`;
+    } else if (hType === 'earthquake') {
+      threshText = `Magnitude ≥5.5 = RED • ≥4.5 = ORANGE • ≥3.5 = YELLOW`;
+    } else {
+      threshText = `Wind ≥90km/h OR Precip ≥25mm/h = RED • ≥60km/h OR ≥12mm/h = ORANGE`;
+    }
+    provThresh.textContent = threshText;
+  }
+
   if (provReason) provReason.textContent = (hazard.disaster_recurrence && hazard.disaster_recurrence.reasoning) ? hazard.disaster_recurrence.reasoning : 'Real-time telemetry crossed configurable dynamic thresholds.';
   if (provMult) provMult.textContent = (hazard.disaster_recurrence && hazard.disaster_recurrence.multiplier) ? `${hazard.disaster_recurrence.multiplier}x (Historical Vulnerability)` : '1.0x (Baseline)';
   const provUpdated = document.getElementById('hztc-prov-updated');
@@ -3551,7 +3606,10 @@ function updateCommandCenterKPIs(state) {
 
   // Sync Evidence Profile
   const evHaz = document.getElementById('ev-prof-haz');
-  if (evHaz) evHaz.innerHTML = `${totalHazards} Active Hazard Footprints &bull; (Threshold: Dynamic) &bull; Confidence: ${kpis.aiConfidence?.value || 'N/A'}`;
+  if (evHaz) {
+    const hazCount = (kpis.activeHazards && kpis.activeHazards.value) ? kpis.activeHazards.value : 0;
+    evHaz.innerHTML = `${hazCount} Active Hazard Footprints &bull; (Threshold: Dynamic) &bull; Confidence: ${kpis.aiConfidence?.value || 'N/A'}`;
+  }
 
   const evPop = document.getElementById('ev-prof-pop');
   if (evPop) {
@@ -3561,8 +3619,10 @@ function updateCommandCenterKPIs(state) {
 
   const evHab = document.getElementById('ev-prof-hab');
   if (evHab) {
+    const pQueue = (window.APP_DATA && Array.isArray(window.APP_DATA.priorityQueue)) ? window.APP_DATA.priorityQueue : [];
     const critHabs = pQueue.filter(h => h.priorityLevel === 'CRITICAL').length;
     const highHabs = pQueue.filter(h => h.priorityLevel === 'HIGH').length;
+    const totalHighRisk = critHabs + highHabs;
     evHab.innerHTML = `${totalHighRisk} High-Risk Habitations &bull; ${critHabs} Critical Intersections &bull; Nearest proximity evaluated`;
   }
 

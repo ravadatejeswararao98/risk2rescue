@@ -155,7 +155,7 @@
     <div class="windy-inspector-header">
       <div>
         <div class="windy-inspector-title" id="insp-name">Kakinada Coastal Sector</div>
-        <div style="font-size:11px; color:#94a3b8;" id="insp-coords">16.99° N, 82.25° E</div>
+        <div style="font-size:11px; color:#94a3b8;" id="insp-coords"></div>
       </div>
       <button class="windy-inspector-close" id="insp-close" title="Close inspector">&times;</button>
     </div>
@@ -177,15 +177,15 @@
       </div>
       <div class="windy-inspector-stat">
         <div class="windy-stat-lbl">Wind / Gust</div>
-        <div class="windy-stat-val" id="insp-wind">140 km/h</div>
+        <div class="windy-stat-val" id="insp-wind"></div>
       </div>
       <div class="windy-inspector-stat">
         <div class="windy-stat-lbl">Atmospheric Pressure</div>
-        <div class="windy-stat-val" id="insp-pressure">984 hPa</div>
+        <div class="windy-stat-val" id="insp-pressure"></div>
       </div>
       <div class="windy-inspector-stat">
         <div class="windy-stat-lbl">People in Zone</div>
-        <div class="windy-stat-val" id="insp-people">24,500</div>
+        <div class="windy-stat-val" id="insp-people"></div>
       </div>
       <div class="windy-inspector-stat windy-stat-wide">
         <div class="windy-stat-lbl">NASA FIRMS Active Fires</div>
@@ -235,7 +235,7 @@
             <span>Where are you?</span>
             <span id="rep-loc-badge" style="font-size:11px; color:#047857; background:#ecfdf5; padding:3px 8px; border-radius:6px; border:1px solid #a7f3d0; display:none; font-weight:600; line-height:1.4; white-space:nowrap;"><i class='fi fi-rr-lock'></i> Auto-detected GPS</span>
           </label>
-          <input type="text" class="input-field" id="rep-loc" value="Kakinada Coastal Sector (16.99° N, 82.25° E)" required>
+          <input type="text" class="input-field" id="rep-loc" value="" required>
           <div id="rep-loc-note" style="font-size:11px; color:var(--text-muted, #64748b); margin-top:7px; line-height:1.55;">Position auto-locked to your GPS coordinates. If inaccurate, location will fall back to manual entry.</div>
         </div>
         <div class="form-group">
@@ -274,7 +274,7 @@
   <script src="js/hazards.js?v=16"></script>
   <script src="js/location-service.js?v=16"></script>
   <script src="js/windy-integration.js?v=16"></script>
-  <script src="js/citizen.js?v=16"></script>
+  <script src="js/citizen.js?v=17"></script>
 
   <!-- Teja Simulation & Emergency Extensions -->
   <script src="js/simulation-engine.js?v=16"></script>
