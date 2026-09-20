@@ -156,7 +156,7 @@ class WindyIntegrationController {
     const inspRisk = document.getElementById('insp-risk');
     const inspSurge = document.getElementById('insp-surge');
 
-    if (inspWind) inspWind.textContent = gust !== null ? `${gust} km/h` : '— km/h';
+    if (inspWind) inspWind.textContent = (wind !== null && gust !== null) ? `${wind} km/h (Gusts: ${gust})` : '— km/h';
     if (inspPressure) inspPressure.textContent = pressure !== null ? `${pressure} hPa` : '— hPa';
     if (inspRisk) {
       const tierNames = { RED: 'Active Hazard Zone', ORANGE: 'High Alert Zone', YELLOW: 'Moderate Risk Zone', GREEN: 'Safe Zone' };

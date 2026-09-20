@@ -147,6 +147,9 @@ const CACHE_TTL_AQI_MS      = 10 * 60 * 1000; // 10 minutes (600000 ms)
 const CACHE_TTL_PRIORITY_MS =  5 * 60 * 1000; // 5 minutes (Phase 1 VPI Cache)
 const CACHE_TTL_IMD_MS      = 12 * 60 * 1000; // 12 minutes — IMD CAP RSS feed
 
+const zoneConditionsCache = new Map();
+const CACHE_TTL_ZONE_CONDITIONS_MS = 10 * 60 * 1000; // 10 minutes
+
 const weatherCache = new Map();
 const airQualityCache = new Map();
 let earthquakeCache = null;
@@ -2491,6 +2494,57 @@ const server = http.createServer(async (req, res) => {
       return res.end(JSON.stringify(data));
     }
 
+    // 5g. LIVE ZONE CONDITIONS (OPEN-METEO)
+    if (pathname === '/api/zone-conditions') {
+      const lat = parseFloat(query.lat);
+      const lon = parseFloat(query.lon);
+      if (isNaN(lat) || isNaN(lon)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Valid lat and lon are required' }));
+      }
+      
+      const cacheKey = `${lat.toFixed(3)}_${lon.toFixed(3)}`;
+      const cached = zoneConditionsCache.get(cacheKey);
+      if (cached && (Date.now() - cached.timestamp < CACHE_TTL_ZONE_CONDITIONS_MS)) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify(cached.data));
+      }
+
+      try {
+        const forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,weather_code,surface_pressure,pressure_msl,cloud_cover,visibility,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=precipitation,precipitation_probability,wind_speed_10m,wind_gusts_10m&forecast_days=2&timezone=auto`;
+        const aqiUrl = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi&timezone=auto`;
+        
+        const [forecastResp, aqiResp] = await Promise.all([
+          fetch(forecastUrl).then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch(aqiUrl).then(r => r.ok ? r.json() : null).catch(() => null)
+        ]);
+
+        let marineData = null;
+        // Check if coastal (approximate check based on AP geometry, or assume user only clicks coastal zones)
+        // If query param `coastal=true` is passed, we fetch marine
+        if (query.coastal === 'true') {
+          const marineUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&current=wave_height,wave_direction,wave_period&timezone=auto`;
+          marineData = await fetch(marineUrl).then(r => r.ok ? r.json() : null).catch(() => null);
+        }
+
+        const payload = {
+          forecast: forecastResp,
+          aqi: aqiResp,
+          marine: marineData,
+          fetchedAt: new Date().toISOString()
+        };
+
+        zoneConditionsCache.set(cacheKey, { timestamp: Date.now(), data: payload });
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify(payload));
+      } catch (err) {
+        console.error('[ZoneConditions] Fetch error:', err.message);
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'External APIs unreachable' }));
+      }
+    }
+
     // 6. Alerts Store
     if (pathname === '/api/alerts') {
       if (req.method === 'POST') {
@@ -2951,7 +3005,7 @@ const server = http.createServer(async (req, res) => {
               lat: Number(lat),
               lon: Number(lon),
               model: payload.model || 'ecmwf',
-              parameters: ['wind', 'windGust', 'temp', 'precip', 'rh', 'pressure'],
+              parameters: ['wind', 'windGust', 'temp', 'precip', 'rh', 'pressure', 'dewpoint', 'cape', 'ptype', 'lclouds', 'mclouds', 'hclouds'],
               levels: ['surface'],
               key: WINDY_DATA_KEY
             });

@@ -107,6 +107,7 @@
               ${src.lastCheckedAt ? `<span>Last checked: ${fmt(src.lastCheckedAt)}</span>` : ''}
               ${src.latencyMs != null ? `<span>${src.latencyMs}ms</span>` : ''}
               ${src.recordCount != null ? `<span>${src.recordCount} records</span>` : ''}
+              ${src.error ? `<span style="color: #ef4444;"><i class="fi fi-rr-triangle-warning"></i> ${escHtml(src.error)}</span>` : ''}
             </div>
           </div>
           <button class="dl-row-refresh-btn" 

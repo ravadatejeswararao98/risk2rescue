@@ -702,6 +702,7 @@ class AIEngine {
         lng: hab.lng,
         baseRadius: baseRadiusMeters,
         radius: baseRadiusMeters,
+        polygon: hab.polygon || null,
         pop: hab.growth_adjusted_pop || hab.census_2011_pop,
         elevation_m: hab.elevation_m,
         vulnerability_score: hab.vulnerability_score,
@@ -722,9 +723,17 @@ class AIEngine {
     return zones;
   }
 
-  formatHazardSuffix(hazardType) {
+  formatHazardSuffix(hazardType, hab = null) {
     switch (hazardType) {
-      case 'cyclone': return 'Coastal Landfall Corridor';
+      case 'cyclone':
+        if (hab) {
+          const inlandDistricts = ['kurnool', 'anantapur', 'nandyal', 'kadapa', 'ysr', 'chittoor', 'sri sathya sai', 'annamayya'];
+          if (hab.district && inlandDistricts.includes(hab.district.toLowerCase())) {
+            return 'Inland Wind Corridor';
+          }
+          if (hab.elevation_m > 50) return 'Inland Severe Wind Sector';
+        }
+        return 'Coastal Landfall Corridor';
       case 'flood': return 'Riverine Inundation Belt';
       case 'landslide': return 'Slope Debris Sector';
       case 'earthquake': return 'Fault Line Focal Zone';

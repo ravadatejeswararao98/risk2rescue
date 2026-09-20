@@ -1,5 +1,481 @@
 [
   {
+    "id": "REC-1789884092600",
+    "timestamp": "2026-09-20T06:01:32.600Z",
+    "model": "gpt-oss:20b",
+    "provider": "ollama-cloud",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Srikakulam Urban",
+          "pop": 144830
+        },
+        {
+          "name": "Visakhapatnam Urban Agglomeration",
+          "pop": 1987347
+        },
+        {
+          "name": "Gajuwaka Industrial Belt",
+          "pop": 297735
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Srikakulam Urban",
+          "deficit": 144830
+        },
+        {
+          "zone": "Visakhapatnam Urban Agglomeration",
+          "deficit": 1987347
+        },
+        {
+          "zone": "Gajuwaka Industrial Belt",
+          "deficit": 297735
+        },
+        {
+          "zone": "Kakinada Urban",
+          "deficit": 359419
+        },
+        {
+          "zone": "Machilipatnam Coastal Urban",
+          "deficit": 195376
+        },
+        {
+          "zone": "Nellore Urban",
+          "deficit": 574511
+        },
+        {
+          "zone": "Kalingapatnam Port Corridor",
+          "deficit": 41975
+        },
+        {
+          "zone": "Anakapalle",
+          "deficit": 99497
+        },
+        {
+          "zone": "Tallarevu Mandal",
+          "deficit": 20930
+        },
+        {
+          "zone": "Uppada Coastal Belt",
+          "deficit": 25300
+        },
+        {
+          "zone": "Gudivada",
+          "deficit": 135892
+        },
+        {
+          "zone": "Bheemunipatnam (Bheemili)",
+          "deficit": 63091
+        },
+        {
+          "zone": "Rajahmundry Urban Agglomeration",
+          "deficit": 393106
+        },
+        {
+          "zone": "Amalapuram (Konaseema Delta)",
+          "deficit": 61216
+        },
+        {
+          "zone": "Bhimavaram Urban",
+          "deficit": 169005
+        },
+        {
+          "zone": "Narasapuram Coastal Hub",
+          "deficit": 67586
+        },
+        {
+          "zone": "Vijayawada Urban Agglomeration",
+          "deficit": 1189512
+        },
+        {
+          "zone": "Avanigadda / Diviseema Island",
+          "deficit": 71760
+        },
+        {
+          "zone": "Nizampatnam Fishing Harbour",
+          "deficit": 24129
+        },
+        {
+          "zone": "Repalle Coastal Reach",
+          "deficit": 58496
+        },
+        {
+          "zone": "Kavali Coastal Urban",
+          "deficit": 103614
+        },
+        {
+          "zone": "Gudur",
+          "deficit": 85143
+        },
+        {
+          "zone": "Palasa-Kasibugga",
+          "deficit": 66133
+        },
+        {
+          "zone": "Sompeta Coastal Reach",
+          "deficit": 55430
+        },
+        {
+          "zone": "Vizianagaram Urban",
+          "deficit": 262229
+        },
+        {
+          "zone": "Bhogapuram Coastal Belt",
+          "deficit": 62330
+        },
+        {
+          "zone": "Bobbili",
+          "deficit": 65342
+        },
+        {
+          "zone": "Eluru Urban",
+          "deficit": 250723
+        },
+        {
+          "zone": "Tanuku",
+          "deficit": 83193
+        },
+        {
+          "zone": "Guntur Urban",
+          "deficit": 770584
+        },
+        {
+          "zone": "Bapatla Coastal Sector",
+          "deficit": 81394
+        },
+        {
+          "zone": "Tenali",
+          "deficit": 189678
+        },
+        {
+          "zone": "Ongole Urban",
+          "deficit": 235461
+        },
+        {
+          "zone": "Chirala Coastal Urban",
+          "deficit": 100280
+        },
+        {
+          "zone": "Kandukur",
+          "deficit": 65833
+        },
+        {
+          "zone": "Kothapatnam Coastal Reach",
+          "deficit": 39215
+        },
+        {
+          "zone": "Dugarajapatnam / Pulicat Sector",
+          "deficit": 44735
+        },
+        {
+          "zone": "Tirupati Urban Agglomeration",
+          "deficit": 330604
+        },
+        {
+          "zone": "Srikalahasti",
+          "deficit": 92064
+        },
+        {
+          "zone": "Rajampet (Cheyyeru Basin)",
+          "deficit": 62330
+        },
+        {
+          "zone": "Kadapa Urban",
+          "deficit": 396627
+        },
+        {
+          "zone": "Proddatur Urban",
+          "deficit": 188565
+        },
+        {
+          "zone": "Pulivendula",
+          "deficit": 75562
+        },
+        {
+          "zone": "Kurnool Urban",
+          "deficit": 526278
+        },
+        {
+          "zone": "Nandyal Urban",
+          "deficit": 230593
+        },
+        {
+          "zone": "Adoni Urban",
+          "deficit": 191518
+        },
+        {
+          "zone": "Yemmiganur",
+          "deficit": 109421
+        },
+        {
+          "zone": "Anantapur Urban",
+          "deficit": 300155
+        },
+        {
+          "zone": "Hindupur Urban",
+          "deficit": 174429
+        },
+        {
+          "zone": "Dharmavaram",
+          "deficit": 140155
+        },
+        {
+          "zone": "Guntakal Rail Hub",
+          "deficit": 145211
+        },
+        {
+          "zone": "Chittoor Urban",
+          "deficit": 176819
+        },
+        {
+          "zone": "Madanapalle Urban",
+          "deficit": 156876
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "The priority engine assigned a low priority score of 31 to Srikakulam Urban, Visakhapatnam Urban Agglomeration, and Gajuwaka Industrial Belt because hazard severity data were unavailable, yet each zone exhibits high vulnerability (50), urgency (40), and full access (100), with deficits equal to the entire population indicating no available capacity. All three zones have no shelters near capacity and no live sensor telemetry is currently available, so the situation remains largely unverified beyond the engine’s deterministic assessment. Accordingly, the Incident Commander should maintain a monitoring posture, coordinate with local authorities to secure additional capacity, and be prepared to elevate priority if new hazard or sensor data emerge."
+  },
+  {
+    "id": "REC-1789884009992",
+    "timestamp": "2026-09-20T06:00:09.992Z",
+    "model": "gpt-oss:20b",
+    "provider": "ollama-cloud",
+    "inputSummary": {
+      "topHabitations": [
+        {
+          "name": "Srikakulam Urban",
+          "pop": 144830
+        },
+        {
+          "name": "Visakhapatnam Urban Agglomeration",
+          "pop": 1987347
+        },
+        {
+          "name": "Gajuwaka Industrial Belt",
+          "pop": 297735
+        }
+      ],
+      "deficitReports": [
+        {
+          "zone": "Srikakulam Urban",
+          "deficit": 144830
+        },
+        {
+          "zone": "Visakhapatnam Urban Agglomeration",
+          "deficit": 1987347
+        },
+        {
+          "zone": "Gajuwaka Industrial Belt",
+          "deficit": 297735
+        },
+        {
+          "zone": "Kakinada Urban",
+          "deficit": 359419
+        },
+        {
+          "zone": "Machilipatnam Coastal Urban",
+          "deficit": 195376
+        },
+        {
+          "zone": "Nellore Urban",
+          "deficit": 574511
+        },
+        {
+          "zone": "Kalingapatnam Port Corridor",
+          "deficit": 41975
+        },
+        {
+          "zone": "Anakapalle",
+          "deficit": 99497
+        },
+        {
+          "zone": "Tallarevu Mandal",
+          "deficit": 20930
+        },
+        {
+          "zone": "Uppada Coastal Belt",
+          "deficit": 25300
+        },
+        {
+          "zone": "Gudivada",
+          "deficit": 135892
+        },
+        {
+          "zone": "Bheemunipatnam (Bheemili)",
+          "deficit": 63091
+        },
+        {
+          "zone": "Rajahmundry Urban Agglomeration",
+          "deficit": 393106
+        },
+        {
+          "zone": "Amalapuram (Konaseema Delta)",
+          "deficit": 61216
+        },
+        {
+          "zone": "Bhimavaram Urban",
+          "deficit": 169005
+        },
+        {
+          "zone": "Narasapuram Coastal Hub",
+          "deficit": 67586
+        },
+        {
+          "zone": "Vijayawada Urban Agglomeration",
+          "deficit": 1189512
+        },
+        {
+          "zone": "Avanigadda / Diviseema Island",
+          "deficit": 71760
+        },
+        {
+          "zone": "Nizampatnam Fishing Harbour",
+          "deficit": 24129
+        },
+        {
+          "zone": "Repalle Coastal Reach",
+          "deficit": 58496
+        },
+        {
+          "zone": "Kavali Coastal Urban",
+          "deficit": 103614
+        },
+        {
+          "zone": "Gudur",
+          "deficit": 85143
+        },
+        {
+          "zone": "Palasa-Kasibugga",
+          "deficit": 66133
+        },
+        {
+          "zone": "Sompeta Coastal Reach",
+          "deficit": 55430
+        },
+        {
+          "zone": "Vizianagaram Urban",
+          "deficit": 262229
+        },
+        {
+          "zone": "Bhogapuram Coastal Belt",
+          "deficit": 62330
+        },
+        {
+          "zone": "Bobbili",
+          "deficit": 65342
+        },
+        {
+          "zone": "Eluru Urban",
+          "deficit": 250723
+        },
+        {
+          "zone": "Tanuku",
+          "deficit": 83193
+        },
+        {
+          "zone": "Guntur Urban",
+          "deficit": 770584
+        },
+        {
+          "zone": "Bapatla Coastal Sector",
+          "deficit": 81394
+        },
+        {
+          "zone": "Tenali",
+          "deficit": 189678
+        },
+        {
+          "zone": "Ongole Urban",
+          "deficit": 235461
+        },
+        {
+          "zone": "Chirala Coastal Urban",
+          "deficit": 100280
+        },
+        {
+          "zone": "Kandukur",
+          "deficit": 65833
+        },
+        {
+          "zone": "Kothapatnam Coastal Reach",
+          "deficit": 39215
+        },
+        {
+          "zone": "Dugarajapatnam / Pulicat Sector",
+          "deficit": 44735
+        },
+        {
+          "zone": "Tirupati Urban Agglomeration",
+          "deficit": 330604
+        },
+        {
+          "zone": "Srikalahasti",
+          "deficit": 92064
+        },
+        {
+          "zone": "Rajampet (Cheyyeru Basin)",
+          "deficit": 62330
+        },
+        {
+          "zone": "Kadapa Urban",
+          "deficit": 396627
+        },
+        {
+          "zone": "Proddatur Urban",
+          "deficit": 188565
+        },
+        {
+          "zone": "Pulivendula",
+          "deficit": 75562
+        },
+        {
+          "zone": "Kurnool Urban",
+          "deficit": 526278
+        },
+        {
+          "zone": "Nandyal Urban",
+          "deficit": 230593
+        },
+        {
+          "zone": "Adoni Urban",
+          "deficit": 191518
+        },
+        {
+          "zone": "Yemmiganur",
+          "deficit": 109421
+        },
+        {
+          "zone": "Anantapur Urban",
+          "deficit": 300155
+        },
+        {
+          "zone": "Hindupur Urban",
+          "deficit": 174429
+        },
+        {
+          "zone": "Dharmavaram",
+          "deficit": 140155
+        },
+        {
+          "zone": "Guntakal Rail Hub",
+          "deficit": 145211
+        },
+        {
+          "zone": "Chittoor Urban",
+          "deficit": 176819
+        },
+        {
+          "zone": "Madanapalle Urban",
+          "deficit": 156876
+        }
+      ],
+      "telemetry": {}
+    },
+    "recommendation": "The Priority Engine assigned a low priority score of 31 to Srikakulam Urban, Visakhapatnam Urban Agglomeration, and Gajuwaka Industrial Belt because hazard severity data is missing, population and life‑risk factors are not elevated, and urgency is moderate while access is high, leading to a recommendation to monitor the situation. All affected zones report deficits with no available capacity, yet no shelters are approaching capacity, and current sensor telemetry indicates normal seismic conditions and unavailable radar gust data, suggesting no immediate acute threat. The Incident Commander should maintain situational awareness, coordinate with local authorities for capacity updates, and be prepared to deploy resources if hazard severity data becomes available or if sensor readings indicate emerging risks."
+  },
+  {
     "id": "REC-1789711273619",
     "timestamp": "2026-09-18T06:01:13.619Z",
     "model": "gpt-oss:20b",
@@ -3467,98 +3943,6 @@
   {
     "id": "REC-1789519959891",
     "timestamp": "2026-09-16T00:52:39.891Z",
-    "model": "Deterministic Operational Risk Analyst Engine",
-    "provider": "deterministic-fallback",
-    "inputSummary": {
-      "topHabitations": [
-        {
-          "name": "Kakinada Urban Slums",
-          "pop": 8500
-        },
-        {
-          "name": "Coastal Industrial Park",
-          "pop": 2500
-        },
-        {
-          "name": "Machilipatnam Delta",
-          "pop": 4200
-        }
-      ],
-      "deficitReports": [
-        {
-          "zone": "Kakinada Urban Slums",
-          "deficit": 8500
-        },
-        {
-          "zone": "Coastal Industrial Park",
-          "deficit": 2500
-        },
-        {
-          "zone": "Machilipatnam Delta",
-          "deficit": 4200
-        },
-        {
-          "zone": "Nellore Coastal Villages",
-          "deficit": 1800
-        },
-        {
-          "zone": "Srikakulam River Catchment",
-          "deficit": 3100
-        }
-      ],
-      "telemetry": {}
-    },
-    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
-  },
-  {
-    "id": "REC-1789519940011",
-    "timestamp": "2026-09-16T00:52:20.011Z",
-    "model": "Deterministic Operational Risk Analyst Engine",
-    "provider": "deterministic-fallback",
-    "inputSummary": {
-      "topHabitations": [
-        {
-          "name": "Kakinada Urban Slums",
-          "pop": 8500
-        },
-        {
-          "name": "Coastal Industrial Park",
-          "pop": 2500
-        },
-        {
-          "name": "Machilipatnam Delta",
-          "pop": 4200
-        }
-      ],
-      "deficitReports": [
-        {
-          "zone": "Kakinada Urban Slums",
-          "deficit": 8500
-        },
-        {
-          "zone": "Coastal Industrial Park",
-          "deficit": 2500
-        },
-        {
-          "zone": "Machilipatnam Delta",
-          "deficit": 4200
-        },
-        {
-          "zone": "Nellore Coastal Villages",
-          "deficit": 1800
-        },
-        {
-          "zone": "Srikakulam River Catchment",
-          "deficit": 3100
-        }
-      ],
-      "telemetry": {}
-    },
-    "recommendation": "Recommend immediate relocation of Kakinada Urban Slums and Coastal Industrial Park (11k citizens at risk) to designated cyclone shelters. Designated regional safe sites have verified remaining capacity with road corridors clear of active flooding. Hazard Zone Kakinada Urban Slums registers an aggregate carrying-capacity deficit of 8,500 residents, requiring NDRF pre-positioning of temporary modular field relief camps."
-  },
-  {
-    "id": "REC-1789519929888",
-    "timestamp": "2026-09-16T00:52:09.888Z",
     "model": "Deterministic Operational Risk Analyst Engine",
     "provider": "deterministic-fallback",
     "inputSummary": {

@@ -236,7 +236,7 @@ const SOURCES = [
         lat: 16.99,
         lon: 82.25,
         model: 'gfs',
-        parameters: ['temp', 'wind', 'windGust'],
+        parameters: ['temp', 'wind', 'windGust', 'precip', 'rh', 'pressure', 'dewpoint', 'cape', 'ptype', 'lclouds', 'mclouds', 'hclouds'],
         levels: ['surface'],
         key: key
       });
