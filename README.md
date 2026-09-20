@@ -167,7 +167,7 @@ npm start
 ```
 
 Open your browser and navigate to:
-- **Gateway**: [[http://riek2rescue.onrender.com](https://risk2rescue-fvth.onrender.com/)]
+- **Gateway**: [[https://risk2rescue-fvth.onrender.com/](https://risk2rescue-fvth.onrender.com/)]
 
 ### Option 2: Direct Browser Launch (Static Mode)
 Double-click `index.html`, `citizen.html`, or `authority.html` directly in your file manager. The entire frontend works with zero server requirements.
