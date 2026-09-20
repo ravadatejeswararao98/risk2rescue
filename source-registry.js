@@ -21,7 +21,6 @@ const path = require('path');
 const { getCapFeed, CAP_FEEDS } = require('./sources/cap-feed.js');
 const { getCpcbAirQuality, getOpenAqAirQuality } = require('./sources/cpcb-air.js');
 const { getGdacsEvents } = require('./sources/gdacs.js');
-const { getGoogleFloodForecast } = require('./sources/google-flood.js');
 
 // Metrics storage: sourceId -> { lastAttemptAt, lastSuccessAt, lastLatencyMs, consecutiveFailures, lastError, lastRecordCount, lastRawPayload, lastObservedAt }
 const metricsStore = new Map();
@@ -130,10 +129,6 @@ function isSourceConfigured(source) {
   if (source.id === 'cpcb_airquality') {
     const key = process.env.DATA_GOV_IN_API_KEY || process.env.CPCB_API_KEY;
     return Boolean(key && key.trim() !== '' && !key.startsWith('YOUR_'));
-  }
-  if (source.id === 'google_flood_forecast') {
-    const key = process.env.GOOGLE_FLOOD_API_KEY;
-    return Boolean(key && key.trim() !== '' && !key.startsWith('YOUR_') && !key.startsWith('AIzaSyDemoKey'));
   }
   if (source.id === 'openaq_aq') {
     const key = process.env.OPENAQ_API_KEY;
@@ -397,31 +392,6 @@ const SOURCES = [
         return { ok: true, latencyMs: res.latencyMs, recordCount: records.length, detail: `${records.length} active river telemetry records probed`, raw: json, observedAt: null };
       }
       throw new Error(`HTTP ${res.statusCode}`);
-    }
-  },
-  {
-    id: 'google_flood_forecast',
-    agency: 'Google Flood Hub (Flood Forecasting Initiative)',
-    displayName: 'AI Hydrologic Forecast & Flood Status (7-Day Horizon)',
-    host: 'floodforecasting.googleapis.com',
-    dataType: 'Hydrologic Gauge Forecast JSON (CC BY 4.0)',
-    category: 'hydrology',
-    tier: 'LIVE_API',
-    role: 'FORECAST',
-    cadenceMs: 3600000,
-    requiresKey: 'GOOGLE_FLOOD_API_KEY',
-    consumers: ['view-datasources', 'hydrology-forecast-overlay'],
-    probe: async () => {
-      const srcObj = getSource('google_flood_forecast') || { id: 'google_flood_forecast', requiresKey: 'GOOGLE_FLOOD_API_KEY' };
-      if (!isSourceConfigured(srcObj)) {
-        return { ok: false, error: 'GOOGLE_FLOOD_API_KEY is not configured in .env', notConfigured: true, detail: 'Add GOOGLE_FLOOD_API_KEY to .env' };
-      }
-      const res = await getGoogleFloodForecast();
-      if (res.status === 'NOT_CONFIGURED') return { ok: false, error: res.error, notConfigured: true, detail: res.error };
-      if (res.success) {
-        return { ok: true, latencyMs: 250, recordCount: res.count, detail: `${res.count} flood forecast models reporting in AP sector`, observedAt: res.observedAt || null };
-      }
-      throw new Error(res.error || 'Google Flood probe failed');
     }
   },
 
