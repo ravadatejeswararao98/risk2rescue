@@ -25,7 +25,7 @@ const { getCpcbAirQuality, getOpenAqAirQuality } = require('./sources/cpcb-air.j
 const { getApWeather } = require('./sources/ap-weather.js');
 const { getGdacsEvents } = require('./sources/gdacs.js');
 const { getCWCRiverLevels } = require('./sources/cwc-nwic.js');
-const { getGoogleFloodForecast } = require('./sources/google-flood.js');
+
 const { getLatestSentinel1Observation, processLatestSentinel1Observation, verifySentinel1ProductAccess } = require('./sources/copernicus.js');
 const { getNasaFirmsHotspots, setFirmsCache, clearFirmsCache } = require('./sources/nasa-firms.js');
 const { correlateMultiHazards } = require('./sources/multi-hazard.js');
@@ -75,12 +75,11 @@ if (!process.env.CPCB_API_KEY && process.env.DATA_GOV_IN_API_KEY) {
 
 // Audit live upstream source credentials
 const isLiveKeyConfigured = (val) => Boolean(val && val.trim() !== '' && !val.startsWith('YOUR_') && !val.startsWith('AIzaSyDemoKey'));
-const auditGoogleFlood = isLiveKeyConfigured(process.env.GOOGLE_FLOOD_API_KEY);
 const auditCpcb = isLiveKeyConfigured(process.env.DATA_GOV_IN_API_KEY || process.env.CPCB_API_KEY);
 const auditOpenAq = isLiveKeyConfigured(process.env.OPENAQ_API_KEY);
 const auditCopernicus = isLiveKeyConfigured(process.env.COPERNICUS_CLIENT_ID) && isLiveKeyConfigured(process.env.COPERNICUS_CLIENT_SECRET);
 
-console.log(`[Config] Live Sources Audit: [Google Flood: ${auditGoogleFlood ? 'CONFIGURED' : 'MISSING'}] [CPCB/MoEFCC: ${auditCpcb ? 'CONFIGURED' : 'MISSING'}] [OpenAQ: ${auditOpenAq ? 'CONFIGURED' : 'MISSING'}] [Copernicus: ${auditCopernicus ? 'CONFIGURED' : 'MISSING'}]`);
+console.log(`[Config] Live Sources Audit: [CPCB/MoEFCC: ${auditCpcb ? 'CONFIGURED' : 'MISSING'}] [OpenAQ: ${auditOpenAq ? 'CONFIGURED' : 'MISSING'}] [Copernicus: ${auditCopernicus ? 'CONFIGURED' : 'MISSING'}]`);
 
 // Normalize Windy environment aliases (point and map forecast keys)
 if (!process.env.WINDY_POINT_KEY) {
@@ -603,22 +602,78 @@ async function getOpenMeteoWeather(lat, lon) {
   }
 
   const omUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,snowfall,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=temperature_2m,precipitation,wind_speed_10m,wind_gusts_10m,surface_pressure&timezone=auto`;
+  
+  let data = null;
+  let fetchError = null;
+  let delay = 1000;
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      data = await fetchJson(omUrl, {}, 10000); // 10 second timeout
+      fetchError = null;
+      break; // Success
+    } catch (err) {
+      fetchError = err;
+      const errMsg = err.message || '';
+      // Do not retry 400 Bad Request
+      if (errMsg.includes('HTTP 400')) break;
+      
+      if (attempt < 3) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2; // exponential backoff (1s, 2s)
+      }
+    }
+  }
+
+  if (fetchError) {
+    console.error(`Open-Meteo Weather query failed for ${lat},${lon} after retries:`, fetchError.message);
+    if (weatherCache.has(cacheKey)) {
+      const cachedEntry = weatherCache.get(cacheKey);
+      
+      // Keep it in cache indefinitely on failure by extending the expiry
+      cachedEntry.expiresAt = now + CACHE_TTL_WEATHER_MS;
+      weatherCache.set(cacheKey, cachedEntry);
+      
+      const degradedResult = {
+        ...cachedEntry.data,
+        cached: true,
+        stale: true,
+        status: 'DEGRADED',
+        upstreamError: fetchError.message
+      };
+      
+      if (degradedResult.provenance) {
+        degradedResult.provenance.error = `HTTP fetch failed: ${fetchError.message}`;
+      }
+      return degradedResult;
+    }
+    return {
+      success: false,
+      status: 'UNAVAILABLE',
+      sourceId: 'openmeteo_weather',
+      source: 'Open-Meteo',
+      error: 'Upstream data source unavailable or rate limited',
+      lastUpdated: null,
+      latitude: Number(lat),
+      longitude: Number(lon)
+    };
+  }
+
   try {
-    const data = await fetchJson(omUrl, {}, 7000);
     const curr = data.current || {};
     const hourly = data.hourly || {};
 
-    const temperatureC = curr.temperature_2m !== undefined ? Number(curr.temperature_2m.toFixed(1)) : null;
-    const apparentTemperatureC = curr.apparent_temperature !== undefined ? Number(curr.apparent_temperature.toFixed(1)) : null;
-    const relativeHumidity = curr.relative_humidity_2m !== undefined ? Math.round(curr.relative_humidity_2m) : null;
-    const precipitationMm = curr.precipitation !== undefined ? Number(curr.precipitation.toFixed(1)) : null;
-    const rainMm = curr.rain !== undefined ? Number(curr.rain.toFixed(1)) : null;
-    const snowfallCm = curr.snowfall !== undefined ? Number(curr.snowfall.toFixed(1)) : null;
-    const pressureHpa = curr.surface_pressure !== undefined ? Math.round(curr.surface_pressure) : null;
-    const windSpeedKmh = curr.wind_speed_10m !== undefined ? Number(curr.wind_speed_10m.toFixed(1)) : null;
-    const windDirectionDeg = curr.wind_direction_10m !== undefined ? Math.round(curr.wind_direction_10m) : null;
-    const maxGustKmh = curr.wind_gusts_10m !== undefined ? Number(curr.wind_gusts_10m.toFixed(1)) : (windSpeedKmh !== null ? windSpeedKmh : null);
-    const weatherCode = curr.weather_code !== undefined ? Number(curr.weather_code) : null;
+    const temperatureC = curr.temperature_2m !== undefined && curr.temperature_2m !== null ? Number(curr.temperature_2m.toFixed(1)) : null;
+    const apparentTemperatureC = curr.apparent_temperature !== undefined && curr.apparent_temperature !== null ? Number(curr.apparent_temperature.toFixed(1)) : null;
+    const relativeHumidity = curr.relative_humidity_2m !== undefined && curr.relative_humidity_2m !== null ? Math.round(curr.relative_humidity_2m) : null;
+    const precipitationMm = curr.precipitation !== undefined && curr.precipitation !== null ? Number(curr.precipitation.toFixed(1)) : null;
+    const rainMm = curr.rain !== undefined && curr.rain !== null ? Number(curr.rain.toFixed(1)) : null;
+    const snowfallCm = curr.snowfall !== undefined && curr.snowfall !== null ? Number(curr.snowfall.toFixed(1)) : null;
+    const pressureHpa = curr.surface_pressure !== undefined && curr.surface_pressure !== null ? Math.round(curr.surface_pressure) : null;
+    const windSpeedKmh = curr.wind_speed_10m !== undefined && curr.wind_speed_10m !== null ? Number(curr.wind_speed_10m.toFixed(1)) : null;
+    const windDirectionDeg = curr.wind_direction_10m !== undefined && curr.wind_direction_10m !== null ? Math.round(curr.wind_direction_10m) : null;
+    const maxGustKmh = curr.wind_gusts_10m !== undefined && curr.wind_gusts_10m !== null ? Number(curr.wind_gusts_10m.toFixed(1)) : (windSpeedKmh !== null ? windSpeedKmh : null);
+    const weatherCode = curr.weather_code !== undefined && curr.weather_code !== null ? Number(curr.weather_code) : null;
     const weatherDescription = decodeWmoWeatherCode(weatherCode);
 
     const observedAt = curr.time || null;
@@ -714,7 +769,7 @@ async function getOpenMeteoWeather(lat, lon) {
 
     return result;
   } catch (err) {
-    console.error('Open-Meteo Weather query failed:', err.message);
+    console.error('Open-Meteo Weather query parsing failed:', err.message, err.stack);
     if (weatherCache.has(cacheKey)) {
       const cachedEntry = weatherCache.get(cacheKey);
       return {
@@ -729,31 +784,11 @@ async function getOpenMeteoWeather(lat, lon) {
       success: false,
       status: 'UNAVAILABLE',
       sourceId: 'openmeteo_weather',
-      source: 'Open-Meteo Weather API',
-      error: 'Live weather service unreachable: ' + err.message,
-      latitude: Number(lat),
-      longitude: Number(lon),
-      temperatureC: null,
-      apparentTemperatureC: null,
-      relativeHumidity: null,
-      precipitationMm: null,
-      rainMm: null,
-      snowfallCm: null,
-      pressureHpa: null,
-      windSpeedKmh: null,
-      windDirectionDeg: null,
-      maxGustKmh: null,
-      weatherCode: null,
-      weatherDescription: null,
-      observedAt: null,
-      fetchedAt: null,
-      forecastTime: null,
+      source: 'Open-Meteo',
+      error: 'Upstream data source parsing failed',
       lastUpdated: null,
-      provenance: {
-        sourceId: 'openmeteo_weather',
-        status: 'UNAVAILABLE',
-        error: err.message
-      }
+      latitude: Number(lat),
+      longitude: Number(lon)
     };
   }
 }
@@ -1089,7 +1124,7 @@ async function getLiveHazardPolygons() {
     airQuality: []
   };
 
-  // 1. Coastal Flood / River Inundation (CWC River Levels & Google Flood Hub)
+  // 1. Coastal Flood / River Inundation (CWC River Levels)
   // Fail safe / omit: if source is NOT_CONFIGURED or UNAVAILABLE, contributes 0 polygons
   try {
     const cwcData = await getCWCRiverLevels();
@@ -1114,19 +1149,7 @@ async function getLiveHazardPolygons() {
     console.warn('[LiveHazards] CWC river levels check error:', e.message);
   }
 
-  try {
-    const floodData = await getGoogleFloodForecast(16.5, 80.6);
-    if (floodData && floodData.status === 'LIVE' && Array.isArray(floodData.gauges)) {
-      for (const g of floodData.gauges) {
-        const isAlert = g.forecastStatus === 'DANGER' || g.forecastStatus === 'WARNING' || g.forecastStatus === 'ALERT' || g.forecastStatus === 'HIGH';
-        if (isAlert && typeof g.lat === 'number' && typeof g.lon === 'number' && isCoordInsideAP(g.lon, g.lat)) {
-          result.coastalFlood.push(createGeoCirclePolygon(g.lat, g.lon, 12));
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('[LiveHazards] Google Flood check error:', e.message);
-  }
+
 
   // 2. Fire: NASA FIRMS active thermal anomalies buffered by 6km fixed radius
   try {
@@ -1333,7 +1356,7 @@ async function getUnifiedLiveHazardZones() {
             radius: 12000,
             polygon: poly,
             geometry: { type: 'Polygon', coordinates: [poly] },
-            desc: 'Active hydrologic flood threshold breach confirmed by live river telemetry (CWC / Google Flood Hub). Immediate inundation danger.',
+            desc: 'Active hydrologic flood threshold breach confirmed by live river telemetry (CWC). Immediate inundation danger.',
             source: 'LIVE_SENSOR'
           };
           allZones.push(sz);
@@ -1487,7 +1510,6 @@ async function getCanonicalLiveState(forceRefresh = false) {
       airQualityData,
       quakes,
       cwcData,
-      googleFloodData,
       capData,
       gdacsData,
       healthReport,
@@ -1498,7 +1520,6 @@ async function getCanonicalLiveState(forceRefresh = false) {
       getOpenMeteoAirQuality(16.18, 81.13).catch(() => null),
       getUSGSEarthquakes(15).catch(() => null),
       getCWCRiverLevels().catch(() => null),
-      getGoogleFloodForecast().catch(() => null),
       getOfficialCapAlerts().catch(() => ({ alerts: [] })),
       getGdacsEvents().catch(() => null),
       SourceRegistry.checkAllSources(false).catch(() => null),
@@ -1514,7 +1535,6 @@ async function getCanonicalLiveState(forceRefresh = false) {
       airQualityRaw: airQualityData,
       seismicRaw: quakes,
       cwcRaw: cwcData,
-      googleFloodRaw: googleFloodData,
       capAlerts: capData ? (capData.alerts || []) : [],
       gdacsRaw: gdacsData ? (gdacsData.apEvents || []) : [],
       firmsRaw: firmsData,
@@ -1984,17 +2004,7 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // 2e. Google Flood Hub Hydrologic Forecasting API
-    if (pathname === '/api/flood/forecast') {
-      try {
-        const data = await getGoogleFloodForecast();
-        res.writeHead(data.status === 'NOT_CONFIGURED' ? 200 : (data.success ? 200 : 503));
-        return res.end(JSON.stringify(data));
-      } catch (err) {
-        res.writeHead(500);
-        return res.end(JSON.stringify({ success: false, status: 'UNAVAILABLE', error: err.message, gauges: [] }));
-      }
-    }
+
 
     // 2f. AI Layer Context Input Contract
     // 2f. AI Layer Context Input Contract (Task 21 Grounded)
@@ -4496,56 +4506,13 @@ You are an Andhra Pradesh Disaster Response Analyst. Using ONLY the provided str
 let wss = null;
 let lastBroadcastHash = null;
 
-function getLiveStateSnapshot() {
+function getLiveStateSnapshot(unifiedZones = []) {
   let aiState = null;
   try {
     aiState = (typeof AIEngine !== 'undefined' && AIEngine.getState) ? AIEngine.getState() : null;
   } catch (e) {}
 
-  const rawZones = (aiState && (aiState.zones || aiState.allZones)) || [];
-  const zones = rawZones.filter(z => !suppressedZoneIds.has(z.id || z.zone_id)).map(z => ({
-    id: z.id || z.zone_id || z.name,
-    name: z.name || z.zone_name,
-    current_tier: (z.current_tier || z.tier || 'GREEN').toUpperCase(),
-    hazardType: z.hazardType || z.hazard_type || 'cyclone',
-    riskLevel: z.riskLevel || z.level || (z.current_tier || 'Normal'),
-    level: (z.level || z.current_tier || 'GREEN').toUpperCase(),
-    lat: Number(z.lat != null ? z.lat : ((z.center && z.center[1]) || 0)),
-    lng: Number(z.lng != null ? z.lng : ((z.center && z.center[0]) || 0)),
-    radius: Math.round(Number(z.radius || z.radius_km || z.baseRadius || 0)),
-    riskScore: Number(z.riskScore != null ? z.riskScore : (z.score != null ? z.score : 0)),
-    pop: Number(z.pop || z.population || z.affectedPopulation || 0),
-    affectedPopulation: Number(z.affectedPopulation || z.population || z.pop || 0),
-    evacuated: !!z.evacuated,
-    advisory: z.advisory || z.note || null,
-    source: z.source || 'AI_DYNAMIC'
-  }));
-
-  // Merge any active live sensor telemetry hazard zones
-  if (Array.isArray(cachedLiveTelemetryZones)) {
-    for (const sz of cachedLiveTelemetryZones) {
-      if (!suppressedZoneIds.has(sz.id) && !zones.some(z => z.id === sz.id)) {
-        zones.push({
-          id: sz.id,
-          name: sz.name,
-          current_tier: sz.level,
-          hazardType: sz.hazardType,
-          riskLevel: sz.level === 'RED' ? 'Critical' : 'High Alert',
-          level: sz.level,
-          lat: sz.lat,
-          lng: sz.lng,
-          radius: sz.radius,
-          pop: sz.pop,
-          affectedPopulation: sz.pop,
-          evacuated: false,
-          advisory: sz.desc,
-          polygon: sz.polygon,
-          geometry: sz.geometry,
-          source: 'LIVE_SENSOR'
-        });
-      }
-    }
-  }
+  const zones = unifiedZones;
 
   const rawAlerts = (aiState && Array.isArray(aiState.alerts)) ? aiState.alerts : [];
   const alerts = rawAlerts.map(a => ({
@@ -4610,10 +4577,11 @@ function computeStateHash(state) {
   return crypto.createHash('sha256').update(JSON.stringify(payloadToHash)).digest('hex');
 }
 
-function broadcastLiveStateIfChanged() {
+async function broadcastLiveStateIfChanged() {
   if (!wss || wss.clients.size === 0) return;
 
-  const snapshot = getLiveStateSnapshot();
+  const unifiedState = await getUnifiedLiveHazardZones();
+  const snapshot = getLiveStateSnapshot(unifiedState.zones || []);
   const currentHash = computeStateHash(snapshot);
 
   // Diff check: if unchanged from last broadcast, do NOT re-broadcast!
@@ -4874,15 +4842,7 @@ async function pollNasaFirms() {
   }
 }
 
-async function pollGoogleFlood() {
-  try {
-    if (process.env.GOOGLE_FLOOD_API_KEY) {
-      await getGoogleFloodForecast();
-    }
-  } catch (err) {
-    console.warn('[Poller:GoogleFlood] Background flood poll failed:', err.message);
-  }
-}
+
 
 // Upstream background polling intervals
 const POLL_INTERVAL_IMD_MS = 5 * 60 * 1000;         // 5 minutes (300s)
@@ -4902,7 +4862,6 @@ setInterval(pollCwcRiver, POLL_INTERVAL_RIVER_MS);
 setInterval(pollAirQuality, POLL_INTERVAL_AIR_MS);
 setInterval(pollGdacs, POLL_INTERVAL_GDACS_MS);
 setInterval(pollNasaFirms, POLL_INTERVAL_FIRMS_MS);
-setInterval(pollGoogleFlood, POLL_INTERVAL_FLOOD_MS);
 
 // 10-second client push loop: only broadcasts from cache when state hash has changed
 setInterval(broadcastLiveStateIfChanged, WS_BROADCAST_TICK_MS);
@@ -4928,9 +4887,9 @@ server.listen(PORT, () => {
   console.log(`🔔 IMD Official CAP Alerts:   http://localhost:${PORT}/api/imd-alerts`);
   console.log('-------------------------------------------------------------');
   console.log('🔑 Live Upstream Sources Credential Status:');
-  console.log(`   • Google Flood Hub:      ${auditGoogleFlood ? '✅ CONFIGURED' : '⚠️ MISSING (GOOGLE_FLOOD_API_KEY)'}`);
   console.log(`   • CPCB / MoEFCC Air:     ${auditCpcb ? '✅ CONFIGURED' : '⚠️ MISSING (DATA_GOV_IN_API_KEY / CPCB_API_KEY)'}`);
   console.log(`   • OpenAQ Ground Station: ${auditOpenAq ? '✅ CONFIGURED' : '⚠️ MISSING (OPENAQ_API_KEY)'}`);
   console.log(`   • Copernicus Data Space: ${auditCopernicus ? '✅ CONFIGURED' : '⚠️ MISSING (COPERNICUS_CLIENT_ID / COPERNICUS_CLIENT_SECRET)'}`);
   console.log('=============================================================\n');
 });
+
