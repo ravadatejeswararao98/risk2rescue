@@ -58,6 +58,19 @@ const RISK_TIERS = {
     strokeOpacity: 0.75,
     pulsing: false,
     cssClass: 'level-green'
+  },
+  HISTORICAL: {
+    level: 'HISTORICAL',
+    name: 'HISTORICAL',
+    title: 'Historical Hazard Zone',
+    shortLabel: 'Historical',
+    meaning: 'Zone with high documented historical vulnerability. No immediate severe live threat.',
+    fill: '#38bdf8',
+    fillOpacity: 0.35,
+    stroke: '#0284c7',
+    strokeOpacity: 0.85,
+    pulsing: false,
+    cssClass: 'level-historical'
   }
 };
 
@@ -511,7 +524,7 @@ class DisasterMap {
       if (typeof window.turf !== 'undefined' && this.hazardPolygons && this.hazardPolygons.length > 0) {
         const pt = turf.point([hLng, hLat]);
         let maxRank = 0;
-        const rankMap = { 'GREEN': 1, 'LOW': 1, 'YELLOW': 2, 'MODERATE': 2, 'ORANGE': 3, 'HIGH': 3, 'RED': 4, 'CRITICAL': 4 };
+        const rankMap = { 'GREEN': 1, 'LOW': 1, 'HISTORICAL': 2, 'YELLOW': 3, 'MODERATE': 3, 'ORANGE': 4, 'HIGH': 4, 'RED': 5, 'CRITICAL': 5 };
 
         this.hazardPolygons.forEach(hp => {
           if (turf.booleanPointInPolygon(pt, hp.polygon)) {
@@ -535,7 +548,7 @@ class DisasterMap {
 
       hab.risk = computedRisk; // Dynamic operational risk based on current spatial relationship
 
-      const riskColors = { RED: '#ef4444', CRITICAL: '#ef4444', ORANGE: '#f97316', HIGH: '#f97316', YELLOW: '#eab308', MODERATE: '#eab308', GREEN: '#22c55e', LOW: '#22c55e', UNKNOWN: '#94a3b8' };
+      const riskColors = { RED: '#ef4444', CRITICAL: '#ef4444', ORANGE: '#f97316', HIGH: '#f97316', YELLOW: '#eab308', MODERATE: '#eab308', HISTORICAL: '#38bdf8', GREEN: '#22c55e', LOW: '#22c55e', UNKNOWN: '#94a3b8' };
       const col = riskColors[hab.risk] || '#94a3b8';
 
       const marker = L.circleMarker([hab.lat, hab.lng || hab.lon], {
@@ -548,8 +561,8 @@ class DisasterMap {
       marker._habData = hab;
 
       // Light-theme, high-contrast popup for habitations
-      const bgColors = { RED: '#fef2f2', CRITICAL: '#fef2f2', ORANGE: '#fff7ed', HIGH: '#fff7ed', YELLOW: '#fefce8', MODERATE: '#fefce8', GREEN: '#f0fdf4', LOW: '#f0fdf4', UNKNOWN: '#f8fafc' };
-      const txtColors = { RED: '#b91c1c', CRITICAL: '#b91c1c', ORANGE: '#c2410c', HIGH: '#c2410c', YELLOW: '#a16207', MODERATE: '#a16207', GREEN: '#15803d', LOW: '#15803d', UNKNOWN: '#475569' };
+      const bgColors = { RED: '#fef2f2', CRITICAL: '#fef2f2', ORANGE: '#fff7ed', HIGH: '#fff7ed', YELLOW: '#fefce8', MODERATE: '#fefce8', HISTORICAL: '#e0f2fe', GREEN: '#f0fdf4', LOW: '#f0fdf4', UNKNOWN: '#f8fafc' };
+      const txtColors = { RED: '#b91c1c', CRITICAL: '#b91c1c', ORANGE: '#c2410c', HIGH: '#c2410c', YELLOW: '#a16207', MODERATE: '#a16207', HISTORICAL: '#0369a1', GREEN: '#15803d', LOW: '#15803d', UNKNOWN: '#475569' };
       const riskBg = bgColors[hab.risk] || '#f8fafc';
       const riskTxt = txtColors[hab.risk] || '#0f172a';
       const riskBadgeLabel = hab.risk === 'UNKNOWN' ? 'UNKNOWN RISK' : `${hab.risk} RISK`;

@@ -2880,6 +2880,10 @@ canvas {
   border-color: rgba(234, 179, 8, 0.35);
 }
 
+.pop-risk-card.level-historical {
+  border-color: rgba(2, 132, 199, 0.35);
+}
+
 .pop-risk-card.level-total {
   border-color: rgba(59, 130, 246, 0.35);
 }

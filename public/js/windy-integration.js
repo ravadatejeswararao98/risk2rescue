@@ -144,6 +144,9 @@ class WindyIntegrationController {
       } else if (overallRisk === 'YELLOW') {
         chipRisk.textContent = 'MODERATE';
         chipRisk.classList.add('yellow');
+      } else if (overallRisk === 'HISTORICAL') {
+        chipRisk.textContent = 'HISTORICAL';
+        chipRisk.classList.add('historical');
       } else {
         chipRisk.textContent = 'SAFE';
         chipRisk.classList.add('green');
@@ -159,9 +162,9 @@ class WindyIntegrationController {
     if (inspWind) inspWind.textContent = (wind !== null && gust !== null) ? `${wind} km/h (Gusts: ${gust})` : '— km/h';
     if (inspPressure) inspPressure.textContent = pressure !== null ? `${pressure} hPa` : '— hPa';
     if (inspRisk) {
-      const tierNames = { RED: 'Active Hazard Zone', ORANGE: 'High Alert Zone', YELLOW: 'Moderate Risk Zone', GREEN: 'Safe Zone' };
+      const tierNames = { RED: 'Active Hazard Zone', ORANGE: 'High Alert Zone', YELLOW: 'Moderate Risk Zone', HISTORICAL: 'Historical Hazard Zone', GREEN: 'Safe Zone' };
       inspRisk.textContent = tierNames[overallRisk] || `${overallRisk} ZONE`;
-      inspRisk.style.color = overallRisk === 'RED' ? '#ef4444' : overallRisk === 'ORANGE' ? '#f97316' : overallRisk === 'YELLOW' ? '#eab308' : '#22c55e';
+      inspRisk.style.color = overallRisk === 'RED' ? '#ef4444' : overallRisk === 'ORANGE' ? '#f97316' : overallRisk === 'YELLOW' ? '#eab308' : overallRisk === 'HISTORICAL' ? '#0284c7' : '#22c55e';
     }
     if (inspSurge) {
       if (precip !== null && gust !== null) {

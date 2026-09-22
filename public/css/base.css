@@ -906,6 +906,10 @@ a.portal-card:active,
   stroke: var(--risk-yellow) !important;
 }
 
+.hazard-polygon.level-historical {
+  stroke: #0284c7 !important;
+}
+
 .hazard-polygon.level-green {
   stroke: var(--risk-green) !important;
 }

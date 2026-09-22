@@ -446,6 +446,12 @@
   border: 1px solid #fde047;
 }
 
+.windy-risk-chip.historical {
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
 .windy-risk-chip.green {
   background: var(--risk-green-bg, #dcfce7);
   color: var(--risk-green, #16a34a);
@@ -2150,6 +2156,10 @@
 
 .hazard-polygon.level-yellow {
   stroke: var(--risk-yellow) !important;
+}
+
+.hazard-polygon.level-historical {
+  stroke: #0284c7 !important;
 }
 
 .hazard-polygon.level-green {

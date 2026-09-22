@@ -346,6 +346,7 @@ class HazardEngine {
     if (rawTier.includes('CRIT') || rawTier.includes('RED') || rawTier === '4') targetTier = 'RED';
     else if (rawTier.includes('HIGH') || rawTier.includes('ORANGE') || rawTier === '3') targetTier = 'ORANGE';
     else if (rawTier.includes('MOD') || rawTier.includes('YELLOW') || rawTier.includes('ADVISORY') || rawTier === '2') targetTier = 'YELLOW';
+    else if (rawTier.includes('HISTORICAL') || rawTier.includes('BLUE')) targetTier = 'HISTORICAL';
     else if (rawTier.includes('SAFE') || rawTier.includes('GREEN') || rawTier === '1') targetTier = 'GREEN';
 
     const lat = Number(alert.lat != null ? alert.lat : alert.latitude);
