@@ -2,7 +2,7 @@
 window.getSeverityRank = function(level) {
   if (!level) return 99;
   const s = level.toString().toUpperCase().trim();
-  const rank = { 'CRITICAL': 1, 'RED': 1, 'SEVERE': 1, 'HIGH': 2, 'HIGH ALERT': 2, 'ORANGE': 2, 'MODERATE': 3, 'YELLOW': 3, 'LOW': 4, 'LOW RISK': 4, 'SAFE': 4, 'GREEN': 4, 'NORMAL': 4 };
+  const rank = { 'CRITICAL': 1, 'RED': 1, 'SEVERE': 1, 'HIGH': 2, 'HIGH ALERT': 2, 'ORANGE': 2, 'MODERATE': 3, 'YELLOW': 3, 'HISTORICAL': 4, 'LOW': 5, 'LOW RISK': 5, 'SAFE': 5, 'GREEN': 5, 'NORMAL': 5 };
   return rank[s] || 99;
 };
 // ================================================================
@@ -834,11 +834,13 @@ else window.addEventListener('load', startZmAutoRefresh);
 function setZoneManagerFilter(level) {
   window.currentZoneManagerFilter = level;
   
-  const tabs = ['all', 'red', 'orange', 'yellow', 'green'];
+  const tabs = ['all', 'critical', 'high-alert', 'moderate', 'safe', 'historical'];
   tabs.forEach(t => {
     const btn = document.getElementById(`zm-filter-${t}`);
     if (btn) {
-      if (t.toUpperCase() === level || (t === 'all' && level === 'ALL')) {
+      // Special handling for high-alert which passes 'HIGH ALERT' string
+      const matchLevel = (t === 'high-alert') ? 'HIGH ALERT' : t.toUpperCase();
+      if (matchLevel === level || (t === 'all' && level === 'ALL')) {
         btn.classList.add('active');
       } else {
         btn.classList.remove('active');
@@ -856,17 +858,18 @@ function renderZoneManager() {
   if (!tbody) return;
   tbody.innerHTML = '';
   
-  if (!window.APP_DATA || !window.APP_DATA.riskZones) return;
+  if (!window.dynamicMonitoredHazards) return;
 
-  let zonesToRender = window.APP_DATA.riskZones;
+  let zonesToRender = window.dynamicMonitoredHazards;
   
   if (window.currentZoneManagerFilter && window.currentZoneManagerFilter !== 'ALL') {
     zonesToRender = zonesToRender.filter(z => {
-      const zTier = (z.level || z.current_tier || 'GREEN').toUpperCase();
-      if (window.currentZoneManagerFilter === 'RED') return zTier === 'RED' || zTier === 'CRITICAL';
-      if (window.currentZoneManagerFilter === 'ORANGE') return zTier === 'ORANGE' || zTier === 'HIGH ALERT' || zTier === 'HIGH';
-      if (window.currentZoneManagerFilter === 'YELLOW') return zTier === 'YELLOW' || zTier === 'MODERATE';
-      if (window.currentZoneManagerFilter === 'GREEN') return zTier === 'GREEN' || zTier === 'SAFE' || zTier === 'LOW RISK';
+      const zTier = (z.tier || z.status || z.level || z.current_tier || 'SAFE').toUpperCase();
+      if (window.currentZoneManagerFilter === 'CRITICAL') return zTier === 'CRITICAL' || zTier === 'RED';
+      if (window.currentZoneManagerFilter === 'HIGH ALERT') return zTier === 'HIGH ALERT' || zTier === 'ORANGE' || zTier === 'HIGH';
+      if (window.currentZoneManagerFilter === 'MODERATE') return zTier === 'MODERATE' || zTier === 'YELLOW';
+      if (window.currentZoneManagerFilter === 'SAFE') return zTier === 'SAFE' || zTier === 'GREEN' || zTier === 'LOW RISK';
+      if (window.currentZoneManagerFilter === 'HISTORICAL') return zTier === 'HISTORICAL';
       return true;
     });
   }
@@ -884,33 +887,42 @@ function renderZoneManager() {
     tr.onmouseout = () => tr.style.background = 'transparent';
     
     // Risk level badge mapping
-    const riskLower = (zone.level || zone.current_tier || 'green').toLowerCase();
-    const riskBadgeClass = `risk-${riskLower}`;
+    const riskLower = (zone.tier || zone.level || zone.current_tier || 'green').toLowerCase();
+    let riskBadgeClass = `risk-${riskLower}`;
+    if (riskLower === 'critical') riskBadgeClass = 'risk-red';
+    else if (riskLower === 'high alert' || riskLower === 'orange') riskBadgeClass = 'risk-orange';
+    else if (riskLower === 'moderate' || riskLower === 'yellow') riskBadgeClass = 'risk-yellow';
+    else if (riskLower === 'historical') riskBadgeClass = 'risk-historical';
+    else if (riskLower === 'safe') riskBadgeClass = 'risk-green';
 
     // Source attribution badge
     const src = zone.source || (zone.id && zone.id.startsWith('LIVE_') ? 'LIVE_SENSOR' : (zone.id && zone.id.startsWith('AI_') ? 'AI_DYNAMIC' : 'AUTHORITY_OVERRIDE'));
-    let srcBadge = '<span style="background:rgba(59,130,246,0.15); color:#60a5fa; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;">Authority</span>';
-    if (src === 'LIVE_SENSOR') {
-      srcBadge = '<span style="background:rgba(239,68,68,0.15); color:#f87171; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;">Live Sensor</span>';
+    let srcBadge = '<span style="background:rgba(59,130,246,0.15); color:#60a5fa; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;"><i class="fi fi-rr-shield-check" style="margin-right:4px;"></i>Authority</span>';
+    if (riskLower === 'historical' || src === 'HISTORICAL_ARCHIVE') {
+      srcBadge = '<span style="background:rgba(56,189,248,0.15); color:#38bdf8; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;"><i class="fi fi-rr-time-past" style="margin-right:4px;"></i>Historical</span>';
+    } else if (src === 'LIVE_SENSOR') {
+      srcBadge = '<span style="background:rgba(239,68,68,0.15); color:#f87171; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;"><i class="fi fi-rr-sensor-on" style="margin-right:4px;"></i>Live Sensor</span>';
     } else if (src === 'AI_DYNAMIC') {
-      srcBadge = '<span style="background:rgba(168,85,247,0.15); color:#c084fc; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;">AI Engine</span>';
+      srcBadge = '<span style="background:rgba(168,85,247,0.15); color:#c084fc; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;"><i class="fi fi-rr-brain" style="margin-right:4px;"></i>AI Engine</span>';
+    } else if (src === 'OFFICIAL_CAP') {
+      srcBadge = '<span style="background:rgba(234,179,8,0.15); color:#eab308; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;"><i class="fi fi-rr-megaphone" style="margin-right:4px;"></i>Official Alert</span>';
     }
     
     // Beautiful row styling with padding and modern typography
     tr.innerHTML = `
       <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-secondary);">
-        ${zone.id || 'N/A'}
+        ${zone.id || zone.key || 'N/A'}
         ${srcBadge}
       </td>
       <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06);">
         <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">${zone.name || 'Unnamed Zone'}</div>
-        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">${zone.desc || 'Live hazard perimeter'}</div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">${zone.summary || zone.desc || 'Live hazard perimeter'}</div>
       </td>
       <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06);">
-        <span class="risk-badge ${riskBadgeClass}" style="padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; display: inline-block;">${zone.level || zone.current_tier || 'GREEN'}</span>
+        <span class="risk-badge ${riskBadgeClass}" style="padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; display: inline-block;">${zone.tier || zone.level || zone.current_tier || 'GREEN'}</span>
       </td>
       <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; font-size: 0.9rem;">
-        ${(zone.pop || zone.affectedPopulation || 0).toLocaleString()} <span style="font-size: 0.7rem; color: var(--text-secondary); margin-left: 4px;">PPL</span>
+        ${(zone.popNum !== undefined ? zone.popNum : (zone.pop || zone.affectedPopulation || 0)).toLocaleString()} <span style="font-size: 0.7rem; color: var(--text-secondary); margin-left: 4px;">PPL</span>
       </td>
       <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-secondary);">
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -1037,10 +1049,11 @@ function syncMonitoredHazardsFromLiveIntel(aiState, liveZones = null) {
     if (level === 'RED' || level === 'CRITICAL') status = 'Critical';
     else if (level === 'ORANGE' || level === 'HIGH' || level === 'HIGH ALERT') status = 'High Alert';
     else if (level === 'YELLOW' || level === 'MODERATE') status = 'Moderate';
+    else if (level === 'HISTORICAL') status = 'Historical';
     else status = 'Safe';
 
     const tier = status.toUpperCase();
-    const badge = status === 'Critical' ? 'badge-critical' : (status === 'High Alert' ? 'badge-high' : (status === 'Moderate' ? 'badge-moderate' : 'badge-low'));
+    const badge = status === 'Critical' ? 'badge-critical' : (status === 'High Alert' ? 'badge-high' : (status === 'Moderate' ? 'badge-moderate' : (status === 'Historical' ? 'badge-historical' : 'badge-low')));
     const pop = Number(z.pop || z.affectedPopulation || 0);
 
     hazardsMap.set(key, {
@@ -1136,8 +1149,8 @@ function renderHazardDropdownList(filterStatus = window.currentHazardStatusFilte
   filtered.sort((a, b) => window.getSeverityRank(a.status || a.tier) - window.getSeverityRank(b.status || b.tier));
   let html = '';
   filtered.forEach(h => {
-    const statusColor = h.status === 'Critical' ? '#ef4444' : h.status === 'High Alert' ? '#f97316' : h.status === 'Moderate' ? '#eab308' : '#22c55e';
-    const statusBg = h.status === 'Critical' ? 'rgba(239,68,68,0.15)' : h.status === 'High Alert' ? 'rgba(249,115,22,0.15)' : h.status === 'Moderate' ? 'rgba(234,179,8,0.15)' : 'rgba(34,197,94,0.15)';
+    const statusColor = h.status === 'Critical' ? '#ef4444' : h.status === 'High Alert' ? '#f97316' : h.status === 'Moderate' ? '#eab308' : h.status === 'Historical' ? '#38bdf8' : '#22c55e';
+    const statusBg = h.status === 'Critical' ? 'rgba(239,68,68,0.15)' : h.status === 'High Alert' ? 'rgba(249,115,22,0.15)' : h.status === 'Moderate' ? 'rgba(234,179,8,0.15)' : h.status === 'Historical' ? 'rgba(56,189,248,0.15)' : 'rgba(34,197,94,0.15)';
     html += `
       <div class="mhd-item" onclick="selectHazardFromDropdown('${h.key}')" role="button" tabindex="0">
         <div class="mhd-item-left">
@@ -1184,6 +1197,8 @@ function setHazardStatusFilter(status, event) {
         matches = (zTier === 'YELLOW' || zTier === 'MODERATE');
       } else if (status === 'Safe') {
         matches = (zTier === 'GREEN' || zTier === 'SAFE' || zTier === 'LOW RISK');
+      } else if (status === 'Historical') {
+        matches = (zTier === 'HISTORICAL');
       }
       const poly = item.polygonLayer;
       const marker = item.labelMarker;
