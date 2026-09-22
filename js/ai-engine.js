@@ -604,7 +604,7 @@ class AIEngine {
 
       // Evaluate ALL hazards dynamically and lock onto the most severe threat
       const hazardsToCheck = ['cyclone', 'flood', 'cloudburst', 'landslide', 'earthquake'];
-      const tierRanks = { RED: 4, ORANGE: 3, YELLOW: 2, GREEN: 1 };
+      const tierRanks = { RED: 5, ORANGE: 4, YELLOW: 3, HISTORICAL: 2, GREEN: 1 };
       
       let currentTier = 'GREEN';
       let hType = (hab.hazard_type || 'cyclone').toLowerCase();
@@ -749,71 +749,64 @@ class AIEngine {
    */
   classifySeverityTier(hazardType, inputs, recurrenceMultiplier = 1.0) {
     const { windGustKmh = 0, precipMm = 0, pressureHpa = 1010, mag = 0, elevationM = 10, vulnerability = 0.5 } = inputs;
-    const mult = Math.max(1.0, recurrenceMultiplier || 1.0);
-
-    // Strict guard: If there is zero live meteorological or seismic threat (clear skies), 
-    // do not artificially escalate risk into a hazard zone purely based on historical vulnerability.
-    if (windGustKmh < 10 && precipMm < 2 && mag === 0 && pressureHpa >= 1008) {
-      return 'GREEN';
-    }
+    
+    // Disable historical multiplier on live data telemetry
+    const mult = 1.0; 
 
     const effectiveGust = windGustKmh * mult;
     const effectivePrecip = precipMm * mult;
     const pressureDrop = Math.max(0, 1013 - pressureHpa) * mult;
     const effectivePressure = 1013 - pressureDrop;
 
-    // =========================================================================
-    // UNIVERSAL EXTREME FALLBACK (Multi-Hazard State-Wide Check)
-    // =========================================================================
-    // Even if a zone is nominally a 'flood' or 'landslide' zone, if it gets hit 
-    // by apocalyptic winds or catastrophic rain, trigger an immediate RED alert.
-    if (effectiveGust >= 95 || effectivePrecip >= 35) return 'RED';
-    if (effectiveGust >= 75 || effectivePrecip >= 25) return 'ORANGE';
+    let baseTier = 'GREEN';
 
-    if (hazardType === 'cyclone') {
-      // RED: gale gusts >= 95 km/h OR pressure <= 980 hPa
-      if (effectiveGust >= 95 || effectivePressure <= 980) return 'RED';
-      // ORANGE: squall gusts >= 65 km/h OR pressure <= 995 hPa
-      if (effectiveGust >= 65 || effectivePressure <= 995) return 'ORANGE';
-      // YELLOW: elevated gusts >= 42 km/h OR pressure <= 1004 hPa
-      if (effectiveGust >= 42 || effectivePressure <= 1004) return 'YELLOW';
-      return 'GREEN';
+    // Strict guard: If there is zero live meteorological or seismic threat (clear skies)
+    if (windGustKmh < 10 && precipMm < 2 && mag === 0 && pressureHpa >= 1008) {
+      baseTier = 'GREEN';
+    } else if (effectiveGust >= 95 || effectivePrecip >= 35) {
+      baseTier = 'RED';
+    } else if (effectiveGust >= 75 || effectivePrecip >= 25) {
+      baseTier = 'ORANGE';
+    } else if (hazardType === 'cyclone') {
+      if (effectiveGust >= 95 || effectivePressure <= 980) baseTier = 'RED';
+      else if (effectiveGust >= 65 || effectivePressure <= 995) baseTier = 'ORANGE';
+      else if (effectiveGust >= 42 || effectivePressure <= 1004) baseTier = 'YELLOW';
+      else baseTier = 'GREEN';
+    } else if (hazardType === 'flood') {
+      if (effectivePrecip >= 25 || (elevationM <= 3 && effectivePrecip >= 15)) baseTier = 'RED';
+      else if (effectivePrecip >= 12 || (elevationM <= 5 && effectivePrecip >= 8)) baseTier = 'ORANGE';
+      else if (effectivePrecip >= 5) baseTier = 'YELLOW';
+      else baseTier = 'GREEN';
+    } else if (hazardType === 'landslide') {
+      if (effectivePrecip >= 30 && vulnerability >= 0.85) baseTier = 'RED';
+      else if (effectivePrecip >= 18) baseTier = 'ORANGE';
+      else if (effectivePrecip >= 8) baseTier = 'YELLOW';
+      else baseTier = 'GREEN';
+    } else if (hazardType === 'earthquake') {
+      const effectiveMag = mag;
+      if (effectiveMag >= 5.5) baseTier = 'RED';
+      else if (effectiveMag >= 4.5) baseTier = 'ORANGE';
+      else if (effectiveMag >= 3.5) baseTier = 'YELLOW';
+      else baseTier = 'GREEN';
+    } else if (hazardType === 'cloudburst') {
+      if (effectivePrecip >= 35) baseTier = 'RED';
+      else if (effectivePrecip >= 20) baseTier = 'ORANGE';
+      else if (effectivePrecip >= 10) baseTier = 'YELLOW';
+      else baseTier = 'GREEN';
+    } else {
+      if (effectiveGust >= 90 || effectivePrecip >= 25) baseTier = 'RED';
+      else if (effectiveGust >= 60 || effectivePrecip >= 12) baseTier = 'ORANGE';
+      else if (effectiveGust >= 35 || effectivePrecip >= 5) baseTier = 'YELLOW';
+      else baseTier = 'GREEN';
     }
 
-    if (hazardType === 'flood') {
-      if (effectivePrecip >= 25 || (elevationM <= 3 && effectivePrecip >= 15)) return 'RED';
-      if (effectivePrecip >= 12 || (elevationM <= 5 && effectivePrecip >= 8)) return 'ORANGE';
-      if (effectivePrecip >= 5) return 'YELLOW';
-      return 'GREEN';
+    // If base live tier is safe (GREEN), but the zone has documented historical disaster history,
+    // we highlight it in Sky Blue as HISTORICAL instead of dropping it entirely.
+    if (baseTier === 'GREEN' && recurrenceMultiplier > 1.0) {
+      return 'HISTORICAL';
     }
 
-    if (hazardType === 'landslide') {
-      if (effectivePrecip >= 30 && vulnerability >= 0.85) return 'RED';
-      if (effectivePrecip >= 18) return 'ORANGE';
-      if (effectivePrecip >= 8) return 'YELLOW';
-      return 'GREEN';
-    }
-
-    if (hazardType === 'earthquake') {
-      const effectiveMag = mag * (1.0 + (mult - 1.0) * 0.1);
-      if (effectiveMag >= 5.5) return 'RED';
-      if (effectiveMag >= 4.5) return 'ORANGE';
-      if (effectiveMag >= 3.5) return 'YELLOW';
-      return 'GREEN';
-    }
-
-    if (hazardType === 'cloudburst') {
-      if (effectivePrecip >= 35) return 'RED';
-      if (effectivePrecip >= 20) return 'ORANGE';
-      if (effectivePrecip >= 10) return 'YELLOW';
-      return 'GREEN';
-    }
-
-    // Default fallback
-    if (effectiveGust >= 90 || effectivePrecip >= 25) return 'RED';
-    if (effectiveGust >= 60 || effectivePrecip >= 12) return 'ORANGE';
-    if (effectiveGust >= 35 || effectivePrecip >= 5) return 'YELLOW';
-    return 'GREEN';
+    return baseTier;
   }
 
   groupZonesByHazard(zones) {

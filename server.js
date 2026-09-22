@@ -605,7 +605,7 @@ async function getOpenMeteoWeather(lat, lon) {
     }
   }
 
-  const omUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,snowfall,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=temperature_2m,precipitation,wind_speed_10m,wind_gusts_10m,surface_pressure&timezone=auto`;
+  const omUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,snowfall,weather_code,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=temperature_2m,precipitation,wind_speed_10m,wind_gusts_10m,pressure_msl&timezone=auto`;
   
   let data = null;
   let fetchError = null;
@@ -673,7 +673,7 @@ async function getOpenMeteoWeather(lat, lon) {
     const precipitationMm = curr.precipitation !== undefined && curr.precipitation !== null ? Number(curr.precipitation.toFixed(1)) : null;
     const rainMm = curr.rain !== undefined && curr.rain !== null ? Number(curr.rain.toFixed(1)) : null;
     const snowfallCm = curr.snowfall !== undefined && curr.snowfall !== null ? Number(curr.snowfall.toFixed(1)) : null;
-    const pressureHpa = curr.surface_pressure !== undefined && curr.surface_pressure !== null ? Math.round(curr.surface_pressure) : null;
+    const pressureHpa = curr.pressure_msl !== undefined && curr.pressure_msl !== null ? Math.round(curr.pressure_msl) : null;
     const windSpeedKmh = curr.wind_speed_10m !== undefined && curr.wind_speed_10m !== null ? Number(curr.wind_speed_10m.toFixed(1)) : null;
     const windDirectionDeg = curr.wind_direction_10m !== undefined && curr.wind_direction_10m !== null ? Math.round(curr.wind_direction_10m) : null;
     const maxGustKmh = curr.wind_gusts_10m !== undefined && curr.wind_gusts_10m !== null ? Number(curr.wind_gusts_10m.toFixed(1)) : (windSpeedKmh !== null ? windSpeedKmh : null);
@@ -703,7 +703,7 @@ async function getOpenMeteoWeather(lat, lon) {
     const winds = (hourly.wind_speed_10m || []).slice(0, 120);
     const gusts = (hourly.wind_gusts_10m || []).slice(0, 120);
     const precips = (hourly.precipitation || []).slice(0, 120);
-    const pressures = (hourly.surface_pressure || []).slice(0, 120).map(p => Math.round(p));
+    const pressures = (hourly.pressure_msl || []).slice(0, 120).map(p => Math.round(p));
 
     const result = {
       success: true,
