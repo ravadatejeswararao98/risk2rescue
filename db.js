@@ -4,14 +4,20 @@ const Redis = require('ioredis');
 // ==========================================
 // 1. PostgreSQL Connection Pool
 // ==========================================
-const poolConfig = process.env.DATABASE_URL 
-  ? { connectionString: process.env.DATABASE_URL }
+const poolConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false }
+    }
   : {
       user: process.env.DB_USER || 'risk2rescue',
       password: process.env.DB_PASSWORD || 'secret_password',
       host: process.env.DB_HOST || 'localhost',
       database: process.env.DB_NAME || 'risk2rescue_db',
       port: parseInt(process.env.DB_PORT, 10) || 5432,
+      ssl: process.env.DB_HOST && process.env.DB_HOST !== 'localhost'
+        ? { rejectUnauthorized: false }
+        : false
     };
 const pool = new Pool(poolConfig);
 
