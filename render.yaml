@@ -7,6 +7,7 @@ projects:
       plan: free
       databaseName: risk2rescue
       user: risk2rescue
+      region: ohio
 
     services:
     - type: web
@@ -50,3 +51,4 @@ projects:
       plan: free
       maxmemoryPolicy: allkeys-lru
       ipAllowList: []
+      region: ohio
