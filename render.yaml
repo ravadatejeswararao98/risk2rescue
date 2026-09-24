@@ -64,10 +64,11 @@ projects:
       name: risk2rescue-redis
       plan: free
       maxmemoryPolicy: allkeys-lru
+      ipAllowList: []
 
     - type: pserv
       name: object-storage
-      runtime: docker
+      runtime: image
       plan: starter
       image:
         url: docker.io/pgsty/silo:RELEASE.2026-09-03T13-18-01Z
@@ -83,7 +84,7 @@ projects:
 
     - type: pserv
       name: timescaledb
-      runtime: docker
+      runtime: image
       plan: starter
       image:
         url: docker.io/timescale/timescaledb-ha:pg15
