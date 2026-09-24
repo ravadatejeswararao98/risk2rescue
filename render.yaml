@@ -7,7 +7,6 @@ projects:
       plan: starter
       databaseName: risk2rescue
       user: risk2rescue
-      enablePostGIS: true
 
     services:
     - type: web
