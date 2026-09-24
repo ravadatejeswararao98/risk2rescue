@@ -1,5 +1,5 @@
-﻿// ================================================================
-// ALERTS.JS — AI Threat Detection Engine & Low False Alarm System
+// ================================================================
+// ALERTS.JS � AI Threat Detection Engine & Low False Alarm System
 // ================================================================
 
 class ThreatDetectionEngine {

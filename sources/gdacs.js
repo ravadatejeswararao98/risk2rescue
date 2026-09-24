@@ -108,14 +108,14 @@ function isCoordInsideIndia(lat, lon) {
   return lat >= 6.0 && lat <= 38.0 && lon >= 68.0 && lon <= 98.0;
 }
 
-async function getGdacsEvents() {
+async function getGdacsEvents(timeoutMs = 8000) {
   const now = Date.now();
   if (gdacsCache.data && now < gdacsCache.expiresAt) {
     return { ...gdacsCache.data, cached: true };
   }
 
   try {
-    const xml = await fetchText(GDACS_FEED_URL, 8000);
+    const xml = await fetchText(GDACS_FEED_URL, timeoutMs);
     const itemBlocks = xml.split(/<item[\s>]/i).slice(1);
     const allEvents = [];
     const indiaEvents = [];

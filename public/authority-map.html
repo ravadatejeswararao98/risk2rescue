@@ -225,7 +225,7 @@
           <button class="mhd-filter-btn filter-active" id="mhd-filter-active" onclick="setHazardStatusFilter('Active', event)">Active</button>
           <button class="mhd-filter-btn filter-monitoring" id="mhd-filter-monitoring" onclick="setHazardStatusFilter('Monitoring', event)">Monitoring</button>
           <button class="mhd-filter-btn filter-normal" id="mhd-filter-normal" onclick="setHazardStatusFilter('Normal', event)">Normal</button>
-          <button class="mhd-filter-btn filter-normal" id="mhd-filter-historical" style="color:#38bdf8; border-color:rgba(56,189,248,0.3); background:rgba(56,189,248,0.1);" onclick="setHazardStatusFilter('Historical', event)">Historical</button>
+          <button class="mhd-filter-btn filter-historical" id="mhd-filter-historical" onclick="setHazardStatusFilter('Historical', event)">Historical</button>
         </div>
         <div class="mhd-list" id="map-hazard-dropdown-list">
           <!-- Populated dynamically via js/authority.js -->
@@ -372,10 +372,10 @@
               <div class="mhd-filter-tabs" style="margin:0;">
                 <button class="mhd-filter-btn active" id="zm-filter-all" onclick="setZoneManagerFilter('ALL')">All</button>
                 <button class="mhd-filter-btn filter-active" id="zm-filter-critical" onclick="setZoneManagerFilter('CRITICAL')">Critical</button>
-                <button class="mhd-filter-btn filter-monitoring" id="zm-filter-high-alert" style="color:#f97316; border-color:rgba(249,115,22,0.3); background:rgba(249,115,22,0.1);" onclick="setZoneManagerFilter('HIGH ALERT')">High Alert</button>
-                <button class="mhd-filter-btn filter-monitoring" id="zm-filter-moderate" style="color:#eab308; border-color:rgba(234,179,8,0.3); background:rgba(234,179,8,0.1);" onclick="setZoneManagerFilter('MODERATE')">Moderate</button>
+                <button class="mhd-filter-btn filter-monitoring" id="zm-filter-high-alert" onclick="setZoneManagerFilter('HIGH ALERT')">High Alert</button>
+                <button class="mhd-filter-btn filter-moderate" id="zm-filter-moderate" onclick="setZoneManagerFilter('MODERATE')">Moderate</button>
                 <button class="mhd-filter-btn filter-normal" id="zm-filter-safe" onclick="setZoneManagerFilter('SAFE')">Safe</button>
-                <button class="mhd-filter-btn filter-normal" id="zm-filter-historical" style="color:#38bdf8; border-color:rgba(56,189,248,0.3); background:rgba(56,189,248,0.1);" onclick="setZoneManagerFilter('HISTORICAL')">Historical</button>
+                <button class="mhd-filter-btn filter-historical" id="zm-filter-historical" onclick="setZoneManagerFilter('HISTORICAL')">Historical</button>
               </div>
               
               <button class="btn" id="zm-refresh-btn" onclick="forceRefreshZoneManager()" style="background: rgba(56,189,248,0.1); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); padding: 8px 16px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-left: 16px;">
@@ -510,7 +510,7 @@
             <span id="command-live-sync-time" style="font-size:12px; color:#22c55e; font-weight:600;">Synced: Active</span>
           </div>
           <div style="display:flex; align-items:center; gap:12px;">
-            <span style="font-size:11px; color:var(--text-muted); background:rgba(255,255,255,0.06); padding:4px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">15 Feeds Live (Open-Meteo, USGS, CWC, CPCB, NASA, IMD)</span>
+            <span style="font-size:11px; color:var(--text-muted); background:rgba(255,255,255,0.06); padding:4px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">14 Feeds Live (Open-Meteo, USGS, CWC, CPCB, IMD)</span>
             <button class="btn btn-glass" style="padding:4px 12px; font-size:11px; border-color:rgba(56,189,248,0.4);" onclick="fetchDashboardState(); showToast('Live telemetry refreshed', 'info');">
               <i class="fi fi-rr-refresh"></i> Refresh Now
             </button>
@@ -1175,6 +1175,7 @@
   <script src="js/windy-integration.js?v=16"></script>
   <script src="js/alerts.js?v=16"></script>
   <script src="js/reports.js?v=16"></script>
+  <script src="js/shared-hazard-ui.js"></script>
   <script src="js/authority.js?v=21"></script>
 
   <!-- Teja Simulation & Incident Command Extensions -->
@@ -1350,12 +1351,7 @@
         console.warn('[Authority] Backend broadcast relay error:', wsBroadcastErr);
       }
 
-      // 3. Broadcast via Firebase Live if available
-      if (window.firebaseLive) {
-        try {
-          await window.firebaseLive.broadcastEmergencyAlert(alertPayload);
-        } catch (fbErr) {}
-      }
+      
 
       closeEmergencyAlertModal();
       if (submitBtn) submitBtn.disabled = false;

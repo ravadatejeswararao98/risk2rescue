@@ -139,10 +139,6 @@ function isSourceConfigured(source) {
     const sendgrid = process.env.SENDGRID_API_KEY;
     return Boolean((resend && resend.trim() !== '' && !resend.startsWith('YOUR_')) || (sendgrid && sendgrid.trim() !== '' && !sendgrid.startsWith('YOUR_')));
   }
-  if (source.id === 'nasa_firms_viirs') {
-    const key = process.env.NASA_FIRMS_MAP_KEY || process.env.FIRMS_MAP_KEY;
-    return Boolean(key && key.trim() !== '' && !key.startsWith('DEMO') && !key.startsWith('YOUR_'));
-  }
   if (source.id === 'windy_point_forecast') {
     const key = process.env.WINDY_POINT_KEY || process.env.WINDY_DATA_KEY || process.env.WINDY_API_KEY || process.env.WINDY_API_POINT_KEY;
     return Boolean(key && key.trim() !== '' && !key.startsWith('YOUR_'));
@@ -169,12 +165,13 @@ const SOURCES = [
     category: 'seismic',
     tier: 'LIVE_API',
     role: 'PRIMARY',
+    timeoutMs: 6500,
     cadenceMs: 600000,
     requiresKey: null,
     consumers: ['kpi-seismic-mag', 'view-datasources', 'citizen quake layer', 'authority-map'],
-    probe: async () => {
+    probe: async (src) => {
       const url = 'https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&minmagnitude=2.5&limit=10';
-      const res = await probeRequest(url, { accept: 'application/json' }, 5000);
+      const res = await probeRequest(url, { accept: 'application/json' }, src.timeoutMs);
       if (res.statusCode >= 200 && res.statusCode < 300) {
         const json = JSON.parse(res.data);
         const count = Array.isArray(json.features) ? json.features.length : 0;
@@ -197,15 +194,16 @@ const SOURCES = [
     category: 'weather',
     tier: 'LIVE_API',
     role: 'PRIMARY',
+    timeoutMs: 22000,
     cadenceMs: 600000,
     requiresKey: null,
     consumers: ['kpi-gust-speed', 'view-datasources', 'citizen-weather', 'telemetry-inspector'],
-    probe: async () => {
+    probe: async (src) => {
       const url = 'https://api.open-meteo.com/v1/forecast?latitude=16.99&longitude=82.25&current=temperature_2m,wind_speed_10m,wind_gusts_10m,surface_pressure';
-      let res = await probeRequest(url, { accept: 'application/json' }, 10000);
+      let res = await probeRequest(url, { accept: 'application/json' }, src.timeoutMs);
       if (res.statusCode === 503 || res.statusCode === 429) {
         await new Promise(r => setTimeout(r, 1200));
-        res = await probeRequest(url, { accept: 'application/json' }, 10000);
+        res = await probeRequest(url, { accept: 'application/json' }, src.timeoutMs);
       }
       if (res.statusCode >= 200 && res.statusCode < 300) {
         const json = JSON.parse(res.data);
@@ -225,10 +223,11 @@ const SOURCES = [
     category: 'weather',
     tier: 'LIVE_API',
     role: 'CROSS_CHECK',
+    timeoutMs: 6500,
     cadenceMs: 900000,
     requiresKey: 'WINDY_POINT_KEY',
     consumers: ['citizen-windy-drawer', 'authority-telemetry', 'view-datasources'],
-    probe: async () => {
+    probe: async (src) => {
       const key = process.env.WINDY_POINT_KEY || process.env.WINDY_DATA_KEY || process.env.WINDY_API_KEY || process.env.WINDY_API_POINT_KEY;
       if (!key || key.trim() === '') return { ok: false, error: 'WINDY_POINT_KEY is unset in .env', notConfigured: true };
       const url = 'https://api.windy.com/api/point-forecast/v2';
@@ -240,7 +239,7 @@ const SOURCES = [
         levels: ['surface'],
         key: key
       });
-      const res = await probeRequest(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload }, 5000);
+      const res = await probeRequest(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload }, src.timeoutMs);
       if (res.statusCode >= 200 && res.statusCode < 300) {
         const json = JSON.parse(res.data);
         const points = json['temp-surface'] ? json['temp-surface'].length : 0;
@@ -259,14 +258,15 @@ const SOURCES = [
     category: 'weather',
     tier: 'LIVE_API',
     role: 'PRIMARY',
+    timeoutMs: 6500,
     cadenceMs: 900000,
     requiresKey: 'WINDY_MAP_KEY',
     consumers: ['authority-map', 'authority', 'view-datasources'],
-    probe: async () => {
+    probe: async (src) => {
       const key = process.env.WINDY_MAP_KEY || process.env.WINDY_API_MAP_KEY;
       if (!key || key.trim() === '') return { ok: false, error: 'WINDY_MAP_KEY is unset in .env', notConfigured: true };
       const url = `https://tiles.windy.com/tiles/v1.0/radar/6/46/29.png?key=${encodeURIComponent(key)}`;
-      const res = await probeRequest(url, { accept: 'image/png' }, 5000);
+      const res = await probeRequest(url, { accept: 'image/png' }, src.timeoutMs);
       if (res.statusCode >= 200 && res.statusCode < 300) {
         return { ok: true, latencyMs: res.latencyMs, recordCount: 1, detail: 'Live Windy weather radar tile stream active', observedAt: new Date().toISOString() };
       }
@@ -284,11 +284,12 @@ const SOURCES = [
     category: 'air',
     tier: 'LIVE_API',
     role: 'PRIMARY',
+    timeoutMs: 9500,
     cadenceMs: 1800000, // 30 min
     requiresKey: 'DATA_GOV_IN_API_KEY',
     consumers: ['citizen air quality widget', 'view-datasources', 'authority-aqi'],
-    probe: async () => {
-      const res = await getCpcbAirQuality();
+    probe: async (src) => {
+      const res = await getCpcbAirQuality(src.timeoutMs);
       if (res.status === 'NOT_CONFIGURED') return { ok: false, error: res.error, notConfigured: true };
       if (res.success) {
         return { ok: true, latencyMs: 280, recordCount: res.totalStations, detail: `${res.totalStations} CAAQMS stations (${res.staleStations} stale, AP PM2.5: ${res.summary?.avgPm25 ?? '—'} µg/m³)`, observedAt: res.lastUpdated || res.observedAt || null };
@@ -305,15 +306,16 @@ const SOURCES = [
     category: 'air',
     tier: 'LIVE_API',
     role: 'PRIMARY',
+    timeoutMs: 22000,
     cadenceMs: 600000,
     requiresKey: null,
     consumers: ['citizen air quality widget', 'view-datasources'],
-    probe: async () => {
+    probe: async (src) => {
       const url = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=16.18&longitude=81.13&current=pm10,pm2_5,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,european_aqi,us_aqi';
-      let res = await probeRequest(url, { accept: 'application/json' }, 10000);
+      let res = await probeRequest(url, { accept: 'application/json' }, src.timeoutMs);
       if (res.statusCode === 503 || res.statusCode === 429) {
         await new Promise(r => setTimeout(r, 1200));
-        res = await probeRequest(url, { accept: 'application/json' }, 10000);
+        res = await probeRequest(url, { accept: 'application/json' }, src.timeoutMs);
       }
       if (res.statusCode >= 200 && res.statusCode < 300) {
         const json = JSON.parse(res.data);
@@ -333,15 +335,16 @@ const SOURCES = [
     category: 'air',
     tier: 'LIVE_API',
     role: 'CROSS_CHECK',
+    timeoutMs: 9500,
     cadenceMs: 1800000,
     requiresKey: 'OPENAQ_API_KEY',
     consumers: ['view-datasources', 'air-quality-inspector'],
-    probe: async () => {
+    probe: async (src) => {
       const srcObj = getSource('openaq_aq') || { id: 'openaq_aq', requiresKey: 'OPENAQ_API_KEY' };
       if (!isSourceConfigured(srcObj)) {
         return { ok: false, error: 'OPENAQ_API_KEY is not configured in .env', notConfigured: true, detail: 'Add OPENAQ_API_KEY to .env' };
       }
-      const res = await getOpenAqAirQuality();
+      const res = await getOpenAqAirQuality(src.timeoutMs);
       if (res.status === 'NOT_CONFIGURED') return { ok: false, error: res.error, notConfigured: true, detail: res.error };
       if (res.success) {
         return { ok: true, latencyMs: 320, recordCount: res.count, detail: `${res.count} ground stations reporting in Andhra Pradesh`, observedAt: res.lastUpdated || res.observedAt || null };
@@ -360,17 +363,18 @@ const SOURCES = [
     category: 'hydrology',
     tier: 'LIVE_API',
     role: 'PRIMARY',
+    timeoutMs: 9500,
     cadenceMs: 600000,
     requiresKey: null,
     consumers: ['gis-river-markers', 'view-datasources', 'telemetry-inspector'],
-    probe: async () => {
+    probe: async (src) => {
       let cwcMod = null;
       try {
         cwcMod = require('./sources/cwc-nwic.js');
-      } catch (e) {}
+      } catch (e) { }
 
       if (cwcMod && typeof cwcMod.getCWCRiverLevels === 'function') {
-        const res = await cwcMod.getCWCRiverLevels();
+        const res = await cwcMod.getCWCRiverLevels(src.timeoutMs);
         if (res.success && Array.isArray(res.stations)) {
           const observedAt = res.observedAt || (res.stations[0]?.observedAt) || null;
           return { ok: true, latencyMs: 280, recordCount: res.stations.length, detail: `${res.stations.length} active river telemetry stations inside AP boundary`, raw: res, observedAt };
@@ -385,7 +389,7 @@ const SOURCES = [
 
       const resourceId = 'c6f31452-b416-4599-a6ae-07ad4217cdf4';
       const url = `https://nwdp.nwic.gov.in/api/3/action/datastore_search?resource_id=${resourceId}&limit=5`;
-      const res = await probeRequest(url, { accept: 'application/json' }, 6000);
+      const res = await probeRequest(url, { accept: 'application/json' }, src.timeoutMs);
       if (res.statusCode >= 200 && res.statusCode < 300) {
         const json = JSON.parse(res.data);
         const records = json.result?.records || [];
@@ -405,11 +409,12 @@ const SOURCES = [
     category: 'alerts',
     tier: 'LIVE_API',
     role: 'PRIMARY',
+    timeoutMs: 9500,
     cadenceMs: 600000,
     requiresKey: null,
     consumers: ['authority-alert-ticker', 'citizen-alert-banner', 'view-datasources', 'ai-zone-engine'],
-    probe: async () => {
-      const res = await getCapFeed('cap_imd', CAP_FEEDS.cap_imd.url, CAP_FEEDS.cap_imd.agency);
+    probe: async (src) => {
+      const res = await getCapFeed('cap_imd', CAP_FEEDS.cap_imd.url, CAP_FEEDS.cap_imd.agency, src.timeoutMs);
       if (res.success) {
         const observedAt = res.lastAlertTime || (res.alerts && res.alerts[0]?.sent) || null;
         return { ok: true, latencyMs: 180, recordCount: res.count, detail: `${res.count} active CAP alerts parsed`, observedAt };
@@ -426,11 +431,12 @@ const SOURCES = [
     category: 'alerts',
     tier: 'ARCHIVED',
     role: 'REFERENCE',
+    timeoutMs: 9500,
     cadenceMs: 3600000,
     requiresKey: null,
     consumers: ['view-datasources'],
-    probe: async () => {
-      const res = await getCapFeed('cap_ndma', CAP_FEEDS.cap_ndma.url, CAP_FEEDS.cap_ndma.agency);
+    probe: async (src) => {
+      const res = await getCapFeed('cap_ndma', CAP_FEEDS.cap_ndma.url, CAP_FEEDS.cap_ndma.agency, src.timeoutMs);
       if (res.success) {
         const observedAt = res.lastAlertTime || (res.alerts && res.alerts[0]?.sent) || null;
         return { ok: true, latencyMs: 190, recordCount: res.count, detail: `${res.count} archived NDMA CAP records (historical reference)`, observedAt };
@@ -447,11 +453,12 @@ const SOURCES = [
     category: 'alerts',
     tier: 'LIVE_API',
     role: 'CROSS_CHECK',
+    timeoutMs: 9500,
     cadenceMs: 1800000,
     requiresKey: null,
     consumers: ['view-datasources', 'hazard-confidence-engine'],
-    probe: async () => {
-      const res = await getGdacsEvents();
+    probe: async (src) => {
+      const res = await getGdacsEvents(src.timeoutMs);
       if (res.success) {
         const observedAt = res.lastEventTime || (res.apEvents && res.apEvents[0]?.pubDate) || (res.apEvents && res.apEvents[0]?.issuedAt) || null;
         return { ok: true, latencyMs: 340, recordCount: res.apEventsCount, detail: `${res.apEventsCount} active events in AP (${res.indiaEventsCount} India-wide)`, observedAt };
@@ -470,12 +477,13 @@ const SOURCES = [
     category: 'routing',
     tier: 'LIVE_API',
     role: 'PRIMARY',
+    timeoutMs: 6500,
     cadenceMs: 1800000,
     requiresKey: null,
     consumers: ['citizen-evacuation-route', 'view-datasources'],
-    probe: async () => {
+    probe: async (src) => {
       const url = 'https://router.project-osrm.org/route/v1/driving/82.24,16.98;82.26,17.02?overview=false';
-      const res = await probeRequest(url, { accept: 'application/json' }, 5000);
+      const res = await probeRequest(url, { accept: 'application/json' }, src.timeoutMs);
       if (res.statusCode >= 200 && res.statusCode < 300) {
         const json = JSON.parse(res.data);
         if (json.code === 'Ok' && json.routes?.length > 0) {
@@ -488,54 +496,7 @@ const SOURCES = [
   },
 
   // 7. SATELLITE
-  {
-    id: 'nasa_firms_viirs',
-    agency: 'NASA EOSDIS / LANCE FIRMS',
-    displayName: 'VIIRS NRT 24-Hour Active Fire & Thermal Anomaly Feed',
-    host: 'firms.modaps.eosdis.nasa.gov',
-    dataType: 'Near-Real-Time CSV Feed',
-    category: 'satellite',
-    tier: 'LIVE_API',
-    role: 'PRIMARY',
-    cadenceMs: 900000,
-    requiresKey: 'NASA_FIRMS_MAP_KEY',
-    consumers: ['ai-engine-satellite-brief', 'view-datasources'],
-    probe: async () => {
-      let firmsMod = null;
-      try {
-        firmsMod = require('./sources/nasa-firms.js');
-      } catch (e) {}
 
-      if (firmsMod && typeof firmsMod.getNasaFirmsHotspots === 'function') {
-        const res = await firmsMod.getNasaFirmsHotspots();
-        if (res.status === 'NOT_CONFIGURED') {
-          return { ok: false, notConfigured: true, detail: res.detail || 'Add NASA_FIRMS_MAP_KEY to .env' };
-        }
-        if (res.status === 'LIVE') {
-          return { ok: true, latencyMs: 350, recordCount: res.observationCount || 0, detail: `${res.observationCount || 0} AP thermal anomalies ingested`, raw: res.observations?.slice(0, 5), observedAt: res.latestAcquisitionTime || res.observedAt || null };
-        }
-        if (res.status === 'DEGRADED') {
-          return { ok: true, degraded: true, recordCount: res.observationCount || 0, detail: 'Stale NASA FIRMS telemetry served', observedAt: res.latestAcquisitionTime || res.observedAt || null };
-        }
-        if (res.status === 'UNAVAILABLE') {
-          return { ok: false, error: res.error || 'NASA FIRMS upstream unavailable' };
-        }
-      }
-
-      const mapKey = process.env.NASA_FIRMS_MAP_KEY || process.env.FIRMS_MAP_KEY;
-      if (!mapKey || mapKey.startsWith('DEMO') || mapKey.startsWith('YOUR_')) {
-        return { ok: false, notConfigured: true, detail: 'Add NASA_FIRMS_MAP_KEY to .env' };
-      }
-      const url = `https://firms.modaps.eosdis.nasa.gov/api/area/csv/${mapKey}/VIIRS_SNPP_NRT/76.5,12.5,85.0,19.5/1`;
-      const res = await probeRequest(url, { accept: 'text/csv' }, 6000);
-      if (res.statusCode >= 200 && res.statusCode < 300) {
-        const lines = res.data.split('\n').filter(l => l.trim().length > 0);
-        const count = Math.max(0, lines.length - 1);
-        return { ok: true, latencyMs: res.latencyMs, recordCount: count, detail: `${count} thermal anomalies ingested`, raw: lines.slice(0, 5), observedAt: null };
-      }
-      throw new Error(`HTTP ${res.statusCode}`);
-    }
-  },
   {
     id: 'copernicus_dataspace',
     agency: 'Copernicus Data Space Ecosystem (ESA / EU)',
@@ -545,10 +506,11 @@ const SOURCES = [
     category: 'satellite',
     tier: 'LIVE_API',
     role: 'PRIMARY',
+    timeoutMs: 9500,
     cadenceMs: 1800000, // 30 min cadence
     requiresKey: 'COPERNICUS_CLIENT_ID',
     consumers: ['satellite-signal-processor', 'view-datasources', 'telemetry-inspector'],
-    probe: async () => {
+    probe: async (src) => {
       const srcObj = getSource('copernicus_dataspace') || { id: 'copernicus_dataspace', requiresKey: 'COPERNICUS_CLIENT_ID' };
       if (!isSourceConfigured(srcObj)) {
         return { ok: false, notConfigured: true, detail: 'Add COPERNICUS_CLIENT_ID and COPERNICUS_CLIENT_SECRET to .env' };
@@ -556,10 +518,10 @@ const SOURCES = [
       let copMod = null;
       try {
         copMod = require('./sources/copernicus.js');
-      } catch (e) {}
+      } catch (e) { }
 
       if (copMod && typeof copMod.getLatestSentinel1Observation === 'function') {
-        const res = await copMod.getLatestSentinel1Observation();
+        const res = await copMod.getLatestSentinel1Observation(src.timeoutMs);
         if (res.status === 'NOT_CONFIGURED') {
           return { ok: false, notConfigured: true, detail: res.error || 'Add COPERNICUS_CLIENT_ID and COPERNICUS_CLIENT_SECRET to .env' };
         }
@@ -586,13 +548,14 @@ const SOURCES = [
     category: 'satellite',
     tier: 'OFFICIAL_BASELINE',
     role: 'PRIMARY',
+    timeoutMs: 20000,
     cadenceMs: 86400000,
     requiresKey: null,
     consumers: ['gis-satellite-tile-layer', 'view-datasources'],
-    probe: async () => {
+    probe: async (src) => {
       try {
         const url = 'https://bhuvan-vec1.nrsc.gov.in/bhuvan/gwc/service/wms?SERVICE=WMS&REQUEST=GetCapabilities';
-        const res = await probeRequest(url, {}, 4000);
+        const res = await probeRequest(url, {}, src.timeoutMs);
         if (res.statusCode >= 200 && res.statusCode < 400) {
           return { ok: true, latencyMs: res.latencyMs, recordCount: 1, detail: 'Bhuvan ISRO WMS server operational', observedAt: null };
         }
@@ -613,10 +576,11 @@ const SOURCES = [
     category: 'alerts',
     tier: 'LIVE_API',
     role: 'PRIMARY',
+    timeoutMs: 6500,
     cadenceMs: 1800000,
     requiresKey: 'RESEND_API_KEY',
     consumers: ['alert-escalation-router', 'view-datasources'],
-    probe: async () => {
+    probe: async (src) => {
       const resendKey = process.env.RESEND_API_KEY;
       const sendgridKey = process.env.SENDGRID_API_KEY;
       if (!resendKey && !sendgridKey) {
@@ -625,7 +589,7 @@ const SOURCES = [
       if (resendKey && !resendKey.startsWith('YOUR_')) {
         const res = await probeRequest('https://api.resend.com/api_keys', {
           headers: { 'Authorization': `Bearer ${resendKey}` }
-        }, 5000);
+        }, src.timeoutMs);
         if (res.statusCode >= 200 && res.statusCode < 300) {
           return { ok: true, latencyMs: res.latencyMs, recordCount: 1, detail: 'Resend API authenticated', observedAt: null };
         }
@@ -637,7 +601,7 @@ const SOURCES = [
         try {
           const parsed = JSON.parse(res.data);
           if (parsed.message) errMsg += `: ${parsed.message}`;
-        } catch (e) {}
+        } catch (e) { }
         throw new Error(errMsg);
       }
       return { ok: true, latencyMs: 50, recordCount: 1, detail: 'SendGrid key present in environment', observedAt: null };
@@ -654,16 +618,17 @@ const SOURCES = [
     category: 'ai',
     tier: 'LIVE_API',
     role: 'PRIMARY',
+    timeoutMs: 7000,
     cadenceMs: 60000,
     requiresKey: null,
     consumers: ['incident-commander-ai-brief', 'view-datasources'],
-    probe: async () => {
+    probe: async (src) => {
       const baseUrl = process.env.OLLAMA_BASE_URL || process.env.OLLAMA_HOST || 'http://127.0.0.1:11434';
       const headers = { accept: 'application/json' };
       if (process.env.OLLAMA_API_KEY) {
         headers['Authorization'] = `Bearer ${process.env.OLLAMA_API_KEY}`;
       }
-      const res = await probeRequest(`${baseUrl}/api/tags`, headers, 3000);
+      const res = await probeRequest(`${baseUrl}/api/tags`, headers, src.timeoutMs);
       if (res.statusCode >= 200 && res.statusCode < 300) {
         const json = JSON.parse(res.data);
         const models = (json.models || []).map(m => m.name).join(', ');
@@ -681,12 +646,13 @@ const SOURCES = [
     category: 'ai',
     tier: 'LIVE_API',
     role: 'FORECAST',
+    timeoutMs: 4500,
     cadenceMs: 60000,
     requiresKey: null,
     consumers: ['view-datasources'],
-    probe: async () => {
+    probe: async (src) => {
       const baseUrl = process.env.AI_SERVICE_URL || 'http://127.0.0.1:8001';
-      const res = await probeRequest(`${baseUrl}/health`, { accept: 'application/json' }, 3000);
+      const res = await probeRequest(`${baseUrl}/health`, { accept: 'application/json' }, src.timeoutMs);
       if (res.statusCode >= 200 && res.statusCode < 300) {
         const json = JSON.parse(res.data);
         return { ok: true, latencyMs: res.latencyMs, recordCount: 1, detail: `GeoAI service online (${json.service})`, observedAt: null };
@@ -705,10 +671,11 @@ const SOURCES = [
     category: 'reference',
     tier: 'OFFICIAL_BASELINE',
     role: 'PRIMARY',
+    timeoutMs: 3000,
     cadenceMs: 86400000,
     requiresKey: null,
     consumers: ['kpi-shelter-cap', 'evacuation-routing', 'view-datasources', 'safesites-list'],
-    probe: async () => {
+    probe: async (src) => {
       const filePath = path.join(__dirname, 'data', 'shelters.json');
       if (fs.existsSync(filePath)) {
         const shelters = JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -728,10 +695,11 @@ const SOURCES = [
     category: 'reference',
     tier: 'OFFICIAL_BASELINE',
     role: 'PRIMARY',
+    timeoutMs: 3000,
     cadenceMs: 86400000,
     requiresKey: null,
     consumers: ['kpi-pop-risk', 'population-exposure-grid', 'view-datasources', 'priority-engine'],
-    probe: async () => {
+    probe: async (src) => {
       const filePath = path.join(__dirname, 'data', 'census_lookup.json');
       if (fs.existsSync(filePath)) {
         const villages = JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -751,10 +719,11 @@ const SOURCES = [
     category: 'reference',
     tier: 'OFFICIAL_BASELINE',
     role: 'PRIMARY',
+    timeoutMs: 3000,
     cadenceMs: 86400000,
     requiresKey: null,
     consumers: ['ap-boundary-clipping', 'point-in-polygon', 'view-datasources'],
-    probe: async () => {
+    probe: async (src) => {
       const filePath = path.join(__dirname, 'data', 'andhra_pradesh_boundary.geojson');
       if (fs.existsSync(filePath)) {
         const geojson = JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -802,7 +771,7 @@ function computeStatus(source, probeResult, metrics) {
   }
 
   // 7. Explicit degraded flag from probe or latency degraded
-  if (probeResult.degraded || (probeResult.latencyMs && probeResult.latencyMs > 5000)) {
+  if (probeResult.degraded || (probeResult.latencyMs && probeResult.latencyMs > ((source.timeoutMs || 6000) * 0.8))) {
     return 'DEGRADED';
   }
 
@@ -832,8 +801,8 @@ async function checkAllSources(forceRefresh = false) {
       if (typeof src.probe === 'function') {
         metrics.lastAttemptAt = new Date().toISOString();
         probeResult = await Promise.race([
-          src.probe(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Probe hard timeout (6000ms)')), 6000))
+          src.probe(src),
+          new Promise((_, reject) => { const to = src.timeoutMs || 6000; setTimeout(() => reject(new Error(`Probe hard timeout (${to}ms)`)), to); })
         ]);
         const latency = Date.now() - probeStart;
         if (probeResult.ok) {

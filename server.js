@@ -27,7 +27,7 @@ const { getGdacsEvents } = require('./sources/gdacs.js');
 const { getCWCRiverLevels } = require('./sources/cwc-nwic.js');
 
 const { getLatestSentinel1Observation, processLatestSentinel1Observation, verifySentinel1ProductAccess } = require('./sources/copernicus.js');
-const { getNasaFirmsHotspots, setFirmsCache, clearFirmsCache } = require('./sources/nasa-firms.js');
+
 const { correlateMultiHazards } = require('./sources/multi-hazard.js');
 const OsrmService = require('./sources/osrm.js');
 
@@ -56,6 +56,16 @@ try {
 } catch (e) {
   console.warn('Note: .env file could not be read:', e.message);
 }
+
+// Ensure DB connects AFTER environment variables are loaded
+const db = require('./db');
+const bcrypt = require('bcryptjs');
+
+// Initialize Express Postgres Router
+const express = require('express');
+const expressApp = express();
+const apiRoutes = require('./routes/api.js');
+expressApp.use('/api', apiRoutes);
 
 // Normalize Copernicus / Sentinel Hub environment aliases
 if (!process.env.COPERNICUS_CLIENT_ID && process.env.SENTINEL_HUB_CLIENT_ID) {
@@ -1153,24 +1163,6 @@ async function getLiveHazardPolygons() {
     console.warn('[LiveHazards] CWC river levels check error:', e.message);
   }
 
-
-
-  // 2. Fire: NASA FIRMS active thermal anomalies buffered by 6km fixed radius
-  try {
-    const firmsData = await getNasaFirmsHotspots();
-    if (firmsData && firmsData.status === 'LIVE' && Array.isArray(firmsData.hotspots)) {
-      for (const h of firmsData.hotspots) {
-        const lat = typeof h.lat === 'number' ? h.lat : h.latitude;
-        const lon = typeof h.lon === 'number' ? h.lon : h.longitude;
-        if (typeof lat === 'number' && typeof lon === 'number' && isCoordInsideAP(lon, lat)) {
-          result.fire.push(createGeoCirclePolygon(lat, lon, 6));
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('[LiveHazards] NASA FIRMS check error:', e.message);
-  }
-
   // 3. Cyclone: IMD / GDACS active cyclone track and wind buffer
   try {
     const capData = await getOfficialCapAlerts();
@@ -1310,7 +1302,7 @@ async function getUnifiedLiveHazardZones() {
     console.warn('[server] Error retrieving AI Engine zones:', err.message);
   }
 
-  // 3. Live Telemetry Hazard Polygons (CWC River, Google Flood, NASA FIRMS, IMD CAP, GDACS, CPCB/OpenAQ)
+  // 3. Live Telemetry Hazard Polygons (CWC River, Google Flood, IMD CAP, GDACS, CPCB/OpenAQ)
   const sensorZones = [];
   try {
     const livePolys = await getLiveHazardPolygons();
@@ -1370,34 +1362,6 @@ async function getUnifiedLiveHazardZones() {
       }
     }
 
-    // Active Thermal / Fire Anomalies (NASA FIRMS & Simulation)
-    if (Array.isArray(livePolys.fire)) {
-      for (const poly of livePolys.fire) {
-        const id = `LIVE_FIRE_${polyIdx++}`;
-        if (!suppressedZoneIds.has(id)) {
-          const center = getCentroid(poly);
-          const pop = estimatePop(poly) || 4200;
-          const sz = {
-            id,
-            name: `NASA FIRMS Thermal Fire Hotspot #${polyIdx - 1}`,
-            level: 'RED',
-            current_tier: 'RED',
-            hazardType: 'fire',
-            pop,
-            lat: center.lat,
-            lng: center.lng,
-            radius: 6000,
-            polygon: poly,
-            geometry: { type: 'Polygon', coordinates: [poly] },
-            desc: 'Satellite thermal anomaly detected by NASA FIRMS VIIRS sensor. 6km containment buffer active.',
-            source: 'LIVE_SENSOR'
-          };
-          allZones.push(sz);
-          sensorZones.push(sz);
-          sourceBreakdown.liveTelemetry++;
-        }
-      }
-    }
 
     // Cyclone / Storm CAP Alerts
     if (Array.isArray(livePolys.cyclone)) {
@@ -1517,7 +1481,6 @@ async function getCanonicalLiveState(forceRefresh = false) {
       capData,
       gdacsData,
       healthReport,
-      firmsData,
       sentinelData
     ] = await Promise.all([
       getOpenMeteoWeather(16.18, 81.13).catch(() => null),
@@ -1527,7 +1490,6 @@ async function getCanonicalLiveState(forceRefresh = false) {
       getOfficialCapAlerts().catch(() => ({ alerts: [] })),
       getGdacsEvents().catch(() => null),
       SourceRegistry.checkAllSources(false).catch(() => null),
-      SatelliteSignal.fetchNasaFirmsHotspots().catch(() => null),
       SatelliteSignal.fetchSentinelFloodSignals().catch(() => null)
     ]);
 
@@ -1541,7 +1503,6 @@ async function getCanonicalLiveState(forceRefresh = false) {
       cwcRaw: cwcData,
       capAlerts: capData ? (capData.alerts || []) : [],
       gdacsRaw: gdacsData ? (gdacsData.apEvents || []) : [],
-      firmsRaw: firmsData,
       sentinelRaw: sentinelData,
       sheltersRaw: shelters,
       censusHabitations: habitations,
@@ -1623,6 +1584,51 @@ const server = http.createServer(async (req, res) => {
   const parsedUrl = url.parse(req.url, true);
   let pathname = decodeURIComponent(parsedUrl.pathname);
 
+  // Health Check Endpoint for Render Zero-Downtime Deploys
+  if (pathname === '/health' && req.method === 'GET') {
+    try {
+      // 1. Check Primary Postgres
+      const db = require('./db');
+      await db.query('SELECT 1 as ok');
+
+      // 2. Check Redis
+      await db.redisClient.ping();
+
+      // 3. Check Silo
+      const siloHost = process.env.MINIO_ENDPOINT || 'object-storage';
+      const siloPort = process.env.MINIO_PORT || 9000;
+      await new Promise((resolve, reject) => {
+        const httpMod = require('http');
+        const reqCheck = httpMod.get(`http://${siloHost}:${siloPort}/minio/health/live`, (r) => {
+          if (r.statusCode === 200) resolve();
+          else reject(new Error('Silo returned status ' + r.statusCode));
+        });
+        reqCheck.on('error', reject);
+        reqCheck.setTimeout(3000, () => { reqCheck.destroy(); reject(new Error('Silo timeout')); });
+      });
+
+      // 4. Check TimescaleDB
+      const tsHost = process.env.TIMESCALEDB_HOST || 'timescaledb';
+      const tsPort = process.env.TIMESCALEDB_PORT || 5432;
+      const tsUser = process.env.TIMESCALEDB_USER || 'postgres';
+      const tsPassword = process.env.TIMESCALEDB_PASSWORD || process.env.POSTGRES_PASSWORD;
+      if (tsPassword) {
+        const { Client } = require('pg');
+        const tsClient = new Client({ host: tsHost, port: tsPort, user: tsUser, password: tsPassword, database: 'postgres', connectionTimeoutMillis: 3000 });
+        await tsClient.connect();
+        await tsClient.query('SELECT 1');
+        await tsClient.end();
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ status: 'healthy' }));
+    } catch (err) {
+      console.error('[HealthCheck] Failed:', err.message);
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ status: 'unhealthy', error: err.message }));
+    }
+  }
+
   // 0. Canonical Normalized Live State API
   if (pathname === '/api/canonical-state' || pathname === '/api/live-state') {
     try {
@@ -1649,13 +1655,27 @@ const server = http.createServer(async (req, res) => {
 
   // ================= REST API ENDPOINTS =================
   if (pathname.startsWith('/api/')) {
+    
+    // Delegate to PostgreSQL Migration (Express) Router
+    const postgresRoutes = [
+      '/api/hazard-zones',
+      '/api/hazard-readings',
+      '/api/citizen-reports',
+      '/api/emergency-alerts',
+      '/api/datasources',
+      '/api/authorities/me'
+    ];
+    if (postgresRoutes.some(route => pathname.startsWith(route))) {
+      return expressApp(req, res);
+    }
+    
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
     // 0a. Authentication Endpoints (/api/auth/*)
     if (pathname === '/api/auth/login' && req.method === 'POST') {
       let body = '';
       req.on('data', chunk => body += chunk);
-      req.on('end', () => {
+      req.on('end', async () => {
         try {
           const payload = JSON.parse(body || '{}');
           const identifier = (payload.identifier || payload.email || payload.officerId || '').trim().toLowerCase();
@@ -1666,37 +1686,46 @@ const server = http.createServer(async (req, res) => {
             return res.end(JSON.stringify({ success: false, error: 'Identifier and security passcode are required.' }));
           }
 
-          const inputHash = hashPasscode(password);
-          const user = storedAuthorityUsers.find(u =>
-            (u.email.toLowerCase() === identifier || u.officerId.toLowerCase() === identifier) &&
-            u.passwordHash === inputHash
-          );
+          // Query PostgreSQL
+          const { rows } = await db.query('SELECT * FROM authorities WHERE email = $1', [identifier]);
+          const dbUser = rows[0];
 
-          if (!user) {
+          if (!dbUser) {
             res.writeHead(401);
             return res.end(JSON.stringify({ success: false, error: 'Invalid credentials. Please verify your officer credentials and security passcode.' }));
           }
 
-          const token = createAuthToken(user);
+          // Verify password
+          const isMatch = await bcrypt.compare(password, dbUser.password_hash) || password === dbUser.password_hash;
+          if (!isMatch) {
+            res.writeHead(401);
+            return res.end(JSON.stringify({ success: false, error: 'Invalid credentials. Please verify your officer credentials and security passcode.' }));
+          }
+
+          // Map Postgres row to frontend expectation
+          const mappedUser = {
+            officerId: `DB-${dbUser.id}`,
+            email: dbUser.email,
+            name: dbUser.email.split('@')[0],
+            department: 'Command Center',
+            district: dbUser.district,
+            clearanceLevel: 'LEVEL-3 (VERIFIED DISPATCH)',
+            role: dbUser.role
+          };
+
+          const token = createAuthToken(mappedUser);
           res.setHeader('Set-Cookie', `rzi_auth_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`);
           res.writeHead(200);
           return res.end(JSON.stringify({
             success: true,
             token,
             role: 'authority',
-            user: {
-              officerId: user.officerId,
-              email: user.email,
-              name: user.name,
-              department: user.department,
-              district: user.district,
-              clearanceLevel: user.clearanceLevel,
-              role: 'authority'
-            }
+            user: mappedUser
           }));
         } catch (err) {
-          res.writeHead(400);
-          return res.end(JSON.stringify({ success: false, error: 'Invalid JSON payload: ' + err.message }));
+          console.error("Login route error:", err);
+          res.writeHead(500);
+          return res.end(JSON.stringify({ success: false, error: 'Internal server error.' }));
         }
       });
       return;
@@ -2034,11 +2063,6 @@ const server = http.createServer(async (req, res) => {
           riverData = await getCWCRiverLevels();
         } catch (e) {}
 
-        let fireData = null;
-        try {
-          fireData = await getNasaFirmsHotspots();
-        } catch (e) {}
-
         let copernicusObs = null;
         try {
           copernicusObs = await getLatestSentinel1Observation();
@@ -2065,7 +2089,7 @@ const server = http.createServer(async (req, res) => {
             modelConfidence: 'NOT_EVALUATED'
           },
           classificationAudit: {
-            liveSources: ['openmeteo_weather', 'openmeteo_airquality', 'usgs_earthquakes', 'osrm_routing', 'cap_imd', 'cwc_nwic_river', 'nasa_firms_viirs'],
+            liveSources: ['openmeteo_weather', 'openmeteo_airquality', 'usgs_earthquakes', 'osrm_routing', 'cap_imd', 'cwc_nwic_river'],
             referenceSources: ['ap_sdma_shelters', 'census_india_ap', 'bhuvan_wms', 'ap_boundary_polygon'],
             archivedSources: ['cap_ndma'],
             derivedLayers: ['vpi_priority_ranking', 'multi_hazard_correlation', 'sentinel1_processing', 'derived_flood_condition'],
@@ -2105,15 +2129,6 @@ const server = http.createServer(async (req, res) => {
               trend: (riverData?.status === 'LIVE' || (riverData?.status === 'DEGRADED' && riverData?.trend)) ? (riverData?.trend || 'STEADY') : null,
               observedAt: riverData?.observedAt ?? null,
               stale: Boolean(riverData?.stale)
-            },
-            fire: {
-              sourceId: 'nasa_firms_viirs',
-              tier: 'LIVE_API',
-              role: 'PRIMARY',
-              status: fireData?.status || 'UNAVAILABLE',
-              activeHotspotCount: (fireData?.status === 'LIVE' || (fireData?.status === 'DEGRADED' && typeof fireData?.observationCount === 'number')) ? fireData.observationCount : null,
-              observedAt: (fireData?.status === 'LIVE' || (fireData?.status === 'DEGRADED' && fireData?.latestAcquisitionTime)) ? fireData.latestAcquisitionTime : null,
-              stale: Boolean(fireData?.stale)
             },
             satellite: {
               sourceId: 'copernicus_dataspace',
@@ -2463,14 +2478,6 @@ const server = http.createServer(async (req, res) => {
       return res.end(JSON.stringify(data));
     }
 
-    // 5c. REAL NASA FIRMS VIIRS ACTIVE FIRE / THERMAL ANOMALIES
-    if (pathname === '/api/fire/live' || pathname === '/api/firms') {
-      const data = await getNasaFirmsHotspots();
-      const statusCode = (data.status === 'LIVE' || data.status === 'NOT_CONFIGURED') ? 200 : (data.status === 'DEGRADED' ? 200 : 503);
-      res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
-      return res.end(JSON.stringify(data));
-    }
-
     // 5d. REAL COPERNICUS DATA SPACE SENTINEL-1 LATEST OBSERVATION
     if (pathname === '/api/satellite/latest') {
       const data = await getLatestSentinel1Observation();
@@ -2607,7 +2614,7 @@ const server = http.createServer(async (req, res) => {
             const rep = storedReports.find(r => r.id === targetId || r.reportId === targetId);
             if (!rep) {
               res.writeHead(404, { 'Content-Type': 'application/json' });
-              return res.end(JSON.stringify({ error: 'Report not found' }));
+              return res.end(JSON.stringify({ error: "Report not found" }));
             }
 
             if (action === 'verify') {
@@ -2819,56 +2826,6 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // 7b. Simulation / Drill Hook for Live FIRMS Hotspot Telemetry
-    if (pathname === '/api/simulation/firms-hotspot' && req.method === 'POST') {
-      let body = '';
-      req.on('data', chunk => body += chunk);
-      req.on('end', () => {
-        try {
-          const payload = JSON.parse(body || '{}');
-          const lat = Number(payload.lat != null ? payload.lat : payload.latitude);
-          const lon = Number(payload.lon != null ? payload.lon : (payload.lng != null ? payload.lng : payload.longitude));
-          if (isNaN(lat) || isNaN(lon)) {
-            res.writeHead(400);
-            return res.end(JSON.stringify({ error: 'lat and lon/lng must be valid numbers' }));
-          }
-          const hotspot = {
-            id: 'sim_firms_' + Date.now(),
-            latitude: lat,
-            longitude: lon,
-            lat,
-            lon,
-            confidence: payload.confidence || 'h',
-            observedAt: new Date().toISOString(),
-            instrument: 'VIIRS_SIMULATED',
-            sourceId: 'nasa_firms_viirs',
-            provenance: 'simulated_drill'
-          };
-          setFirmsCache({
-            success: true,
-            status: 'LIVE',
-            sourceId: 'nasa_firms_viirs',
-            count: 1,
-            hotspots: [hotspot],
-            observations: [hotspot],
-            fetchedAt: new Date().toISOString()
-          }, 300000); // 5 minutes TTL
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ success: true, message: 'Simulated FIRMS hotspot injected', hotspot }));
-        } catch (e) {
-          res.writeHead(400);
-          return res.end(JSON.stringify({ error: 'Invalid JSON body: ' + e.message }));
-        }
-      });
-      return;
-    }
-
-    if (pathname === '/api/simulation/firms-hotspot' && req.method === 'DELETE') {
-      clearFirmsCache();
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ success: true, message: 'Simulated FIRMS hotspot cleared' }));
-    }
-
     // 8. Risk Zone Check (Point-in-polygon)
     if (pathname === '/api/risk-zone' && req.method === 'POST') {
       let body = '';
@@ -2914,8 +2871,8 @@ const server = http.createServer(async (req, res) => {
           let riskLevel, riskColor, zone, advisory;
           if (inFire) {
             riskLevel = 'Red Zone'; riskColor = '#ef4444';
-            zone = 'Active Wildfire / Thermal Hotspot Buffer';
-            advisory = 'EMERGENCY: Satellite thermal anomaly detected within immediate radius. Evacuate away from smoke and fire spread corridor.';
+            zone = 'Active Wildfire Buffer';
+            advisory = 'EMERGENCY: Active fire detected within immediate radius. Evacuate away from smoke and fire spread corridor.';
           } else if (inFlood) {
             riskLevel = 'Red Zone'; riskColor = '#ef4444';
             zone = 'Active Coastal Flood / River Inundation Zone';
@@ -4312,7 +4269,7 @@ You are an Andhra Pradesh Disaster Response Analyst. Using ONLY the provided str
     }
 
 
-    // 17C. SATELLITE HAZARD TELEMETRY (NASA FIRMS & Sentinel Hub)
+    // 17C. SATELLITE HAZARD TELEMETRY (Sentinel Hub)
     if (pathname === '/api/satellite/telemetry') {
       if (req.method === 'GET') {
         try {
@@ -4564,13 +4521,74 @@ You are an Andhra Pradesh Disaster Response Analyst. Using ONLY the provided str
 let wss = null;
 let lastBroadcastHash = null;
 
+function validateAndRepairGeoJSONPolygon(geometry, zoneId) {
+  if (!geometry || geometry.type !== 'Polygon' || !Array.isArray(geometry.coordinates)) {
+    console.warn(`[server] Zone ${zoneId} has missing or invalid geometry object. Dropping geometry.`);
+    return null;
+  }
+  
+  let validRings = [];
+  for (let i = 0; i < geometry.coordinates.length; i++) {
+    let ring = geometry.coordinates[i];
+    if (!Array.isArray(ring) || ring.length < 3) {
+      console.warn(`[server] Zone ${zoneId} polygon ring ${i} has fewer than 3 points. Dropping ring.`);
+      continue;
+    }
+    
+    // Ensure all points in ring are valid [lng, lat] pairs (numbers)
+    let validPoints = ring.filter(p => Array.isArray(p) && p.length >= 2 && typeof p[0] === 'number' && typeof p[1] === 'number' && !isNaN(p[0]) && !isNaN(p[1]));
+    
+    if (validPoints.length < 3) {
+      console.warn(`[server] Zone ${zoneId} polygon ring ${i} lacks sufficient valid coordinates. Dropping ring.`);
+      continue;
+    }
+    
+    // Ensure first and last coordinates are identical to close the ring
+    let first = validPoints[0];
+    let last = validPoints[validPoints.length - 1];
+    if (first[0] !== last[0] || first[1] !== last[1]) {
+      validPoints.push([...first]); // Auto-repair: close the ring
+      console.warn(`[server] Zone ${zoneId} polygon ring ${i} was unclosed. Auto-repaired by closing the ring.`);
+    }
+    
+    if (validPoints.length >= 4) {
+      validRings.push(validPoints);
+    } else {
+      console.warn(`[server] Zone ${zoneId} polygon ring ${i} has fewer than 4 points after validation. Dropping ring.`);
+    }
+  }
+  
+  if (validRings.length === 0) {
+    console.warn(`[server] Zone ${zoneId} polygon has no valid rings after repair. Dropping geometry.`);
+    return null;
+  }
+  
+  return {
+    type: 'Polygon',
+    coordinates: validRings
+  };
+}
+
 function getLiveStateSnapshot(unifiedZones = []) {
   let aiState = null;
   try {
     aiState = (typeof AIEngine !== 'undefined' && AIEngine.getState) ? AIEngine.getState() : null;
   } catch (e) {}
 
-  const zones = unifiedZones;
+  // Validate and repair hazard zone geometries before broadcast
+  const zones = unifiedZones.map(zone => {
+    if (zone.geometry) {
+      const repaired = validateAndRepairGeoJSONPolygon(zone.geometry, zone.id || 'unknown');
+      if (repaired) {
+        return { ...zone, geometry: repaired };
+      } else {
+        // Drop malformed geometry completely so clients don't crash trying to render it
+        const { geometry, ...rest } = zone;
+        return rest;
+      }
+    }
+    return zone;
+  });
 
   const rawAlerts = (aiState && Array.isArray(aiState.alerts)) ? aiState.alerts : [];
   const alerts = rawAlerts.map(a => ({
@@ -4892,14 +4910,6 @@ async function pollGdacs() {
   }
 }
 
-async function pollNasaFirms() {
-  try {
-    await getNasaFirmsHotspots();
-  } catch (err) {
-    console.warn('[Poller:FIRMS] Background FIRMS poll failed:', err.message);
-  }
-}
-
 
 
 // Upstream background polling intervals
@@ -4909,7 +4919,7 @@ const POLL_INTERVAL_WEATHER_MS = 10 * 60 * 1000;    // 10 minutes (600s)
 const POLL_INTERVAL_RIVER_MS = 15 * 60 * 1000;      // 15 minutes (900s)
 const POLL_INTERVAL_AIR_MS = 30 * 60 * 1000;        // 30 minutes (1800s)
 const POLL_INTERVAL_GDACS_MS = 30 * 60 * 1000;      // 30 minutes (1800s)
-const POLL_INTERVAL_FIRMS_MS = 30 * 60 * 1000;      // 30 minutes (1800s)
+
 const POLL_INTERVAL_FLOOD_MS = 60 * 60 * 1000;      // 60 minutes (3600s)
 const WS_BROADCAST_TICK_MS = 10 * 1000;             // 10 seconds ceiling (cache-only broadcast)
 
@@ -4919,7 +4929,7 @@ setInterval(pollWeather, POLL_INTERVAL_WEATHER_MS);
 setInterval(pollCwcRiver, POLL_INTERVAL_RIVER_MS);
 setInterval(pollAirQuality, POLL_INTERVAL_AIR_MS);
 setInterval(pollGdacs, POLL_INTERVAL_GDACS_MS);
-setInterval(pollNasaFirms, POLL_INTERVAL_FIRMS_MS);
+
 
 // 10-second client push loop: only broadcasts from cache when state hash has changed
 setInterval(broadcastLiveStateIfChanged, WS_BROADCAST_TICK_MS);

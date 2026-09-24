@@ -195,7 +195,7 @@ class EmergencySOSBeacon {
 
     this.renderSOSModal();
 
-    // Broadcast high-priority distress event to Firebase & local mesh
+
     const sosId = 'SOS-' + Date.now().toString().slice(-6);
     const parsedAccFinal = hasLocation && typeof accuracy === 'number' && !isNaN(accuracy) ? Math.round(accuracy) : null;
     const distressPayload = {
@@ -262,7 +262,7 @@ class EmergencySOSBeacon {
       console.warn("Storage write error for SOS:", e);
     }
 
-    // 2. Broadcast via BroadcastChannel 'rzi_mesh_sync' (used by FirebaseLive & cross-tab sync)
+
     try {
       if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
         const bc = new BroadcastChannel('rzi_mesh_sync');
@@ -271,7 +271,7 @@ class EmergencySOSBeacon {
       }
     } catch (e) {}
 
-    // 3. Offline submission queue or Firebase submission
+
     if (!navigator.onLine) {
       if (typeof window.queueOfflineSubmission === 'function') {
         window.queueOfflineSubmission(distressPayload);
@@ -286,12 +286,14 @@ class EmergencySOSBeacon {
         showToast("🆘 EMERGENCY SOS QUEUED LOCALLY — TRANSMITTING WHEN CONNECTED", "warning");
       }
     } else {
-      if (window.firebaseLive && typeof window.firebaseLive.submitCitizenReport === 'function') {
-        window.firebaseLive.submitCitizenReport(distressPayload).catch(() => {
-          if (typeof window.queueOfflineSubmission === 'function') {
-            window.queueOfflineSubmission(distressPayload);
-          }
+      try {
+        fetch('/api/citizen-reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(distressPayload)
         });
+      } catch (e) {
+        console.error('SOS dispatch error', e);
       }
       if (typeof showToast === 'function') {
         if (hasLocation) {

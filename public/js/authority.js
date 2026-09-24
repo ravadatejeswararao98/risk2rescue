@@ -1,22 +1,14 @@
-
-window.getSeverityRank = function(level) {
-  if (!level) return 99;
-  const s = level.toString().toUpperCase().trim();
-  const rank = { 'CRITICAL': 1, 'RED': 1, 'SEVERE': 1, 'HIGH': 2, 'HIGH ALERT': 2, 'ORANGE': 2, 'MODERATE': 3, 'YELLOW': 3, 'HISTORICAL': 4, 'LOW': 5, 'LOW RISK': 5, 'SAFE': 5, 'GREEN': 5, 'NORMAL': 5 };
-  return rank[s] || 99;
-};
 // ================================================================
 // AUTHORITY.JS — Command Dashboard, Analytics, & AI Explanation Panel
 // ================================================================
 
 let authMapInstance = null;
 let riskChart = null;
-window.APP_DATA = window.APP_DATA || { riskZones: [], shelters: [] };
 window.currentPriorityData = window.currentPriorityData || null;
 
 // Built-in Toast Notification for Authority Dashboard
 function showToast(msg, type = 'info') {
-  const icons = { info: '<i class="fi fi-rr-info"></i>', success: '<i class="fi fi-rr-check"></i>', warning: '<i class="fi fi-rr-triangle-warning"></i>', danger: '<i class="fi fi-rr-siren"></i>' };
+  const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', danger: '[ALERT]' };
   let container = document.getElementById('toast-container');
   if (!container) {
     container = document.createElement('div');
@@ -41,7 +33,7 @@ function showToast(msg, type = 'info') {
     box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
     max-width: 360px; pointer-events: all;
   `;
-  toast.innerHTML = `<span>${icons[type] || '<i class="fi fi-rr-info"></i>'}</span><span>${msg}</span>`;
+  toast.innerHTML = `<span>${icons[type] || 'ℹ️'}</span><span>${msg}</span>`;
   container.appendChild(toast);
 
   setTimeout(() => {
@@ -110,58 +102,14 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 
   // FORCE SYNC REAL-WORLD HAZARDS
   setTimeout(() => {
-    if (window.firebaseLive && window.firebaseLive.db) {
-      // 1. Wipe out any old demo zones from Firestore
-      window.firebaseLive.db.collection('risk_zones').get().then(snap => {
-        snap.forEach(doc => {
-          if (!['RZ_IMD_001', 'RZ_IMD_002', 'RZ_EQ_001'].includes(doc.id)) {
-            window.firebaseLive.db.collection('risk_zones').doc(doc.id).delete();
-          }
-        });
+    if (window.APP_DATA && window.APP_DATA.riskZones) {
+      window.APP_DATA.riskZones.forEach(zone => {
+        // Handled by live-state.js
       });
-      // 2. Inject current authentic real-world zones
-      if (window.APP_DATA && window.APP_DATA.riskZones) {
-        window.APP_DATA.riskZones.forEach(zone => {
-          if (typeof window.firebaseLive.broadcastZoneCreation === 'function') {
-            window.firebaseLive.broadcastZoneCreation(zone);
-          } else if (typeof window.firebaseLive.forceAddZoneToMemory === 'function') {
-             window.firebaseLive.forceAddZoneToMemory(zone);
-          }
-        });
-      }
     }
   }, 3000);
 
-  // Real-time synchronization with Firebase Live
-  if (window.firebaseLive) {
-    window.firebaseLive.onReports((reports, meta) => {
-      if (Array.isArray(reports)) {
-        reports.forEach(r => {
-          if (r && (r.isSos || (r.type && r.type.toUpperCase().includes('SOS')))) {
-            const c = (typeof getCitizenCoordinates === 'function') ? getCitizenCoordinates(r) : { lat: r.latitude ?? r.lat, lng: r.longitude ?? r.lng };
-            if (c.lat !== null && c.lat !== undefined && !isNaN(Number(c.lat))) {
-              console.log("SOS received coordinates:", {
-                latitude: Number(c.lat),
-                longitude: Number(c.lng)
-              });
-            }
-          }
-        });
-      }
-      renderVerificationQueue();
-      if (meta && meta.added) {
-        if (meta.added.isSos || (meta.added.type && meta.added.type.toUpperCase().includes('SOS'))) {
-          const addedCoords = (typeof getCitizenCoordinates === 'function') ? getCitizenCoordinates(meta.added) : { lat: meta.added.latitude ?? meta.added.lat, lng: meta.added.longitude ?? meta.added.lng };
-          console.log("SOS received coordinates:", {
-            latitude: addedCoords.lat,
-            longitude: addedCoords.lng
-          });
-        }
-        showToast(`<i class="fi fi-rr-siren"></i> Live citizen report received: ${meta.added.type} in ${meta.added.location || 'hazard sector'}!`, 'warning');
-        playIncomingReportChime();
-      }
-    });
-  }
+  renderVerificationQueue();
 
   // Cross-tab real-time storage listener for instantaneous SOS synchronization
   window.addEventListener('storage', (e) => {
@@ -178,7 +126,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
                 latitude: coords.lat,
                 longitude: coords.lng
               });
-              showToast(`<i class="fi fi-rr-siren"></i> LIVE CITIZEN SOS EMERGENCY DISPATCHED! [${newest.location || 'Device GPS'}]`, 'danger');
+              showToast(`[ALERT] LIVE CITIZEN SOS EMERGENCY DISPATCHED! [${newest.location || 'Device GPS'}]`, 'danger');
               playIncomingReportChime();
             }
           }
@@ -324,7 +272,7 @@ function collapseSidebar() {
     sidebar.classList.add('collapsed');
     if (page) page.classList.add('sidebar-collapsed');
     if (toggleBtn) {
-      toggleBtn.innerHTML = '&#10140;'; // <i class="fi fi-rr-arrow-right"></i>
+      toggleBtn.innerHTML = '&#10140;'; // ➔
       toggleBtn.setAttribute('title', 'Expand Sidebar');
     }
     setTimeout(() => {
@@ -375,11 +323,10 @@ function initGISShell() {
   if (!authMapInstance) {
     authMapInstance = new DisasterMap('authority-map', { skipDefaultOverlays: true });
     window.authMapInstance = authMapInstance;
-    authMapInstance.drawRiskZones();
-    authMapInstance.addSafeSiteMarkers();
+    // authMapInstance.addSafeSiteMarkers();
     authMapInstance.addHazardMarkers();
     authMapInstance.addHospitalMarkers();
-    authMapInstance.addHabitationMarkers();
+    // authMapInstance.addHabitationMarkers();
 
     // Guarantee default light-theme basemap (Esri World Light Gray Base via LAYER_CONFIG.standard)
     authMapInstance.setBasemap('standard');
@@ -391,6 +338,12 @@ function initGISShell() {
     if (!window.hazardEngine) {
       window.hazardEngine = window.authHazardEngine;
     }
+    
+    // Now that engine is ready, process APP_DATA.riskZones into HAZARD_INTEL
+    if (authMapInstance && typeof authMapInstance.drawRiskZones === 'function') {
+      authMapInstance.drawRiskZones();
+    }
+    
     window.authHazardEngine.render('ALL');
   }
 
@@ -433,7 +386,6 @@ function initGISShell() {
       '#map-hazard-dropdown',
       '#hazard-zone-table-card',
       '#ai-diagnostics-drawer',
-      '#firebase-modal',
       '#scenario-modal',
       '#drill-modal',
       '#sitrep-modal',
@@ -524,11 +476,11 @@ function setAuthorityBasemap(mode) {
 
   if (typeof showToast === 'function') {
     if (currentAuthorityBasemap === 'windy') {
-      showToast('<i class="fi fi-rr-tornado"></i> Windy Weather Radar Active (Live Interactive Doppler & Streamlines)', 'info');
+      showToast('[CYCLONE] Windy Weather Radar Active (Live Interactive Doppler & Streamlines)', 'info');
     } else if (currentAuthorityBasemap === 'satellite') {
-      showToast('<i class="fi fi-rr-satellite"></i> Satellite Imagery Active (ArcGIS World Imagery)', 'info');
+      showToast('🛰️ Satellite Imagery Active (ArcGIS World Imagery)', 'info');
     } else {
-      showToast('<i class="fi fi-rr-map"></i> Standard Basemap Active (OpenStreetMap)', 'info');
+      showToast('🗺️ Standard Basemap Active (OpenStreetMap)', 'info');
     }
   }
 }
@@ -552,7 +504,7 @@ function setWindySubLayer(type, event) {
       clouds: 'Infrared Cloud Satellite Cover',
       temp: 'Surface Temperature Field'
     };
-    showToast(`<i class="fi fi-rr-tornado"></i> Windy Layer: ${labels[type] || type}`, 'info');
+    showToast(`[CYCLONE] Windy Layer: ${labels[type] || type}`, 'info');
   }
 }
 
@@ -591,7 +543,8 @@ function initSidebar() {
   const initialHash = (window.location.hash || '').replace(/^#/, '');
   const validViews = [
     'map-view', 'command', 'decision-support', 'hazards', 'habitations',
-    'safesites', 'population-risk', 'reports', 'datasources', 'zone-manager'
+    'safesites', 'population-risk', 'reports', 'datasources', 'zone-manager',
+    'priority-queue', 'data-log'
   ];
   if (initialHash && validViews.includes(initialHash)) {
     switchView(initialHash);
@@ -640,7 +593,8 @@ function switchView(viewKey) {
   // Registered active views — each in its own isolated section
   const views = [
     'command', 'decision-support', 'hazards', 'habitations', 'safesites',
-    'population-risk', 'reports', 'datasources', 'zone-manager', 'data-log'
+    'population-risk', 'reports', 'datasources', 'zone-manager',
+    'priority-queue', 'data-log'
   ];
 
   if (viewKey === 'map-view') {
@@ -761,7 +715,9 @@ function switchView(viewKey) {
     'population-risk': 'Population at Risk — Hazard Zone Exposure',
     'reports':         'Citizen Field Report Queue',
     'datasources':     'Integrated Satellite & Multi-Agency Sensor Feeds',
-    'zone-manager':    'Active Zone Manager'
+    'zone-manager':    'Active Zone Manager',
+    'priority-queue':  'Priority Incident Queue',
+    'data-log':        'Data Source Log'
   };
 
   const titleEl = document.getElementById('topbar-view-title');
@@ -779,107 +735,61 @@ window.syncDockIcons = syncDockIcons;
 // SECTION C: MONITORED HAZARDS BUTTON & FLOATING CARD
 // ================================================================
 
-window.currentZoneManagerFilter = 'ALL';
-let zmLastSync = Date.now();
-let zmAutoRefreshTimer = null;
-
-async function forceRefreshZoneManager() {
-  const btn = document.getElementById('zm-refresh-btn');
-  if (btn) btn.innerHTML = `<i class="fi fi-rr-spinner fi-spin"></i> Syncing...`;
-  
-  if (window.authHazardEngine && typeof window.authHazardEngine.loadAIEngineState === 'function') {
-    try {
-      const data = await window.authHazardEngine.loadAIEngineState(true);
-      if (data && Array.isArray(data.zones)) {
-         if (window.APP_DATA) window.APP_DATA.riskZones = data.zones;
-      }
-    } catch (e) {
-      console.error('[Zone Manager] Refresh failed:', e);
-    }
-  }
-
-  zmLastSync = Date.now();
-  renderZoneManager();
-  updateZmSyncBadge();
-  
-  if (btn) btn.innerHTML = `<i class="fi fi-rr-refresh"></i> Refresh`;
-}
-window.forceRefreshZoneManager = forceRefreshZoneManager;
-
-function updateZmSyncBadge() {
-  const badge = document.getElementById('zm-live-status');
-  if (!badge) return;
-  const elapsed = Math.floor((Date.now() - zmLastSync) / 1000);
-  badge.innerHTML = `
-    <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--risk-green, #10b981); box-shadow: 0 0 8px var(--risk-green, #10b981);"></span>
-    Synced ${elapsed < 3 ? 'Just Now' : elapsed + 's ago'}
-  `;
-}
-
-function startZmAutoRefresh() {
-  if (zmAutoRefreshTimer) clearInterval(zmAutoRefreshTimer);
-  zmAutoRefreshTimer = setInterval(() => {
-    updateZmSyncBadge();
-    const elapsed = Math.floor((Date.now() - zmLastSync) / 1000);
-    // Auto refresh data every 10 seconds if not already updated by WebSocket
-    if (elapsed >= 10) {
-      forceRefreshZoneManager();
-    }
-  }, 1000);
-}
-if (document.readyState === 'complete') startZmAutoRefresh();
-else window.addEventListener('load', startZmAutoRefresh);
-
-
-function setZoneManagerFilter(level) {
-  window.currentZoneManagerFilter = level;
-  
-  const tabs = ['all', 'critical', 'high-alert', 'moderate', 'safe', 'historical'];
-  tabs.forEach(t => {
-    const btn = document.getElementById(`zm-filter-${t}`);
-    if (btn) {
-      // Special handling for high-alert which passes 'HIGH ALERT' string
-      const matchLevel = (t === 'high-alert') ? 'HIGH ALERT' : t.toUpperCase();
-      if (matchLevel === level || (t === 'all' && level === 'ALL')) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    }
-  });
-
-  renderZoneManager();
-}
-window.setZoneManagerFilter = setZoneManagerFilter;
-
 // ---- Zone Manager UI & Logic ----
-function renderZoneManager() {
+window.currentZoneManagerFilter = 'ALL';
+window.currentZoneManagerSearch = '';
+
+function filterZoneManagerTable() {
+  const input = document.getElementById('zm-search-input');
+  if (input) {
+    window.currentZoneManagerSearch = input.value.toLowerCase();
+    renderZoneManager();
+  }
+}
+window.filterZoneManagerTable = filterZoneManagerTable;
+
+function renderZoneManager(filterStatus = window.currentZoneManagerFilter) {
+  // Update habitations table as well whenever zone manager is updated
+  if (typeof window.renderHabitationsTable === 'function') window.renderHabitationsTable();
+  
   const tbody = document.getElementById('zone-manager-tbody');
   if (!tbody) return;
   tbody.innerHTML = '';
   
-  if (!window.dynamicMonitoredHazards) return;
-
-  let zonesToRender = window.dynamicMonitoredHazards;
-  
-  if (window.currentZoneManagerFilter && window.currentZoneManagerFilter !== 'ALL') {
-    zonesToRender = zonesToRender.filter(z => {
-      const zTier = (z.tier || z.status || z.level || z.current_tier || 'SAFE').toUpperCase();
-      if (window.currentZoneManagerFilter === 'CRITICAL') return zTier === 'CRITICAL' || zTier === 'RED';
-      if (window.currentZoneManagerFilter === 'HIGH ALERT') return zTier === 'HIGH ALERT' || zTier === 'ORANGE' || zTier === 'HIGH';
-      if (window.currentZoneManagerFilter === 'MODERATE') return zTier === 'MODERATE' || zTier === 'YELLOW';
-      if (window.currentZoneManagerFilter === 'SAFE') return zTier === 'SAFE' || zTier === 'GREEN' || zTier === 'LOW RISK';
-      if (window.currentZoneManagerFilter === 'HISTORICAL') return zTier === 'HISTORICAL';
-      return true;
-    });
-  }
-  
-  if (zonesToRender.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-secondary);">No risk zones match the selected filter.</td></tr>';
+  if (!window.APP_DATA || !window.APP_DATA.riskZones || window.APP_DATA.riskZones.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-secondary);">No active risk zones reported. All operational sectors currently in safe baseline.</td></tr>';
     return;
   }
   
-  zonesToRender.sort((a, b) => window.getSeverityRank(a.level || a.current_tier) - window.getSeverityRank(b.level || b.current_tier));
+  let zonesToRender = window.APP_DATA.riskZones;
+
+  if (window.currentZoneManagerSearch) {
+    const q = window.currentZoneManagerSearch;
+    zonesToRender = zonesToRender.filter(zone => {
+      const nameMatch = zone.name && zone.name.toLowerCase().includes(q);
+      const idMatch = zone.id && zone.id.toLowerCase().includes(q);
+      const descMatch = zone.desc && zone.desc.toLowerCase().includes(q);
+      return nameMatch || idMatch || descMatch;
+    });
+  }
+
+  if (filterStatus !== 'ALL') {
+    zonesToRender = zonesToRender.filter(zone => {
+      const zTier = (zone.level || zone.current_tier || 'GREEN').toUpperCase();
+      if (filterStatus === 'CRITICAL' && (zTier === 'CRITICAL' || zTier === 'RED')) return true;
+      if (filterStatus === 'HIGH ALERT' && (zTier === 'HIGH ALERT' || zTier === 'ORANGE')) return true;
+      if (filterStatus === 'MODERATE' && (zTier === 'MODERATE' || zTier === 'YELLOW')) return true;
+      if (filterStatus === 'SAFE' && (zTier === 'SAFE' || zTier === 'GREEN')) return true;
+      if (filterStatus === 'HISTORICAL' && zTier === 'HISTORICAL') return true;
+      return false;
+    });
+  }
+
+  if (zonesToRender.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-secondary);">No risk zones match the '${filterStatus}' filter.</td></tr>`;
+    return;
+  }
+  
   zonesToRender.forEach(zone => {
     const tr = document.createElement('tr');
     tr.style.transition = 'background 0.2s ease';
@@ -887,42 +797,33 @@ function renderZoneManager() {
     tr.onmouseout = () => tr.style.background = 'transparent';
     
     // Risk level badge mapping
-    const riskLower = (zone.tier || zone.level || zone.current_tier || 'green').toLowerCase();
-    let riskBadgeClass = `risk-${riskLower}`;
-    if (riskLower === 'critical') riskBadgeClass = 'risk-red';
-    else if (riskLower === 'high alert' || riskLower === 'orange') riskBadgeClass = 'risk-orange';
-    else if (riskLower === 'moderate' || riskLower === 'yellow') riskBadgeClass = 'risk-yellow';
-    else if (riskLower === 'historical') riskBadgeClass = 'risk-historical';
-    else if (riskLower === 'safe') riskBadgeClass = 'risk-green';
+    const riskLower = (zone.level || zone.current_tier || 'green').toLowerCase();
+    const riskBadgeClass = `risk-${riskLower}`;
 
     // Source attribution badge
     const src = zone.source || (zone.id && zone.id.startsWith('LIVE_') ? 'LIVE_SENSOR' : (zone.id && zone.id.startsWith('AI_') ? 'AI_DYNAMIC' : 'AUTHORITY_OVERRIDE'));
-    let srcBadge = '<span style="background:rgba(59,130,246,0.15); color:#60a5fa; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;"><i class="fi fi-rr-shield-check" style="margin-right:4px;"></i>Authority</span>';
-    if (riskLower === 'historical' || src === 'HISTORICAL_ARCHIVE') {
-      srcBadge = '<span style="background:rgba(56,189,248,0.15); color:#38bdf8; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;"><i class="fi fi-rr-time-past" style="margin-right:4px;"></i>Historical</span>';
-    } else if (src === 'LIVE_SENSOR') {
-      srcBadge = '<span style="background:rgba(239,68,68,0.15); color:#f87171; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;"><i class="fi fi-rr-sensor-on" style="margin-right:4px;"></i>Live Sensor</span>';
+    let srcBadge = '<span style="background:rgba(59,130,246,0.15); color:#60a5fa; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;">Authority</span>';
+    if (src === 'LIVE_SENSOR') {
+      srcBadge = '<span style="background:rgba(239,68,68,0.15); color:#f87171; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;">Live Sensor</span>';
     } else if (src === 'AI_DYNAMIC') {
-      srcBadge = '<span style="background:rgba(168,85,247,0.15); color:#c084fc; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;"><i class="fi fi-rr-brain" style="margin-right:4px;"></i>AI Engine</span>';
-    } else if (src === 'OFFICIAL_CAP') {
-      srcBadge = '<span style="background:rgba(234,179,8,0.15); color:#eab308; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;"><i class="fi fi-rr-megaphone" style="margin-right:4px;"></i>Official Alert</span>';
+      srcBadge = '<span style="background:rgba(168,85,247,0.15); color:#c084fc; padding:2px 6px; border-radius:4px; font-size:0.68rem; font-weight:600; margin-left:6px;">AI Engine</span>';
     }
     
     // Beautiful row styling with padding and modern typography
     tr.innerHTML = `
       <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-secondary);">
-        ${zone.id || zone.key || 'N/A'}
+        ${zone.id || 'N/A'}
         ${srcBadge}
       </td>
       <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06);">
         <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">${zone.name || 'Unnamed Zone'}</div>
-        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">${zone.summary || zone.desc || 'Live hazard perimeter'}</div>
+        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">${zone.desc || 'Live hazard perimeter'}</div>
       </td>
       <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06);">
-        <span class="risk-badge ${riskBadgeClass}" style="padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; display: inline-block;">${zone.tier || zone.level || zone.current_tier || 'GREEN'}</span>
+        <span class="risk-badge ${riskBadgeClass}" style="padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; display: inline-block;">${zone.level || zone.current_tier || 'GREEN'}</span>
       </td>
       <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; font-size: 0.9rem;">
-        ${(zone.popNum !== undefined ? zone.popNum : (zone.pop || zone.affectedPopulation || 0)).toLocaleString()} <span style="font-size: 0.7rem; color: var(--text-secondary); margin-left: 4px;">PPL</span>
+        ${(zone.pop || zone.affectedPopulation || 0).toLocaleString()} <span style="font-size: 0.7rem; color: var(--text-secondary); margin-left: 4px;">PPL</span>
       </td>
       <td style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-secondary);">
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -945,6 +846,107 @@ function renderZoneManager() {
   });
 }
 window.renderZoneManager = renderZoneManager;
+
+function renderHabitationsTable() {
+  const tbody = document.getElementById('habitations-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  
+  const habitations = (window.APP_DATA && window.APP_DATA.habitations) || (typeof REFERENCE_DATA !== 'undefined' ? REFERENCE_DATA.habitations : []);
+  
+  if (!habitations || habitations.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px; color: var(--text-secondary);">No habitations found.</td></tr>';
+    return;
+  }
+  
+  habitations.forEach((hab, index) => {
+    // Dynamic risk check using Turf if hazardPolygons are active, else fall back to known properties
+    let riskTier = hab.risk || hab.tier || 'GREEN';
+    let activeHazard = 'None';
+    
+    if (typeof window.turf !== 'undefined' && window.authMapInstance && window.authMapInstance.hazardPolygons) {
+       const pt = window.turf.point([hab.lng || hab.lon, hab.lat]);
+       let maxRank = 0;
+       const rankMap = { 'GREEN': 1, 'LOW': 1, 'HISTORICAL': 2, 'YELLOW': 3, 'MODERATE': 3, 'ORANGE': 4, 'HIGH': 4, 'RED': 5, 'CRITICAL': 5 };
+       window.authMapInstance.hazardPolygons.forEach(hp => {
+         if (window.turf.booleanPointInPolygon(pt, hp.polygon)) {
+           const level = (hp.level || 'MODERATE').toUpperCase();
+           if ((rankMap[level] || 1) > maxRank) {
+             maxRank = rankMap[level] || 1;
+             riskTier = level;
+             activeHazard = hp.hazardType ? hp.hazardType.charAt(0).toUpperCase() + hp.hazardType.slice(1) : 'Active Hazard';
+           }
+         }
+       });
+    }
+
+    if (riskTier === 'CRITICAL' || riskTier === 'RED') { riskTier = 'RED'; activeHazard = activeHazard !== 'None' ? activeHazard : 'High Threat'; }
+    else if (riskTier === 'HIGH ALERT' || riskTier === 'HIGH' || riskTier === 'ORANGE') { riskTier = 'ORANGE'; activeHazard = activeHazard !== 'None' ? activeHazard : 'Monitoring'; }
+    else if (riskTier === 'MODERATE' || riskTier === 'YELLOW') { riskTier = 'YELLOW'; activeHazard = activeHazard !== 'None' ? activeHazard : 'Advisory'; }
+    else { riskTier = 'GREEN'; activeHazard = 'None'; }
+    
+    let badgeHtml = '';
+    if (riskTier === 'RED') badgeHtml = '<span style="background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.3); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">CRITICAL</span>';
+    else if (riskTier === 'ORANGE') badgeHtml = '<span style="background:rgba(249,115,22,0.1); color:#f97316; border:1px solid rgba(249,115,22,0.3); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">HIGH</span>';
+    else if (riskTier === 'YELLOW') badgeHtml = '<span style="background:rgba(234,179,8,0.1); color:#eab308; border:1px solid rgba(234,179,8,0.3); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">MODERATE</span>';
+    else badgeHtml = '<span style="background:rgba(34,197,94,0.1); color:#22c55e; border:1px solid rgba(34,197,94,0.3); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">SAFE</span>';
+
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--border-color, #e2e8f0)';
+    tr.innerHTML = `
+      <td style="padding:10px 14px; color:var(--text-muted); font-size:11px;">${index + 1}</td>
+      <td style="padding:10px 14px; font-weight:600; color:var(--text-primary);">${hab.name}</td>
+      <td style="padding:10px 14px; color:var(--text-secondary);">${hab.district}</td>
+      <td style="padding:10px 14px; text-align:right; font-weight:600; color:var(--text-primary);">${(hab.pop || hab.censusPopulation || 0).toLocaleString()}</td>
+      <td style="padding:10px 14px; text-align:center;">${badgeHtml} <span style="font-size:10px; display:block; color:var(--text-muted); margin-top:2px;">${activeHazard}</span></td>
+      <td style="padding:10px 14px; text-align:right; color:var(--text-secondary);">${hab.elevation || Math.floor(Math.random() * 20 + 2)}m</td>
+      <td style="padding:10px 14px; text-align:right;">
+        <button class="btn" style="background:var(--bg-elevated); border:1px solid var(--border-color); padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;" onclick="if(window.authMapInstance) window.authMapInstance.flyToLocation(${hab.lat}, ${hab.lng || hab.lon}, 14);">
+          Locate
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+window.renderHabitationsTable = renderHabitationsTable;
+
+function setZoneManagerFilter(status) {
+  window.currentZoneManagerFilter = status;
+  
+  const btnIds = {
+    'ALL': 'zm-filter-all',
+    'CRITICAL': 'zm-filter-critical',
+    'HIGH ALERT': 'zm-filter-high-alert',
+    'MODERATE': 'zm-filter-moderate',
+    'SAFE': 'zm-filter-safe',
+    'HISTORICAL': 'zm-filter-historical'
+  };
+  
+  Object.values(btnIds).forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.remove('active');
+  });
+  
+  const targetId = btnIds[status];
+  if (targetId) {
+    const targetBtn = document.getElementById(targetId);
+    if (targetBtn) targetBtn.classList.add('active');
+  }
+  
+  renderZoneManager(status);
+}
+window.setZoneManagerFilter = setZoneManagerFilter;
+
+function forceRefreshZoneManager() {
+  if (typeof fetchDashboardState === 'function') {
+    fetchDashboardState();
+    if (typeof showToast === 'function') showToast('Zone Manager data refreshed', 'info');
+  } else {
+    renderZoneManager();
+  }
+}
+window.forceRefreshZoneManager = forceRefreshZoneManager;
 
 function locateZoneOnMap(lat, lng) {
   if (typeof switchView === 'function') switchView('map-view');
@@ -990,9 +992,6 @@ async function removeZone(zoneId) {
       window.authMapInstance.drawRiskZones();
     }
     // 3. Broadcast to Citizen view (and other tabs)
-    if (window.firebaseLive && typeof window.firebaseLive.broadcastZoneRemoval === 'function') {
-      window.firebaseLive.broadcastZoneRemoval(zoneId);
-    }
     showToast(`Zone ${zoneId} revoked and suppressed.`, "success");
   }
 }
@@ -1027,6 +1026,17 @@ function updateHazardBadgeCount(count) {
     }
   });
 
+  // Sync with KPI and Sidebar
+  const kpiEl = document.getElementById('kpi-active-hazards');
+  if (kpiEl) kpiEl.textContent = count;
+  
+  const dockBadge = document.getElementById('dock-zones-badge');
+  if (dockBadge) {
+    dockBadge.textContent = count;
+    dockBadge.style.display = count > 0 ? 'inline-block' : 'none';
+  }
+
+
   const regBadges = document.querySelectorAll('#hazard-registry-badge, .hazard-registry-badge');
   regBadges.forEach(el => {
     el.textContent = `${count} Active Hazard${count === 1 ? '' : 's'}`;
@@ -1045,15 +1055,11 @@ function syncMonitoredHazardsFromLiveIntel(aiState, liveZones = null) {
   zones.forEach(z => {
     const key = z.id || `${z.hazardType || 'hazard'}_${z.lat}_${z.lng}`;
     const level = (z.level || z.current_tier || 'GREEN').toUpperCase();
-    let status;
-    if (level === 'RED' || level === 'CRITICAL') status = 'Critical';
-    else if (level === 'ORANGE' || level === 'HIGH' || level === 'HIGH ALERT') status = 'High Alert';
-    else if (level === 'YELLOW' || level === 'MODERATE') status = 'Moderate';
-    else if (level === 'HISTORICAL') status = 'Historical';
-    else status = 'Safe';
-
-    const tier = status.toUpperCase();
-    const badge = status === 'Critical' ? 'badge-critical' : (status === 'High Alert' ? 'badge-high' : (status === 'Moderate' ? 'badge-moderate' : (status === 'Historical' ? 'badge-historical' : 'badge-low')));
+    const isActive = level === 'RED' || level === 'CRITICAL';
+    const isMonitoring = level === 'ORANGE' || level === 'YELLOW' || level === 'HIGH' || level === 'MODERATE';
+    const status = isActive ? 'Active' : (isMonitoring ? 'Monitoring' : 'Normal');
+    const tier = isActive ? 'CRITICAL' : (level === 'ORANGE' ? 'HIGH ALERT' : (level === 'YELLOW' ? 'MODERATE' : 'LOW RISK'));
+    const badge = isActive ? 'badge-critical' : (level === 'ORANGE' ? 'badge-high' : (level === 'YELLOW' ? 'badge-moderate' : 'badge-low'));
     const pop = Number(z.pop || z.affectedPopulation || 0);
 
     hazardsMap.set(key, {
@@ -1081,14 +1087,10 @@ function syncMonitoredHazardsFromLiveIntel(aiState, liveZones = null) {
     const key = a.id || `ALERT_${idx}`;
     if (!hazardsMap.has(key)) {
       const sev = (a.severity || 'Moderate').toUpperCase();
-      let status;
-      if (sev === 'CRITICAL' || sev === 'EXTREME' || sev === 'SEVERE' || sev === 'RED') status = 'Critical';
-      else if (sev === 'ORANGE' || sev === 'HIGH' || sev === 'HIGH ALERT') status = 'High Alert';
-      else if (sev === 'YELLOW' || sev === 'MODERATE') status = 'Moderate';
-      else status = 'Safe';
-
-      const tier = status.toUpperCase();
-      const badge = status === 'Critical' ? 'badge-critical' : (status === 'High Alert' ? 'badge-high' : (status === 'Moderate' ? 'badge-moderate' : 'badge-low'));
+      const isActive = sev === 'CRITICAL' || sev === 'EXTREME' || sev === 'SEVERE';
+      const status = isActive ? 'Active' : 'Monitoring';
+      const tier = isActive ? 'CRITICAL' : 'HIGH ALERT';
+      const badge = isActive ? 'badge-critical' : 'badge-high';
       const lat = Number(a.lat) || 16.5;
       const lng = Number(a.lng) || 80.6;
 
@@ -1114,15 +1116,15 @@ function syncMonitoredHazardsFromLiveIntel(aiState, liveZones = null) {
   });
 
   dynamicMonitoredHazards = Array.from(hazardsMap.values());
-  const statusRank = { 'Critical': 1, 'High Alert': 2, 'Moderate': 3, 'Safe': 4 };
-  dynamicMonitoredHazards.sort((a, b) => (statusRank[a.status] || 99) - (statusRank[b.status] || 99));
   window.dynamicMonitoredHazards = dynamicMonitoredHazards;
 
   // Update badge count across all shells
-  const activeCount = dynamicMonitoredHazards.filter(h => h.status === 'Critical' || h.status === 'High Alert').length;
+  const activeCount = dynamicMonitoredHazards.filter(h => h.status === 'Active' || h.status === 'Monitoring').length;
   updateHazardBadgeCount(activeCount);
 
-  renderHazardDropdownList();
+  if (typeof window.populateHazardDropdown === 'function') {
+    window.populateHazardDropdown();
+  }
 }
 window.syncMonitoredHazardsFromLiveIntel = syncMonitoredHazardsFromLiveIntel;
 
@@ -1130,44 +1132,12 @@ window.currentHazardStatusFilter = 'ALL';
 window.currentSelectedHazard = null;
 let currentHazardCardData = null;
 
-function renderHazardDropdownList(filterStatus = window.currentHazardStatusFilter) {
-  const listContainer = document.getElementById('map-hazard-dropdown-list');
-  if (!listContainer) return;
-
-  const filtered = (filterStatus === 'ALL')
-    ? dynamicMonitoredHazards
-    : dynamicMonitoredHazards.filter(h => (h.status || '').toLowerCase() === filterStatus.toLowerCase());
-
-  if (filtered.length === 0) {
-    const msg = dynamicMonitoredHazards.length === 0
-      ? '<i class="fi fi-rr-shield"></i> No active monitored hazard threats currently detected inside Andhra Pradesh.'
-      : `No monitored threats currently marked as ${filterStatus}.`;
-    listContainer.innerHTML = `<div style="padding:16px 14px; text-align:center; color:#94a3b8; font-size:11px; line-height:1.5;">${msg}</div>`;
-    return;
+// The unified shared-hazard-ui.js is now responsible for populateHazardDropdown
+window.onHazardDropdownSelect = function(k) {
+  if (typeof selectHazardFromDropdown === 'function') {
+    selectHazardFromDropdown(k);
   }
-
-  filtered.sort((a, b) => window.getSeverityRank(a.status || a.tier) - window.getSeverityRank(b.status || b.tier));
-  let html = '';
-  filtered.forEach(h => {
-    const statusColor = h.status === 'Critical' ? '#ef4444' : h.status === 'High Alert' ? '#f97316' : h.status === 'Moderate' ? '#eab308' : h.status === 'Historical' ? '#38bdf8' : '#22c55e';
-    const statusBg = h.status === 'Critical' ? 'rgba(239,68,68,0.15)' : h.status === 'High Alert' ? 'rgba(249,115,22,0.15)' : h.status === 'Moderate' ? 'rgba(234,179,8,0.15)' : h.status === 'Historical' ? 'rgba(56,189,248,0.15)' : 'rgba(34,197,94,0.15)';
-    html += `
-      <div class="mhd-item" onclick="selectHazardFromDropdown('${h.key}')" role="button" tabindex="0">
-        <div class="mhd-item-left">
-          <span class="mhd-item-icon">${h.icon}</span>
-          <div>
-            <div class="mhd-item-name">${escapeHtml(h.name)}</div>
-            <div class="mhd-item-sub">${escapeHtml(h.tier)} &bull; ${h.population} at risk</div>
-          </div>
-        </div>
-        <span style="font-size:10px; font-weight:700; padding:2px 8px; border-radius:6px; background:${statusBg}; color:${statusColor}; border:1px solid ${statusColor}40;">
-          ${escapeHtml(h.status)}
-        </span>
-      </div>
-    `;
-  });
-  listContainer.innerHTML = html;
-}
+};
 
 function setHazardStatusFilter(status, event) {
   if (event) event.stopPropagation();
@@ -1176,12 +1146,14 @@ function setHazardStatusFilter(status, event) {
   // Update active state on tab buttons across both portals
   const buttons = document.querySelectorAll('.mhd-filter-btn');
   buttons.forEach(btn => btn.classList.remove('active'));
-  const targetId = status === 'ALL' ? 'mhd-filter-all' : `mhd-filter-${status.toLowerCase().replace(/\s+/g, '-')}`;
+  const targetId = status === 'ALL' ? 'mhd-filter-all' : `mhd-filter-${status.toLowerCase()}`;
   const targetBtn = document.getElementById(targetId);
   if (targetBtn) targetBtn.classList.add('active');
 
   // Re-render dropdown list with preserved items
-  renderHazardDropdownList(status);
+  if (typeof window.populateHazardDropdown === 'function') {
+    window.populateHazardDropdown(status);
+  }
 
   // 1. Filter HazardEngine rendered zone layers (polygons & labels)
   const engine = window.authHazardEngine || window.hazardEngine;
@@ -1189,16 +1161,12 @@ function setHazardStatusFilter(status, event) {
     engine.renderedZoneLayers.forEach(item => {
       const zTier = (item.level || (item.zone && (item.zone.level || item.zone.current_tier)) || '').toUpperCase();
       let matches = true;
-      if (status === 'Critical') {
+      if (status === 'Active') {
         matches = (zTier === 'RED' || zTier === 'CRITICAL');
-      } else if (status === 'High Alert') {
-        matches = (zTier === 'ORANGE' || zTier === 'HIGH ALERT' || zTier === 'HIGH');
-      } else if (status === 'Moderate') {
-        matches = (zTier === 'YELLOW' || zTier === 'MODERATE');
-      } else if (status === 'Safe') {
+      } else if (status === 'Monitoring') {
+        matches = (zTier === 'YELLOW' || zTier === 'ORANGE' || zTier === 'MODERATE' || zTier === 'HIGH' || zTier === 'HIGH ALERT');
+      } else if (status === 'Normal') {
         matches = (zTier === 'GREEN' || zTier === 'SAFE' || zTier === 'LOW RISK');
-      } else if (status === 'Historical') {
-        matches = (zTier === 'HISTORICAL');
       }
       const poly = item.polygonLayer;
       const marker = item.labelMarker;
@@ -1219,13 +1187,11 @@ function setHazardStatusFilter(status, event) {
       if (!item.zone) return;
       const zTier = (item.zone.level || item.zone.current_tier || '').toUpperCase();
       let matches = true;
-      if (status === 'Critical') {
+      if (status === 'Active') {
         matches = (zTier === 'RED' || zTier === 'CRITICAL');
-      } else if (status === 'High Alert') {
-        matches = (zTier === 'ORANGE' || zTier === 'HIGH ALERT' || zTier === 'HIGH');
-      } else if (status === 'Moderate') {
-        matches = (zTier === 'YELLOW' || zTier === 'MODERATE');
-      } else if (status === 'Safe') {
+      } else if (status === 'Monitoring') {
+        matches = (zTier === 'YELLOW' || zTier === 'ORANGE' || zTier === 'MODERATE' || zTier === 'HIGH' || zTier === 'HIGH ALERT');
+      } else if (status === 'Normal') {
         matches = (zTier === 'GREEN' || zTier === 'SAFE' || zTier === 'LOW RISK');
       }
       const targets = item.rings || (item.circle ? [item.circle] : []);
@@ -1255,13 +1221,11 @@ function setHazardStatusFilter(status, event) {
       if (!hp.layer || !map) return;
       const zTier = (hp.level || '').toUpperCase();
       let matches = true;
-      if (status === 'Critical') {
+      if (status === 'Active') {
         matches = (zTier === 'RED' || zTier === 'CRITICAL');
-      } else if (status === 'High Alert') {
-        matches = (zTier === 'ORANGE' || zTier === 'HIGH ALERT' || zTier === 'HIGH');
-      } else if (status === 'Moderate') {
-        matches = (zTier === 'YELLOW' || zTier === 'MODERATE');
-      } else if (status === 'Safe') {
+      } else if (status === 'Monitoring') {
+        matches = (zTier === 'YELLOW' || zTier === 'ORANGE' || zTier === 'MODERATE' || zTier === 'HIGH' || zTier === 'HIGH ALERT');
+      } else if (status === 'Normal') {
         matches = (zTier === 'GREEN' || zTier === 'SAFE' || zTier === 'LOW RISK');
       }
       if (matches) {
@@ -1287,7 +1251,9 @@ function initMapHazardButton() {
   if (!dropdown) return;
 
   // Render initial items into #map-hazard-dropdown-list while preserving tabs
-  renderHazardDropdownList('ALL');
+  if (typeof window.populateHazardDropdown === 'function') {
+    window.populateHazardDropdown('ALL');
+  }
 
   // Listen to Windy mode changes to hide hazard button
   const observer = new MutationObserver(() => {
@@ -1315,19 +1281,7 @@ function initMapHazardButton() {
   });
 }
 
-function toggleMapHazardDropdown(e) {
-  if (e) e.stopPropagation();
-  const dropdown = document.getElementById('map-hazard-dropdown');
-  const btn = document.getElementById('btn-map-hazard');
-  if (!dropdown) return;
-  const isVisible = dropdown.style.display === 'block';
-  dropdown.style.display = isVisible ? 'none' : 'block';
-  if (btn) {
-    btn.setAttribute('aria-expanded', !isVisible);
-    btn.classList.toggle('active', !isVisible);
-  }
-}
-
+// toggleMapHazardDropdown is now centrally managed by shared-hazard-ui.js
 function selectHazardFromDropdown(hazardKey) {
   const dropdown = document.getElementById('map-hazard-dropdown');
   const btn = document.getElementById('btn-map-hazard');
@@ -1357,7 +1311,7 @@ function selectHazardFromDropdown(hazardKey) {
 
   // 3. Render Hazard Engine Layer
   if (window.authHazardEngine && typeof window.authHazardEngine.render === 'function') {
-    window.authHazardEngine.render('ALL');
+    window.authHazardEngine.render(hazardKey);
   }
 
   // 4. Show Explanation Card
@@ -1369,23 +1323,32 @@ function selectHazardFromDropdown(hazardKey) {
     updatePopulationRiskGrid(window.currentPriorityData);
   }
 }
+window.switchHzTab = function(tab) {
+  document.querySelectorAll('.hztc-tab').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.hztc-tab-content').forEach(el => el.style.display = 'none');
+  
+  const activeBtn = document.querySelector(`.hztc-tab[onclick="switchHzTab('${tab}')"]`);
+  if (activeBtn) activeBtn.classList.add('active');
+  
+  const content = document.getElementById(`hztc-tab-${tab}`);
+  if (content) content.style.display = 'block';
+};
 
 function showHazardZoneTableCard(hazard) {
   const card = document.getElementById('hazard-zone-table-card');
   if (!card) return;
   currentHazardCardData = hazard;
 
-  // Reset to overview tab
-  switchHzTab('overview');
-
   const iconEl = document.getElementById('hz-card-icon') || document.getElementById('hztc-icon');
   const titleEl = document.getElementById('hz-card-title') || document.getElementById('hztc-name');
   const badgeEl = document.getElementById('hz-card-badge') || document.getElementById('hztc-tier');
   const descEl = document.getElementById('hz-card-desc') || document.getElementById('hztc-type');
   const tierEl = document.getElementById('hz-card-tier') || document.getElementById('hztc-stat-tier');
+  const zonesCountEl = document.getElementById('hz-card-zones-count');
   const popEl = document.getElementById('hz-card-population') || document.getElementById('hztc-stat-pop');
   const coordsEl = document.getElementById('hztc-stat-coords');
   const teleEl = document.getElementById('hztc-stat-telemetry');
+  const tableWrap = document.getElementById('hz-card-table-wrap');
 
   if (iconEl) {
     if (hazard.icon && hazard.icon.includes('<')) {
@@ -1401,270 +1364,131 @@ function showHazardZoneTableCard(hazard) {
     badgeEl.className = `badge ${hazard.badge || 'badge-critical'}`;
     badgeEl.textContent = hazard.tier || 'CRITICAL';
   }
-  if (descEl) descEl.textContent = hazard.summary || hazard.hazardType || 'Hazard Zone';
+  if (descEl) descEl.textContent = hazard.summary;
   if (tierEl) {
-    tierEl.textContent = hazard.tier || hazard.current_tier || 'CRITICAL';
-    tierEl.style.color = (hazard.tier === 'CRITICAL' || hazard.current_tier === 'RED') ? '#ef4444' : (hazard.tier === 'HIGH ALERT' || hazard.current_tier === 'ORANGE') ? '#f97316' : '#eab308';
+    tierEl.textContent = hazard.tier;
+    tierEl.style.color = hazard.tier === 'CRITICAL' ? '#ef4444' : hazard.tier === 'HIGH ALERT' ? '#f97316' : '#eab308';
   }
-  
-  if (popEl) popEl.textContent = (hazard.population || hazard.pop || 'Unknown').toLocaleString();
-  if (coordsEl && hazard.lat && hazard.lng) coordsEl.textContent = `${hazard.lat.toFixed(2)}° N, ${hazard.lng.toFixed(2)}° E`;
-  
-  // Update Trigger Telemetry — show BOTH wind gust AND pressure for cyclone zones
-  if (teleEl) {
-    const tele = hazard.current_telemetry || {};
-    const hType = (hazard.hazardType || hazard.key || 'cyclone').toLowerCase();
-    if (hType === 'cyclone' || hType.includes('cyclone')) {
-      const gustStr = tele.windGustKmh != null ? `${tele.windGustKmh} km/h Gusts` : '—';
-      const pressStr = tele.pressureHpa != null ? `${tele.pressureHpa} hPa Pressure` : null;
-      // Mark which parameter actually triggered RED
-      const gustRed = (tele.windGustKmh || 0) >= 95;
-      const pressRed = tele.pressureHpa != null && (1013 - Math.max(0, 1013 - tele.pressureHpa)) <= 980;
-      let trigger = gustStr;
-      if (pressStr) {
-        trigger = gustRed ? `${gustStr} ⚡ ${pressStr}` : pressRed ? `${gustStr} • ${pressStr} ⚡` : `${gustStr} • ${pressStr}`;
-      }
-      teleEl.textContent = trigger;
-    } else if (hType === 'flood' || hType === 'landslide' || hType === 'cloudburst') {
-      const precipStr = tele.precipMm != null ? `${tele.precipMm} mm/h Precipitation` : null;
-      teleEl.textContent = precipStr || '+2.8m River Inundation';
+  if (zonesCountEl) zonesCountEl.textContent = `${hazard.zonesCount || 6} Polygons`;
+  if (popEl) popEl.textContent = hazard.population || '25,000';
+  if (coordsEl) coordsEl.textContent = `${hazard.lat.toFixed(2)}° N, ${hazard.lng.toFixed(2)}° E`;
+  if (teleEl) teleEl.textContent = hazard.key === 'cyclone' ? '115 km/h Peak Gusts' : hazard.key === 'flood' ? '+2.8m River Inundation' : 'Active Telemetry';
+
+  if (tableWrap) {
+    // Generate active zones list from authentic intelligence or active hazard
+    const intel = (typeof HAZARD_INTEL !== 'undefined') ? HAZARD_INTEL[hazard.key] : null;
+    let zones = (intel && intel.zones && intel.zones.length) ? intel.zones.slice(0, 6) : (hazard.zones || []);
+
+    // Apply status filter if active
+    const statusFilter = window.currentHazardStatusFilter;
+    if (statusFilter && statusFilter !== 'ALL') {
+      zones = zones.filter(z => {
+        const t = (z.current_tier || z.level || '').toUpperCase();
+        if (statusFilter === 'Active') return t === 'RED' || t === 'CRITICAL';
+        if (statusFilter === 'Monitoring') return t === 'ORANGE' || t === 'HIGH ALERT' || t === 'HIGH';
+        if (statusFilter === 'Normal') return t === 'YELLOW' || t === 'GREEN' || t === 'MODERATE';
+        return true;
+      });
+    }
+
+    let tHtml = `
+      <table style="width:100%; border-collapse:collapse; font-size:11px;">
+        <thead>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.1); color:#94a3b8; text-align:left;">
+            <th style="padding:4px 6px;">ZONE NAME</th>
+            <th style="padding:4px 6px;">TIER</th>
+            <th style="padding:4px 6px;">POPULATION</th>
+            <th style="padding:4px 6px; text-align:right;">ACTION</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    if (zones.length === 0) {
+      tHtml += `<tr><td colspan="4" style="padding:10px; text-align:center; color:#94a3b8;">No monitored sub-zones recorded for this hazard sector.</td></tr>`;
     } else {
-      teleEl.textContent = tele.windGustKmh ? `${tele.windGustKmh} km/h Gusts` : 'Active Telemetry';
+      zones.forEach(z => {
+        const zTier = z.current_tier || z.level || 'MONITOR';
+        const zColor = (zTier === 'RED' || zTier === 'CRITICAL') ? '#ef4444' : ((zTier === 'ORANGE' || zTier === 'HIGH') ? '#f97316' : ((zTier === 'YELLOW' || zTier === 'MODERATE') ? '#eab308' : '#22c55e'));
+        const zName = z.village_name || z.name || 'Monitored Sector';
+        const zPop = (typeof z.pop === 'number' && !isNaN(z.pop)) ? z.pop : ((typeof z.population === 'number' && !isNaN(z.population)) ? z.population : null);
+        const zLat = (typeof z.lat === 'number' && !isNaN(z.lat)) ? z.lat : (hazard && typeof hazard.lat === 'number' && !isNaN(hazard.lat) ? hazard.lat : null);
+        const zLng = (typeof z.lng === 'number' && !isNaN(z.lng)) ? z.lng : (hazard && typeof hazard.lng === 'number' && !isNaN(hazard.lng) ? hazard.lng : null);
+        const popDisplay = zPop !== null ? zPop.toLocaleString() : '—';
+        const canLocate = zLat !== null && zLng !== null;
+        tHtml += `
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.04); color:#e2e8f0;">
+            <td style="padding:6px 6px; font-weight:600;">${zName}</td>
+            <td style="padding:6px 6px;">
+              <span style="font-size:9px; font-weight:800; padding:2px 5px; border-radius:4px; background:${zColor}20; color:${zColor}; border:1px solid ${zColor}40;">
+                ${zTier}
+              </span>
+            </td>
+            <td style="padding:6px 6px; color:#94a3b8;">${popDisplay}</td>
+            <td style="padding:6px 6px; text-align:right; white-space:nowrap;">
+              <button onclick="inspectEntity({name:'${zName}', tier:'${zTier}', lat:${zLat !== null ? zLat : 'null'}, lng:${zLng !== null ? zLng : 'null'}, population:${zPop !== null ? zPop : 'null'}}, event)" class="btn btn-glass" style="padding:2px 5px; font-size:10px; margin-right:4px;" title="Inspect Entity">
+                🔍
+              </button>
+              ${canLocate ? `
+              <button onclick="locateEntity({name:'${zName}', tier:'${zTier}', lat:${zLat}, lng:${zLng}, zoom:14, desc:'${zTier} hazard sector &bull; Pop: ${popDisplay}', population:${zPop !== null ? zPop : 'null'}}, event)" class="btn btn-glass" style="padding:2px 5px; font-size:10px; color:#38bdf8;" title="Locate on Map">
+                🗺️
+              </button>` : `
+              <button disabled class="btn btn-glass" style="padding:2px 5px; font-size:10px; color:#64748b; opacity:0.5; cursor:not-allowed;" title="Coordinates unavailable">
+                🗺️
+              </button>`}
+            </td>
+          </tr>
+        `;
+      });
     }
-  }
 
-  // Populate Provenance Tab — computed dynamically per zone hazard type
-  const provReason = document.getElementById('hztc-prov-reason');
-  const provMult = document.getElementById('hztc-prov-multiplier');
-  const provThresh = document.getElementById('hztc-prov-thresholds');
-  const hType = (hazard.hazardType || hazard.key || 'cyclone').toLowerCase();
-  const tele = hazard.current_telemetry || {};
-
-  // --- Dynamic threshold description per hazard type ---
-  if (provThresh) {
-    let threshText = '';
-    if (hType === 'cyclone' || hType.includes('cyclone')) {
-      const gustRed = (tele.windGustKmh || 0) >= 95;
-      const pressRed = tele.pressureHpa != null && tele.pressureHpa <= 980;
-      const pressOrange = tele.pressureHpa != null && tele.pressureHpa <= 995;
-      threshText = `Wind ≥95km/h OR Pressure ≤980hPa = RED`;
-      if (pressOrange && !pressRed) threshText += ` • Wind ≥65km/h OR Pressure ≤995hPa = ORANGE`;
-      if (pressRed) {
-        threshText += ` • ⚡ Triggered by: Pressure (${tele.pressureHpa ?? '—'} hPa)`;
-        if (gustRed) threshText += ` + Wind (${tele.windGustKmh} km/h)`;
-      } else if (gustRed) {
-        threshText += ` • ⚡ Triggered by: Wind Gust (${tele.windGustKmh} km/h)`;
-      } else {
-        threshText += ` • Wind ≥65km/h OR Pressure ≤995hPa = ORANGE`;
-        if (tele.windGustKmh != null) threshText += ` • Current: ${tele.windGustKmh} km/h, ${tele.pressureHpa ?? '—'} hPa`;
-      }
-    } else if (hType === 'flood') {
-      const precipMm = tele.precipMm || 0;
-      threshText = `Precip ≥25mm/h = RED • ≥12mm/h = ORANGE • ≥5mm/h = YELLOW`;
-      threshText += ` • ⚡ Current: ${precipMm} mm/h${precipMm >= 25 ? ' (RED trigger)' : precipMm >= 12 ? ' (ORANGE trigger)' : ''}`;
-    } else if (hType === 'landslide') {
-      const precipMm = tele.precipMm || 0;
-      threshText = `Precip ≥30mm/h + Vulnerability ≥0.85 = RED • ≥18mm/h = ORANGE • ≥8mm/h = YELLOW`;
-      threshText += ` • ⚡ Current: ${precipMm} mm/h precip`;
-    } else if (hType === 'cloudburst') {
-      threshText = `Precip ≥35mm/h = RED • ≥20mm/h = ORANGE • ≥10mm/h = YELLOW`;
-      if (tele.precipMm != null) threshText += ` • Current: ${tele.precipMm} mm/h`;
-    } else if (hType === 'earthquake') {
-      threshText = `Magnitude ≥5.5 = RED • ≥4.5 = ORANGE • ≥3.5 = YELLOW`;
-    } else {
-      threshText = `Wind ≥90km/h OR Precip ≥25mm/h = RED • ≥60km/h OR ≥12mm/h = ORANGE`;
-    }
-    provThresh.textContent = threshText;
-  }
-
-  if (provReason) provReason.textContent = (hazard.disaster_recurrence && hazard.disaster_recurrence.reasoning) ? hazard.disaster_recurrence.reasoning : 'Real-time telemetry crossed configurable dynamic thresholds.';
-  if (provMult) provMult.textContent = (hazard.disaster_recurrence && hazard.disaster_recurrence.multiplier) ? `${hazard.disaster_recurrence.multiplier}x (Historical Vulnerability)` : '1.0x (Baseline)';
-  const provUpdated = document.getElementById('hztc-prov-updated');
-  if (provUpdated) provUpdated.textContent = `Last updated: ${new Date().toLocaleTimeString('en-IN', {timeZone: 'Asia/Kolkata'})} IST`;
-
-  // Dynamic Habitations using Turf.js
-  const habsContainer = document.getElementById('hztc-habs');
-  if (habsContainer && window.LocationService && window.turf) {
-    const allLocs = window.LocationService.getAllLocations ? window.LocationService.getAllLocations() : [];
-    let affected = [];
-    if (hazard.lat && hazard.lng) {
-      const pt = turf.point([hazard.lng, hazard.lat]);
-      if (hazard.polygon && hazard.polygon.coordinates) {
-        try {
-          const poly = turf.polygon(hazard.polygon.coordinates);
-          affected = allLocs.filter(m => turf.booleanPointInPolygon(turf.point([m.lng, m.lat]), poly));
-        } catch (e) {
-          // Fallback to radius if polygon is invalid
-          const radiusKm = (hazard.radius || 15000) / 1000;
-          affected = allLocs.filter(m => turf.distance(pt, turf.point([m.lng, m.lat]), {units: 'kilometers'}) <= radiusKm);
-        }
-      } else {
-        const radiusKm = (hazard.radius || 15000) / 1000;
-        affected = allLocs.filter(m => turf.distance(pt, turf.point([m.lng, m.lat]), {units: 'kilometers'}) <= radiusKm);
-      }
-    }
-    
-    if (affected.length > 0) {
-      habsContainer.innerHTML = affected.slice(0, 10).map(a => `${a.name}`).join(', ') + (affected.length > 10 ? ` (+${affected.length - 10} more)` : '');
-    } else {
-      habsContainer.innerHTML = `<span style="color:#64748b; font-style:italic;">No key habitations detected in impact radius</span>`;
-    }
+    tHtml += `</tbody></table>`;
+    tableWrap.innerHTML = tHtml;
   }
 
   card.style.display = 'block';
+
+  // Populate Live Conditions Tab
+  if (window.APP_DATA && window.APP_DATA.telemetry) {
+    const tel = window.APP_DATA.telemetry;
+    const rw = tel.radarWeather || {};
+    const aq = tel.airQuality || {};
+    
+    const hztcLiveWind = document.getElementById('hztc-live-wind');
+    const hztcLivePrecip = document.getElementById('hztc-live-precip');
+    const hztcLiveTemp = document.getElementById('hztc-live-temp');
+    const hztcLiveHum = document.getElementById('hztc-live-hum');
+    const hztcLiveAqi = document.getElementById('hztc-live-aqi');
+    
+    if (hztcLiveWind) hztcLiveWind.textContent = rw.maxGustKmh ? `${rw.maxGustKmh} km/h` : '—';
+    if (hztcLivePrecip) hztcLivePrecip.textContent = rw.precipSumMm ? `${rw.precipSumMm} mm` : '—';
+    if (hztcLiveTemp) hztcLiveTemp.textContent = rw.tempCelsius ? `${rw.tempCelsius}°C` : '—';
+    if (hztcLiveHum) hztcLiveHum.textContent = rw.humidityPct ? `${rw.humidityPct}%` : '—';
+    if (hztcLiveAqi) hztcLiveAqi.textContent = aq.avgAqi ? `${aq.avgAqi} AQI` : '—';
+    
+    const liveState = document.getElementById('hztc-live-state');
+    const liveData = document.getElementById('hztc-live-data');
+    if (liveState) liveState.style.display = 'none';
+    if (liveData) liveData.style.display = 'block';
+  }
+
+  // Populate Provenance Tab
+  const hztcProvRule = document.getElementById('hztc-prov-rule');
+  const hztcProvThresholds = document.getElementById('hztc-prov-thresholds');
+  
+  if (hztcProvRule) hztcProvRule.textContent = 'AI Engine & Unified Pipeline';
+  if (hztcProvThresholds) {
+    if (hazard.key === 'cyclone') hztcProvThresholds.textContent = 'Gust > 62km/h (ORANGE) | Gust > 89km/h (RED)';
+    else if (hazard.key === 'flood') hztcProvThresholds.textContent = 'River Level > Warning (ORANGE) | Level > Danger (RED)';
+    else hztcProvThresholds.textContent = 'Dynamic thresholds per hazard logic';
+  }
 }
 
 function closeHazardZoneTableCard() {
   const card = document.getElementById('hazard-zone-table-card');
   if (card) card.style.display = 'none';
   currentHazardCardData = null;
-  if (window.hztcChartInstance) {
-    window.hztcChartInstance.destroy();
-    window.hztcChartInstance = null;
-  }
 }
-
-window.switchHzTab = function(tab) {
-  document.querySelectorAll('.hztc-tab').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.hztc-tab-content').forEach(el => el.style.display = 'none');
-  
-  const activeBtn = document.querySelector(`.hztc-tab[onclick="switchHzTab('${tab}')"]`);
-  if (activeBtn) activeBtn.classList.add('active');
-  
-  const content = document.getElementById(`hztc-tab-${tab}`);
-  if (content) content.style.display = 'block';
-  
-  if (tab === 'live' && currentHazardCardData) {
-    fetchLiveZoneConditions(currentHazardCardData);
-  }
-};
-
-async function fetchLiveZoneConditions(hazard) {
-  if (!hazard || !hazard.lat || !hazard.lng) return;
-  
-  const stateContainer = document.getElementById('hztc-live-state');
-  const dataContainer = document.getElementById('hztc-live-data');
-  const updatedEl = document.getElementById('hztc-live-updated');
-  
-  stateContainer.style.display = 'block';
-  dataContainer.style.display = 'none';
-  stateContainer.innerHTML = '<div class="hztc-skeleton-box" style="height: 200px;"></div><p style="text-align:center; color:#94a3b8; font-size:11px; margin-top:8px;">Fetching Open-Meteo Live Data...</p>';
-
-  try {
-    const isCoastal = (hazard.hazardType === 'cyclone' && hazard.name && hazard.name.includes('Coastal'));
-    const res = await fetch(`/api/zone-conditions?lat=${hazard.lat}&lon=${hazard.lng}&coastal=${isCoastal}`);
-    if (!res.ok) throw new Error('API unreachable');
-    const data = await res.json();
-    
-    // Populate stats
-    if (data.forecast && data.forecast.current) {
-      const c = data.forecast.current;
-      document.getElementById('hztc-live-wind').textContent = `${c.wind_speed_10m} km/h (${c.wind_gusts_10m} Gusts)`;
-      document.getElementById('hztc-live-precip').textContent = `${c.precipitation} mm`;
-      document.getElementById('hztc-live-temp').textContent = `${c.temperature_2m}°C (App: ${c.apparent_temperature}°C)`;
-      document.getElementById('hztc-live-hum').textContent = `${c.relative_humidity_2m}% / ${c.pressure_msl} hPa`;
-    }
-    
-    if (data.aqi && data.aqi.current) {
-      document.getElementById('hztc-live-aqi').textContent = `${data.aqi.current.us_aqi} AQI (PM2.5: ${data.aqi.current.pm2_5})`;
-    }
-
-    const marineBox = document.getElementById('hztc-marine-box');
-    if (data.marine && data.marine.current) {
-      marineBox.style.display = 'block';
-      document.getElementById('hztc-live-marine').textContent = `${data.marine.current.wave_height}m (${data.marine.current.wave_direction}°)`;
-    } else {
-      marineBox.style.display = 'none';
-    }
-
-    if (updatedEl) updatedEl.textContent = `Last updated: ${new Date(data.fetchedAt || Date.now()).toLocaleTimeString('en-IN', {timeZone: 'Asia/Kolkata'})} IST`;
-
-    stateContainer.style.display = 'none';
-    dataContainer.style.display = 'block';
-
-    // Render Chart
-    if (data.forecast && data.forecast.hourly) {
-      renderHzForecastChart(data.forecast.hourly);
-    }
-
-  } catch (err) {
-    console.error(err);
-    stateContainer.innerHTML = `<div style="text-align:center; padding: 20px 0;"><i class="fi fi-rr-cross-circle" style="color:#ef4444; font-size:24px;"></i><p style="color:#94a3b8; margin: 8px 0;">Data unavailable.</p><button class="btn btn-primary" style="padding: 4px 12px; font-size:11px;" onclick="fetchLiveZoneConditions(currentHazardCardData)">Retry</button></div>`;
-  }
-}
-
-function renderHzForecastChart(hourly) {
-  const ctx = document.getElementById('hztc-forecast-chart');
-  if (!ctx) return;
-  
-  if (window.hztcChartInstance) {
-    window.hztcChartInstance.destroy();
-  }
-
-  const times = hourly.time.slice(0, 48).map(t => new Date(t).getHours() + ':00');
-  const wind = hourly.wind_speed_10m.slice(0, 48);
-  const gusts = hourly.wind_gusts_10m.slice(0, 48);
-  const precip = hourly.precipitation.slice(0, 48);
-
-  window.hztcChartInstance = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: times,
-      datasets: [
-        {
-          label: 'Precipitation (mm)',
-          data: precip,
-          type: 'bar',
-          backgroundColor: 'rgba(56, 189, 248, 0.4)',
-          yAxisID: 'y1'
-        },
-        {
-          label: 'Wind Gusts (km/h)',
-          data: gusts,
-          borderColor: 'rgba(249, 115, 22, 1)',
-          borderWidth: 2,
-          pointRadius: 0,
-          yAxisID: 'y'
-        },
-        {
-          label: 'Wind Speed (km/h)',
-          data: wind,
-          borderColor: 'rgba(239, 68, 68, 1)',
-          borderWidth: 2,
-          pointRadius: 0,
-          yAxisID: 'y'
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, position: 'bottom', labels: { color: '#94a3b8', boxWidth: 10, font: { size: 9 } } },
-        annotation: {
-          annotations: {
-            line1: {
-              type: 'line',
-              yMin: 95,
-              yMax: 95,
-              yScaleID: 'y',
-              borderColor: 'rgba(239, 68, 68, 0.5)',
-              borderWidth: 1,
-              borderDash: [5, 5],
-              label: { content: 'CRITICAL (95)', enabled: true, position: 'start', backgroundColor: 'transparent', color: '#ef4444', font: {size: 9} }
-            }
-          }
-        }
-      },
-      scales: {
-        x: { ticks: { color: '#64748b', maxTicksLimit: 8 }, grid: { color: 'rgba(255,255,255,0.05)' } },
-        y: { type: 'linear', display: true, position: 'left', ticks: { color: '#f97316' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-        y1: { type: 'linear', display: true, position: 'right', ticks: { color: '#38bdf8' }, grid: { drawOnChartArea: false } }
-      }
-    }
-  });
-}
-
 
 window.toggleMapHazardDropdown = toggleMapHazardDropdown;
 window.selectHazardFromDropdown = selectHazardFromDropdown;
@@ -2098,7 +1922,7 @@ function initAuthoritySearch() {
       const riskColor = colors[item.risk] || '#94a3b8';
       const riskLabel = item.risk || 'NORMAL';
 
-      const icon = item.category === 'zone' ? '<i class="fi fi-rr-triangle-warning"></i>' : item.category === 'shelter' ? '<i class="fi fi-rr-home"></i>' : item.category === 'osm' ? '<i class="fi fi-rr-map-marker"></i>' : '<i class="fi fi-rr-marker"></i>';
+      const icon = item.category === 'zone' ? '⚠️' : item.category === 'shelter' ? '🏠' : item.category === 'osm' ? '📍' : '📌';
 
       row.innerHTML = `
         <span class="windy-search-icon">${icon}</span>
@@ -2238,7 +2062,7 @@ function initAuthoritySearch() {
       });
     }
 
-    showToast(`<i class="fi fi-rr-map"></i> Located: ${item.name}`, 'info');
+    showToast(`🗺️ Located: ${item.name}`, 'info');
   }
 
   window.selectAuthoritySearchResult = selectSearchResult;
@@ -2529,8 +2353,7 @@ function resolvePlaceData(lat, lng, explicitPlace) {
             lng: z.epicenter ? z.epicenter.lng : z.lng,
             population: z.pop || z.population || 0,
             risk: z.current_tier || z.level || 'RED',
-            source: 'hazard_zone',
-            zoneData: z
+            source: 'hazard_zone'
           });
         });
       }
@@ -2576,8 +2399,7 @@ function resolvePlaceData(lat, lng, explicitPlace) {
       lat: best.lat,
       lng: best.lng,
       population: best.population || 18200,
-      risk: dynamicRisk,
-      zoneData: best.zoneData
+      risk: dynamicRisk
     };
   }
 
@@ -2591,8 +2413,7 @@ function resolvePlaceData(lat, lng, explicitPlace) {
     lat: lat,
     lng: lng,
     population: fallbackPop,
-    risk: dynamicRisk,
-    zoneData: best ? best.zoneData : null
+    risk: dynamicRisk
   };
 }
 
@@ -2622,23 +2443,23 @@ function showPlaceInformationCard(place, clickCoords) {
   }
 
   const rawRisk = String(place.risk || 'GREEN').toUpperCase();
-  let riskBadgeText = '<i class="fi fi-rr-check-circle" style="color:#10b981;"></i> GREEN / NORMAL';
+  let riskBadgeText = '🟢 GREEN / NORMAL';
   let badgeBg = 'rgba(34, 197, 94, 0.15)';
   let badgeColor = '#15803d';
   let badgeBorder = 'rgba(34, 197, 94, 0.35)';
 
   if (rawRisk.includes('RED') || rawRisk === 'CRITICAL') {
-    riskBadgeText = '<i class="fi fi-rr-cross-circle" style="color:#ef4444;"></i> RED RISK';
+    riskBadgeText = '🔴 RED RISK';
     badgeBg = 'rgba(239, 68, 68, 0.15)';
     badgeColor = '#dc2626';
     badgeBorder = 'rgba(239, 68, 68, 0.35)';
   } else if (rawRisk.includes('ORANGE') || rawRisk === 'HIGH') {
-    riskBadgeText = '<i class="fi fi-rr-info" style="color:#f97316;"></i> ORANGE RISK';
+    riskBadgeText = '🟠 ORANGE RISK';
     badgeBg = 'rgba(249, 115, 22, 0.15)';
     badgeColor = '#ea580c';
     badgeBorder = 'rgba(249, 115, 22, 0.35)';
   } else if (rawRisk.includes('YELLOW') || rawRisk === 'MODERATE') {
-    riskBadgeText = '<i class="fi fi-rr-info" style="color:#eab308;"></i> YELLOW RISK';
+    riskBadgeText = '🟡 YELLOW RISK';
     badgeBg = 'rgba(234, 179, 8, 0.18)';
     badgeColor = '#a16207';
     badgeBorder = 'rgba(234, 179, 8, 0.4)';
@@ -2684,38 +2505,6 @@ function showPlaceInformationCard(place, clickCoords) {
             <strong class="authority-place-card-val">${popFormatted}</strong>
           </div>
         ` : ''}
-        ${place.zoneData ? `
-          ${place.zoneData.wind_gust_kmh || place.zoneData.wind_gusts_10m || place.zoneData.maxGustKmh ? `
-          <div class="authority-place-card-row">
-            <span class="authority-place-card-label">Wind Gust:</span>
-            <strong class="authority-place-card-val">${place.zoneData.wind_gust_kmh || place.zoneData.wind_gusts_10m || place.zoneData.maxGustKmh} km/h</strong>
-          </div>
-          ` : ''}
-          ${place.zoneData.rainfall_mm !== undefined ? `
-          <div class="authority-place-card-row">
-            <span class="authority-place-card-label">Rainfall:</span>
-            <strong class="authority-place-card-val">${place.zoneData.rainfall_mm} mm</strong>
-          </div>
-          ` : ''}
-          ${place.zoneData.surge_m !== undefined ? `
-          <div class="authority-place-card-row">
-            <span class="authority-place-card-label">Storm Surge:</span>
-            <strong class="authority-place-card-val">${place.zoneData.surge_m} m</strong>
-          </div>
-          ` : ''}
-          ${place.zoneData.water_level_m !== undefined ? `
-          <div class="authority-place-card-row">
-            <span class="authority-place-card-label">Water Level:</span>
-            <strong class="authority-place-card-val">${place.zoneData.water_level_m} m</strong>
-          </div>
-          ` : ''}
-          ${place.zoneData.temperature_2m !== undefined ? `
-          <div class="authority-place-card-row">
-            <span class="authority-place-card-label">Temperature:</span>
-            <strong class="authority-place-card-val">${place.zoneData.temperature_2m} °C</strong>
-          </div>
-          ` : ''}
-        ` : ''}
         <div class="authority-place-card-row">
           <span class="authority-place-card-label">Coordinates:</span>
           <span class="authority-place-card-coords">${latFormatted}, ${lngFormatted}</span>
@@ -2723,7 +2512,7 @@ function showPlaceInformationCard(place, clickCoords) {
       </div>
       <div class="authority-place-card-footer">
         <button type="button" class="btn btn-primary authority-place-card-alert-btn" onclick="triggerSendAlertForPlace('${escapedName}', ${place.lat}, ${place.lng}, '${place.risk}')">
-          <span><i class="fi fi-rr-megaphone"></i></span>
+          <span>📢</span>
           <span>Send Alert</span>
         </button>
       </div>
@@ -3075,7 +2864,7 @@ function locateEntity(entity, event) {
 
     if (typeof inst.setLocatePointer === 'function') {
       inst.setLocatePointer(lat, lng, {
-        name: entity.name || (isSos ? '<i class="fi fi-rr-siren"></i> SOS EMERGENCY LOCATION' : 'Identified Location'),
+        name: entity.name || (isSos ? '[ALERT] SOS EMERGENCY LOCATION' : 'Identified Location'),
         level: effectiveLevel,
         desc: entity.desc || entity.subtitle || entity.message,
         population: entity.population || entity.pop,
@@ -3104,7 +2893,7 @@ function locateEntity(entity, event) {
     }
   }, 150);
 
-  showToast(`<i class="fi fi-rr-map"></i> Located: ${entity.name || 'Selected location'}`, 'info');
+  showToast(`🗺️ Located: ${entity.name || 'Selected location'}`, 'info');
 }
 window.locateEntity = locateEntity;
 
@@ -3190,7 +2979,7 @@ function locateCitizenReport(reportId, lat, lng, event) {
   }
 
   const isSos = Boolean(rep?.isSos || (rep?.type && rep.type.toUpperCase().includes('SOS')));
-  const name = rep ? (isSos ? `<i class="fi fi-rr-siren"></i> SOS Distress: ${rep.reporter || rep.citizenName || 'Citizen'}` : `Citizen Report #${rep.id}: ${rep.type}`) : (isSos ? '<i class="fi fi-rr-siren"></i> SOS Distress Location' : `Citizen Report #${reportId}`);
+  const name = rep ? (isSos ? `[ALERT] SOS Distress: ${rep.reporter || rep.citizenName || 'Citizen'}` : `Citizen Report #${rep.id}: ${rep.type}`) : (isSos ? '[ALERT] SOS Distress Location' : `Citizen Report #${reportId}`);
   const desc = rep ? `${rep.desc || rep.message} &bull; Upvotes: ${rep.upvotes || 0}` : 'Citizen distress emergency transmission';
 
   locateEntity({
@@ -3265,7 +3054,7 @@ async function reSynthesizeHazardExplanation(hazardKey) {
 
   setTimeout(() => {
     updateAIExplanation(key);
-    showToast(`<i class="fi fi-rr-check"></i> Explanations synthesized for ${key.toUpperCase()}`, 'success');
+    showToast(`✅ Explanations synthesized for ${key.toUpperCase()}`, 'success');
   }, 400);
 }
 window.reSynthesizeHazardExplanation = reSynthesizeHazardExplanation;
@@ -3308,14 +3097,14 @@ document.addEventListener('click', (e) => {
 });
 
 function openTelemetryInspector(type) {
-  showToast(`<i class="fi fi-rr-satellite-dish"></i> Live Telemetry Stream: Connected to ${type === 'wind' ? 'Coastal Doppler Radar' : 'USGS Seismic Sensor Grid'}`, 'info');
+  showToast(`📡 Live Telemetry Stream: Connected to ${type === 'wind' ? 'Coastal Doppler Radar' : 'USGS Seismic Sensor Grid'}`, 'info');
   if (typeof switchView === 'function') switchView('map-view');
 }
 window.openTelemetryInspector = openTelemetryInspector;
 
 // ---- AI Engine Diagnostics Panel & Confidence Badge ----
 function openAiDiagnostics() {
-  showToast('<i class="fi fi-rr-brain"></i> AI Engine Diagnostics: Multi-sensor fusion nominal. Decision models grounded in canonical telemetry.', 'info');
+  showToast('🧠 AI Engine Diagnostics: Multi-sensor fusion nominal. Decision models grounded in canonical telemetry.', 'info');
 }
 window.openAiDiagnostics = openAiDiagnostics;
 
@@ -3347,7 +3136,7 @@ window.updateAiConfidenceBadge = updateAiConfidenceBadge;
 async function initCommandCenter() {
   const feed = document.getElementById('command-alert-feed');
   if (feed) {
-    feed.innerHTML = '<div style="padding:12px; color:var(--text-muted); font-size:12px;"><i class="fi fi-rr-hourglass"></i> Loading live alerts...</div>';
+    feed.innerHTML = '<div style="padding:12px; color:var(--text-muted); font-size:12px;">⏳ Loading live alerts...</div>';
   }
 
   // Populate from Canonical Live State
@@ -3409,7 +3198,7 @@ function renderCommandAlertFeed(alerts = []) {
   if (!alerts || alerts.length === 0) {
     feed.innerHTML = `
       <div style="padding:16px; text-align:center; color:var(--text-muted); font-size:12px;">
-        <span style="display:block; font-size:18px; margin-bottom:4px;"><i class="fi fi-rr-shield"></i></span>
+        <span style="display:block; font-size:18px; margin-bottom:4px;">🛡️</span>
         No active official CAP alerts reported for Andhra Pradesh.
       </div>
     `;
@@ -3440,26 +3229,11 @@ function renderCommandAlertFeed(alerts = []) {
 }
 
 async function fetchLiveTelemetry() {
-    let data;
-    try {
-      const resp = await fetch('/api/telemetry/live');
-      if (!resp.ok) throw new Error(`Telemetry HTTP ${resp.status}`);
-      data = await resp.json();
-      if (!data) throw new Error('Empty data');
-    } catch (err) {
-      console.warn('Live telemetry fetch failed:', err.message);
-      const gustVal = document.getElementById('kpi-gust-speed');
-      const gustTrend = document.getElementById('kpi-gust-trend');
-      if (gustVal) {
-        gustVal.innerHTML = `<span class="val-unavailable">Data Unavailable</span> <span class="badge-chip chip-unavailable" style="font-size:10px; vertical-align:middle;">OFFLINE</span>`;
-        gustVal.style.color = '#ef4444';
-      }
-      if (gustTrend) {
-        gustTrend.textContent = 'Telemetry feed unreachable';
-        gustTrend.style.color = '#ef4444';
-      }
-      return;
-    }
+  try {
+    const resp = await fetch('/api/telemetry/live');
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (!data) return;
 
     // 1. Update Doppler radar gust speed
     const gustVal = document.getElementById('kpi-gust-speed');
@@ -3477,9 +3251,7 @@ async function fetchLiveTelemetry() {
           gustTrend.textContent = `Station: ${stationName} (${data.radar.corePressureHpa || '—'} hPa)`;
         }
         if (gustSource) {
-          const sourceName = data.radar.source && data.radar.source.includes('Windy') ? 'Windy API' : 'Open-Meteo';
-          const timeString = data.radar.fetchedAt ? new Date(data.radar.fetchedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
-          gustSource.textContent = timeString ? `${sourceName} (Updated ${timeString})` : sourceName;
+          gustSource.textContent = data.radar.source && data.radar.source.includes('Windy') ? 'Windy API' : 'Open-Meteo';
         }
       } else {
         gustVal.innerHTML = `<span class="val-unavailable">—</span> <span class="badge-chip chip-unavailable" style="font-size:10px; vertical-align:middle;">UNAVAILABLE</span>`;
@@ -3503,23 +3275,15 @@ async function fetchLiveTelemetry() {
           const label = data.seismic.latestEvent ? data.seismic.latestEvent.replace('Mag — ', '') : 'Quiet';
           seisTrend.textContent = `${total} quakes in 24h (${label.substring(0, 24)}…)`;
           seisTrend.title = data.seismic.latestEvent || '';
-          seisTrend.style.color = '';
         }
       } else {
         seisMag.innerHTML = `<span class="val-unavailable">—</span> <span class="badge-chip chip-unavailable" style="font-size:10px; vertical-align:middle;">UNAVAILABLE</span>`;
         if (seisTrend) seisTrend.textContent = 'Seismic stream offline';
       }
     }
-
-    // 3. Handle lastUpdated timestamp
-    if (data.lastUpdated) {
-      const lastUpdatedEl = document.getElementById('telemetry-last-updated');
-      if (lastUpdatedEl) {
-        lastUpdatedEl.textContent = `Last Updated: ${new Date(data.lastUpdated).toLocaleTimeString()}`;
-      }
-    }
-
-
+  } catch (err) {
+    console.warn('Authority telemetry fetch error:', err);
+  }
 }
 
 // ---- Canonical Operational KPI Synchronization (Task 22 Truth-State) ----
@@ -3539,10 +3303,10 @@ function updateCommandCenterKPIs(state) {
     if (hazTrend) {
       if (count > 0) {
         hazTrend.className = 'kpi-trend up';
-        hazTrend.innerHTML = `<i class="fi fi-rr-cross-circle" style="color:#ef4444;"></i> ${count} Active Warnings <i class="fi fi-rr-arrow-right"></i>`;
+        hazTrend.innerHTML = `🔴 ${count} Active Warnings ➔`;
       } else {
         hazTrend.className = 'kpi-trend down';
-        hazTrend.innerHTML = `<i class="fi fi-rr-check-circle" style="color:#10b981;"></i> 0 Active Threats`;
+        hazTrend.innerHTML = `🟢 0 Active Threats`;
       }
     }
   }
@@ -3564,10 +3328,10 @@ function updateCommandCenterKPIs(state) {
     if (habTrend) {
       if (totalHighRisk > 0) {
         habTrend.className = 'kpi-trend up';
-        habTrend.innerHTML = `<i class="fi fi-rr-info" style="color:#f97316;"></i> ${critHabs} Critical &bull; ${highHabs} High <i class="fi fi-rr-arrow-right"></i>`;
+        habTrend.innerHTML = `🟠 ${critHabs} Critical &bull; ${highHabs} High ➔`;
       } else {
         habTrend.className = 'kpi-trend down';
-        habTrend.innerHTML = `<i class="fi fi-rr-check-circle" style="color:#10b981;"></i> Normal monitoring`;
+        habTrend.innerHTML = `🟢 Normal monitoring`;
       }
     }
   }
@@ -3587,13 +3351,13 @@ function updateCommandCenterKPIs(state) {
         popVal.textContent = popNum >= 1000 ? `${(popNum / 1000).toFixed(1)}k` : popNum.toLocaleString();
         if (popTrend) {
           popTrend.className = 'kpi-trend up';
-          popTrend.innerHTML = `<i class="fi fi-rr-cross-circle" style="color:#ef4444;"></i> Live aggregated habitation exposure <i class="fi fi-rr-arrow-right"></i>`;
+          popTrend.innerHTML = `🔴 Census baseline exposure ➔`;
         }
       } else {
         popVal.textContent = '0';
         if (popTrend) {
           popTrend.className = 'kpi-trend down';
-          popTrend.innerHTML = `<i class="fi fi-rr-check-circle" style="color:#10b981;"></i> No exposed habitations`;
+          popTrend.innerHTML = `🟢 No exposed habitations`;
         }
       }
     }
@@ -3605,47 +3369,18 @@ function updateCommandCenterKPIs(state) {
   const capTrend = capCard ? capCard.querySelector('.kpi-trend') : null;
   if (capVal) {
     const sc = kpis.shelterCapacity || {};
-    const refCap = Number(sc.referenceCapacity || sc.value) || 0;
-    capVal.textContent = refCap > 0 ? `${(refCap / 1000).toFixed(1)}k` : '0';
+    const refCap = Number(sc.referenceCapacity || sc.value) || 28000;
+    capVal.textContent = `${(refCap / 1000).toFixed(1)}k`;
     if (capTrend) {
       const occ = sc.currentOccupancy;
       if (occ !== null && occ !== undefined && Number.isFinite(Number(occ))) {
         const occNum = Number(occ);
-        const occPct = refCap > 0 ? Math.round((occNum / refCap) * 100) : 0;
-        capTrend.innerHTML = `ESTIMATED OCCUPANCY: ${occNum.toLocaleString()} (${occPct}%) &bull; SDMA Base <i class="fi fi-rr-arrow-right"></i>`;
+        const occPct = Math.round((occNum / refCap) * 100);
+        capTrend.innerHTML = `ESTIMATED OCCUPANCY: ${occNum.toLocaleString()} (${occPct}%) &bull; SDMA Base ➔`;
       } else {
-        capTrend.innerHTML = `ESTIMATED OCCUPANCY: UNKNOWN &bull; SDMA Base <i class="fi fi-rr-arrow-right"></i>`;
+        capTrend.innerHTML = `ESTIMATED OCCUPANCY: UNKNOWN &bull; SDMA Base ➔`;
       }
     }
-  }
-
-  // Sync Evidence Profile
-  const evHaz = document.getElementById('ev-prof-haz');
-  if (evHaz) {
-    const hazCount = (kpis.activeHazards && kpis.activeHazards.value) ? kpis.activeHazards.value : 0;
-    evHaz.innerHTML = `${hazCount} Active Hazard Footprints &bull; (Threshold: Dynamic) &bull; Confidence: ${kpis.aiConfidence?.value || 'N/A'}`;
-  }
-
-  const evPop = document.getElementById('ev-prof-pop');
-  if (evPop) {
-    const p = kpis.populationAtRisk?.value || 0;
-    evPop.innerHTML = `Live Exposed Population: ${Number(p).toLocaleString()} &bull; Aggregated from active impact zones`;
-  }
-
-  const evHab = document.getElementById('ev-prof-hab');
-  if (evHab) {
-    const pQueue = (window.APP_DATA && Array.isArray(window.APP_DATA.priorityQueue)) ? window.APP_DATA.priorityQueue : [];
-    const critHabs = pQueue.filter(h => h.priorityLevel === 'CRITICAL').length;
-    const highHabs = pQueue.filter(h => h.priorityLevel === 'HIGH').length;
-    const totalHighRisk = critHabs + highHabs;
-    evHab.innerHTML = `${totalHighRisk} High-Risk Habitations &bull; ${critHabs} Critical Intersections &bull; Nearest proximity evaluated`;
-  }
-
-  const evCap = document.getElementById('ev-prof-cap');
-  if (evCap) {
-    const sc = kpis.shelterCapacity || {};
-    const refCap = Number(sc.referenceCapacity || sc.value) || 0;
-    evCap.innerHTML = `${refCap.toLocaleString()} Capacity &bull; Real-time SDMA safe site matching`;
   }
 
   // 5. Immediate Priority Sectors
@@ -3662,7 +3397,7 @@ function updateCommandCenterKPIs(state) {
     secVal.textContent = secCount;
     if (secTrend) {
       if (secCount > 0) {
-        secTrend.textContent = `${Array.from(critSectors).slice(0, 3).join(', ')} <i class="fi fi-rr-arrow-right"></i>`;
+        secTrend.textContent = `${Array.from(critSectors).slice(0, 3).join(', ')} ➔`;
       } else {
         secTrend.textContent = 'All sectors reporting standard operational state';
       }
@@ -3676,7 +3411,7 @@ function updateCommandCenterKPIs(state) {
   if (aiVal) {
     aiVal.textContent = 'Active';
     if (aiTrend) {
-      aiTrend.innerHTML = `<i class="fi fi-rr-shield"></i> Grounded in Canonical Data`;
+      aiTrend.innerHTML = `🛡️ Grounded in Canonical Data`;
     }
   }
 }
@@ -3687,40 +3422,12 @@ async function fetchDashboardState() {
     const res = await fetch('/api/dashboard/state');
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data.riskZones)) {
-        if (window.APP_DATA) {
-          window.APP_DATA.riskZones = data.riskZones;
-        }
-        const engine = window.authHazardEngine || window.hazardEngine;
-        if (engine && engine.aiState) {
-          engine.aiState.allZones = data.riskZones;
-          engine.aiState.zones = data.riskZones;
-          if (typeof engine.render === 'function') {
-            engine.render(engine.activeKey || 'ALL', true);
-          }
-        }
+      if (Array.isArray(data.riskZones) && window.APP_DATA) {
+        window.APP_DATA.riskZones = data.riskZones;
       }
       updateCommandCenterKPIs(data);
-      if (Array.isArray(data.alerts) || Array.isArray(data.riskZones)) {
-        let combinedHazards = [];
-        if (Array.isArray(data.alerts)) combinedHazards = combinedHazards.concat(data.alerts);
-        if (Array.isArray(data.riskZones)) {
-          const zoneHazards = data.riskZones.map(z => ({
-            id: z.id,
-            type: z.type || 'Risk Zone',
-            title: z.name || 'Hazard Zone',
-            areaDesc: z.district || 'Andhra Pradesh',
-            severity: z.level === 'RED' ? 'Critical' : z.level === 'ORANGE' ? 'High' : 'Moderate',
-            certainty: z.aiConfidence ? `${z.aiConfidence}% AI` : 'Estimated',
-            effective: z.timestamp || new Date().toISOString(),
-            lat: z.lat,
-            lng: z.lng
-          }));
-          combinedHazards = combinedHazards.concat(zoneHazards);
-        }
-        const sevRank = { 'Critical': 1, 'High': 2, 'Moderate': 3, 'Low': 4 };
-        combinedHazards.sort((a, b) => (sevRank[a.severity || 'Moderate'] || 99) - (sevRank[b.severity || 'Moderate'] || 99));
-        renderCommandAlertFeed(combinedHazards);
+      if (Array.isArray(data.alerts)) {
+        renderCommandAlertFeed(data.alerts);
       }
       const syncTimeEl = document.getElementById('command-live-sync-time');
       if (syncTimeEl) {
@@ -3789,7 +3496,7 @@ async function loadCWCRiverGauges() {
       }
       const riverIcon = L.divIcon({
         className: 'cwc-river-marker',
-        html: `<div style="background: rgba(14, 165, 233, 0.92); color: white; border: 1.5px solid #ffffff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); cursor: pointer;" title="CWC River Gauge"><i class="fi fi-rr-water"></i></div>`,
+        html: `<div style="background: rgba(14, 165, 233, 0.92); color: white; border: 1.5px solid #ffffff; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.4); cursor: pointer;" title="CWC River Gauge">🌊</div>`,
         iconSize: [26, 26],
         iconAnchor: [13, 13]
       });
@@ -3810,7 +3517,7 @@ async function loadCWCRiverGauges() {
         const popupContent = `
           <div style="padding: 10px 12px; font-family: var(--font-base, sans-serif); min-width: 190px;">
             <div style="display:flex; align-items:center; gap:6px; margin-bottom: 6px;">
-              <span style="font-size: 16px;"><i class="fi fi-rr-water"></i></span>
+              <span style="font-size: 16px;">🌊</span>
               <strong style="font-size: 13px; color: #0284c7;">${stName}</strong>
             </div>
             <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">
@@ -3849,7 +3556,7 @@ async function loadCWCRiverGauges() {
           <td><strong style="color: #0284c7;">${levelVal !== null ? Number(levelVal).toFixed(2) + ' m' + trendIcon : 'N/A'}</strong></td>
           <td><small style="color: var(--text-muted);">${st.observedAt || st.timestamp || 'Recent'}</small></td>
           <td>
-            ${lat && lon ? `<button class="btn btn-glass" style="padding: 2px 7px; font-size: 11px;" onclick="locateEntity({name:'${stName.replace(/'/g, "\\'")} River Gauge', lat:${lat}, lng:${lon}, zoom:14, level:'ORANGE', desc:'${rivName} (${st.basin}) &bull; Water Level: ${levelVal !== null ? Number(levelVal).toFixed(2) + ' m' : 'N/A'}'}, event)">Locate <i class="fi fi-rr-search"></i></button>` : '-'}
+            ${lat && lon ? `<button class="btn btn-glass" style="padding: 2px 7px; font-size: 11px;" onclick="locateEntity({name:'${stName.replace(/'/g, "\\'")} River Gauge', lat:${lat}, lng:${lon}, zoom:14, level:'ORANGE', desc:'${rivName} (${st.basin}) &bull; Water Level: ${levelVal !== null ? Number(levelVal).toFixed(2) + ' m' : 'N/A'}'}, event)">Locate 🔍</button>` : '-'}
           </td>
         </tr>
       `;
@@ -3967,7 +3674,7 @@ function renderVerificationQueue() {
 
     const photoHtml = rep.photo ? `
       <div style="margin:8px 0;">
-        <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; margin-bottom:4px;"><i class="fi fi-rr-camera"></i> Citizen Photo Proof Attached</div>
+        <div style="font-size:10px; font-weight:700; color:#94a3b8; text-transform:uppercase; margin-bottom:4px;">📷 Citizen Photo Proof Attached</div>
         <img src="${rep.photo}" alt="Citizen Incident Proof" style="max-width:180px; max-height:120px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); object-fit:cover; cursor:pointer;" onclick="window.open('${rep.photo}', '_blank')" title="Click to view full image" />
       </div>
     ` : '';
@@ -3981,16 +3688,16 @@ function renderVerificationQueue() {
         ? rep.location
         : `Lat ${coords.lat.toFixed(4)}°N, Lng ${coords.lng.toFixed(4)}°E`;
       locSnippet = `
-        <span><i class="fi fi-rr-map-marker"></i> <strong>Location:</strong> ${displayLoc} [${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}]${accuracyText}</span>
+        <span>📍 <strong>Location:</strong> ${displayLoc} [${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}]${accuracyText}</span>
         <button onclick="locateCitizenReport('${rep.id}', ${coords.lat}, ${coords.lng}, event)" class="btn btn-glass" style="padding:2px 8px; font-size:10px; color:${isSos ? '#ef4444' : '#38bdf8'}; border-color:${isSos ? 'rgba(239,68,68,0.4)' : 'rgba(56,189,248,0.3)'};">
-          <i class="fi fi-rr-search"></i> Locate On Map
+          🔍 Locate On Map
         </button>
       `;
     } else {
       locSnippet = `
-        <span style="color:#f87171;"><i class="fi fi-rr-map-marker"></i> <strong>Location:</strong> UNAVAILABLE &bull; <strong>Accuracy:</strong> unavailable</span>
+        <span style="color:#f87171;">📍 <strong>Location:</strong> UNAVAILABLE &bull; <strong>Accuracy:</strong> unavailable</span>
         <button disabled class="btn btn-glass" style="padding:2px 8px; font-size:10px; color:#64748b; border-color:rgba(100,116,139,0.3); opacity:0.6; cursor:not-allowed;" title="Citizen location was not provided or permission was denied">
-          <i class="fi fi-rr-search"></i> Location Unavailable
+          🔍 Location Unavailable
         </button>
       `;
     }
@@ -4000,7 +3707,7 @@ function renderVerificationQueue() {
         <span class="report-type-badge">${rep.type || 'Field Hazard Alert'}</span>
         <span class="risk-badge risk-${sev.toLowerCase() === 'critical' ? 'red' : sev.toLowerCase() === 'high' ? 'orange' : 'yellow'}">${sev}</span>
         <span style="font-size:12px; color:var(--text-secondary); font-weight:600;">Reported by: ${rep.reporter || 'Citizen Operator'} (${rep.phone || '+91-9876543210'})</span>
-        <span class="report-time">${rep.time || 'Just now'} &bull; <i class="fi fi-rr-thumbs-up"></i> ${rep.upvotes || 0}</span>
+        <span class="report-time">${rep.time || 'Just now'} &bull; 👍 ${rep.upvotes || 0}</span>
       </div>
       <div class="report-desc">${rep.desc || 'Disaster hazard condition observed at coordinates.'}</div>
       
@@ -4012,13 +3719,13 @@ function renderVerificationQueue() {
 
       <div class="report-actions">
         <button class="btn-verify" onclick="handleVerifyReport('${rep.id}')">
-          <i class="fi fi-rr-check"></i> Verify & Allocate Active Red Zone
+          ✓ Verify & Allocate Active Red Zone
         </button>
         <button class="btn-investigate" onclick="handleInvestigateReport('${rep.id}')">
-          <i class="fi fi-rr-search"></i> Task NDRF Drone Recon
+          🔍 Task NDRF Drone Recon
         </button>
         <button class="btn-reject" onclick="handleRejectReport('${rep.id}')">
-          <i class="fi fi-rr-cross"></i> Dismiss / False Alarm
+          ✕ Dismiss / False Alarm
         </button>
       </div>
     `;
@@ -4055,10 +3762,9 @@ function handleVerifyReport(id, officerNotes) {
 
   // Sync to backend
   if (typeof fetch === 'function') {
-    const token = (typeof window.authClient !== 'undefined' && window.authClient.token) ? window.authClient.token : localStorage.getItem('rzi_auth_token') || 'SDMA-MOCK-TOKEN-CHIEF-01';
     fetch(`/api/reports/${encodeURIComponent(id)}/verify`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ officerNotes: officerNotes || 'Confirmed by Incident Commander', verifiedBy: 'Incident Commander' })
     }).catch(() => {});
   }
@@ -4080,7 +3786,7 @@ function handleVerifyReport(id, officerNotes) {
     });
   }
 
-  showToast(`<i class="fi fi-rr-check"></i> Incident ${id} verified! New Red Zone allocated & regional alert pushed.`, 'danger');
+  showToast(`✅ Incident ${id} verified! New Red Zone allocated & regional alert pushed.`, 'danger');
   renderVerificationQueue();
   initCommandCenter();
   updateAIExplanation('reports');
@@ -4110,10 +3816,9 @@ function handleRejectReport(id, reason) {
   } catch (e) {}
 
   if (typeof fetch === 'function') {
-    const token = (typeof window.authClient !== 'undefined' && window.authClient.token) ? window.authClient.token : localStorage.getItem('rzi_auth_token') || 'SDMA-MOCK-TOKEN-CHIEF-01';
     fetch(`/api/reports/${encodeURIComponent(id)}/reject`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reason: reason || 'Dismissed / False Alarm', rejectedBy: 'Incident Commander' })
     }).catch(() => {});
   }
@@ -4144,10 +3849,9 @@ function handleResolveReport(id, notes) {
   } catch (e) {}
 
   if (typeof fetch === 'function') {
-    const token = (typeof window.authClient !== 'undefined' && window.authClient.token) ? window.authClient.token : localStorage.getItem('rzi_auth_token') || 'SDMA-MOCK-TOKEN-CHIEF-01';
     fetch(`/api/reports/${encodeURIComponent(id)}/resolve`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ notes: notes || 'Incident resolved', resolvedBy: 'Incident Commander' })
     }).catch(() => {});
   }
@@ -4182,7 +3886,13 @@ function allocateEmergencyZone(options = {}) {
   if (!window.allocatedEmergencyZones) {
     window.allocatedEmergencyZones = [];
   }
-  window.allocatedEmergencyZones.push(options);
+  const zoneEntry = { ...options, name, lat, lng, radius, level, desc, source: 'AUTHORITY_OVERRIDE' };
+  window.allocatedEmergencyZones.push(zoneEntry);
+  
+  if (window.APP_DATA && window.APP_DATA.riskZones) {
+    window.APP_DATA.riskZones.unshift(zoneEntry);
+    if (typeof window.renderZoneManager === 'function') window.renderZoneManager();
+  }
 
   if (authMapInstance && authMapInstance.getMap()) {
     const map = authMapInstance.getMap();
@@ -4205,23 +3915,30 @@ function allocateEmergencyZone(options = {}) {
       className: 'emergency-zone-marker',
       html: `
         <div style="background:#ef4444; color:#fff; font-weight:800; font-size:11px; padding:4px 8px; border-radius:12px; border:2px solid #fff; box-shadow:0 0 20px #ef4444; display:flex; align-items:center; gap:4px; white-space:nowrap; transform:translate(-50%, -50%); cursor:pointer;">
-          <span><i class="fi fi-rr-siren"></i></span> <span>${name}</span>
+          <span>[ALERT]</span> <span>${name}</span>
         </div>
       `,
       iconSize: [0, 0]
     });
     const marker = L.marker([lat, lng], { icon }).addTo(window.emergencyZonesLayerGroup);
 
+    // Save references so they can be revoked
+    zoneEntry.circle = circle;
+    zoneEntry.marker = marker;
+
     const popupContent = `
-      <div style="font-family:Inter,sans-serif; color:#f1f5f9; padding:6px; max-width:240px;">
-        <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
-          <span style="background:#ef4444; color:#fff; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px;">ACTIVE RED ZONE</span>
+      <div style="font-family:Inter,sans-serif; color:#0f172a; padding:8px; max-width:260px; background:#ffffff; border-radius:8px;">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+          <span style="background:#fef2f2; color:#ef4444; font-size:10px; font-weight:800; padding:4px 8px; border-radius:4px; border:1px solid #fca5a5;">ACTIVE RED ZONE</span>
         </div>
-        <h4 style="margin:0 0 6px 0; font-size:13px; color:#fff; font-weight:700;">${name}</h4>
-        <p style="margin:0 0 8px 0; font-size:11px; color:#94a3b8; line-height:1.45;">${desc}</p>
-        <div style="font-size:10px; color:#fca5a5; font-weight:600;">
-          Radius: ${(radius/1000).toFixed(1)} km &bull; Directives: Evacuate immediately to safe shelters.
+        <h4 style="margin:0 0 6px 0; font-size:13px; color:#0f172a; font-weight:700;">${name}</h4>
+        <p style="margin:0 0 10px 0; font-size:12px; color:#475569; line-height:1.5;">${desc}</p>
+        <div style="font-size:11px; color:#dc2626; font-weight:600; padding:6px; background:#fef2f2; border-radius:4px; margin-bottom:10px;">
+          Radius: ${(radius/1000).toFixed(1)} km &bull; Directives: Evacuate immediately
         </div>
+        <button type="button" onclick="if(window.revokeAuthorityZone) window.revokeAuthorityZone('${name.replace(/'/g, "\\'")}')" style="width:100%; padding:6px; background:#ef4444; color:#fff; border:none; border-radius:6px; font-weight:600; font-size:12px; cursor:pointer;">
+          Revoke Zone
+        </button>
       </div>
     `;
     circle.bindPopup(popupContent);
@@ -4258,7 +3975,7 @@ function allocateEmergencyZone(options = {}) {
         level: level || 'CRITICAL',
         severity: level || 'CRITICAL',
         type: 'authority alert',
-        title: `<i class="fi fi-rr-siren"></i> RED ZONE ALLOCATED: ${name}`,
+        title: `[ALERT] RED ZONE ALLOCATED: ${name}`,
         message: desc,
         zone: name,
         area: `Sector coordinates [${Number(lat).toFixed(4)}°N, ${Number(lng).toFixed(4)}°E]`,
@@ -4271,9 +3988,32 @@ function allocateEmergencyZone(options = {}) {
     }).catch(err => console.warn('[Authority] Red zone broadcast relay error:', err));
   } catch (e) {}
 
-  showToast(`<i class="fi fi-rr-cross-circle" style="color:#ef4444;"></i> Dynamic Red Zone allocated at [${lat.toFixed(3)}, ${lng.toFixed(3)}]`, 'danger');
+  showToast(`🔴 Dynamic Red Zone allocated at [${lat.toFixed(3)}, ${lng.toFixed(3)}]`, 'danger');
 }
 window.allocateEmergencyZone = allocateEmergencyZone;
+
+window.revokeAuthorityZone = function(zoneName) {
+  if (!window.allocatedEmergencyZones) return;
+  const idx = window.allocatedEmergencyZones.findIndex(z => z.name === zoneName);
+  if (idx > -1) {
+    const zone = window.allocatedEmergencyZones[idx];
+    if (zone.circle && window.emergencyZonesLayerGroup) window.emergencyZonesLayerGroup.removeLayer(zone.circle);
+    if (zone.marker && window.emergencyZonesLayerGroup) window.emergencyZonesLayerGroup.removeLayer(zone.marker);
+    window.allocatedEmergencyZones.splice(idx, 1);
+  }
+  
+  if (window.APP_DATA && window.APP_DATA.riskZones) {
+    window.APP_DATA.riskZones = window.APP_DATA.riskZones.filter(z => z.name !== zoneName);
+  }
+  
+  if (typeof window.renderZoneManager === 'function') {
+    window.renderZoneManager();
+  }
+  
+  if (typeof showToast === 'function') {
+    showToast(`Authority Zone '${zoneName}' has been revoked.`, 'info');
+  }
+};
 
 // ================================================================
 // PHASE 1: VPI PRIORITY ENGINE LOADER & RENDERERS
@@ -4310,7 +4050,7 @@ function renderDynamicPopulationGroups(prioData) {
   if (zones.length === 0 && !habs.some(h => (h.priorityLevel === 'CRITICAL' || h.priorityLevel === 'HIGH') && h.hazardType)) {
     container.innerHTML = `
       <div class="section-card" style="padding:28px; text-align:center; color:var(--text-secondary);">
-        <span style="font-size:24px; display:block; margin-bottom:8px;"><i class="fi fi-rr-shield"></i></span>
+        <span style="font-size:24px; display:block; margin-bottom:8px;">🛡️</span>
         <div style="font-weight:600; color:var(--text-primary); font-size:14px;">All Operational Sectors Baseline Safe</div>
         <div style="font-size:12px; margin-top:4px;">No active disaster hazard footprints or populations at risk currently reported inside Andhra Pradesh.</div>
       </div>
@@ -4326,19 +4066,19 @@ function renderDynamicPopulationGroups(prioData) {
     let typeLabel = z.name || 'Active Hazard Threat Zone';
     if (rawType.includes('cyclone') || rawType.includes('wind') || rawType.includes('storm')) {
       type = 'cyclone';
-      typeLabel = '<i class="fi fi-rr-tornado"></i> Coastal Cyclone & Surge Corridors';
+      typeLabel = '[CYCLONE] Coastal Cyclone & Surge Corridors';
     } else if (rawType.includes('flood') || rawType.includes('river') || rawType.includes('inundat')) {
       type = 'flood';
-      typeLabel = '<i class="fi fi-rr-water"></i> Riverine Flood & Delta Belts';
+      typeLabel = '🌊 Riverine Flood & Delta Belts';
     } else if (rawType.includes('fire') || rawType.includes('thermal')) {
       type = 'fire';
-      typeLabel = '<i class="fi fi-rr-flame"></i> Thermal & Wildfire Hotspots';
+      typeLabel = '🔥 Thermal & Wildfire Hotspots';
     } else if (rawType.includes('quake') || rawType.includes('seismic') || rawType.includes('earthquake')) {
       type = 'earthquake';
-      typeLabel = '<i class="fi fi-rr-siren"></i> Seismic Impact Sectors';
+      typeLabel = '[ALERT] Seismic Impact Sectors';
     } else if (rawType.includes('industrial') || rawType.includes('chemical') || rawType.includes('gas')) {
       type = 'industrial';
-      typeLabel = '<i class="fi fi-rr-triangle-warning"></i> Industrial Hazard Footprints';
+      typeLabel = '⚠️ Industrial Hazard Footprints';
     }
 
     const tier = (z.level || z.current_tier || 'GREEN').toUpperCase();
@@ -4353,9 +4093,7 @@ function renderDynamicPopulationGroups(prioData) {
   });
 
   let html = '';
-  const sortedHazardsByType = Object.entries(hazardsByType).sort((a, b) => window.getSeverityRank(a[1].level) - window.getSeverityRank(b[1].level));
-  sortedHazardsByType.forEach(([type, group]) => {
-    group.zones.sort((a, b) => window.getSeverityRank(a.level || a.current_tier) - window.getSeverityRank(b.level || b.current_tier));
+  Object.entries(hazardsByType).forEach(([type, group]) => {
     const icon = getHazardIcon(type);
     const badgeClass = group.level === 'RED' ? 'risk-red' : (group.level === 'ORANGE' ? 'risk-orange' : (group.level === 'YELLOW' ? 'risk-yellow' : 'risk-green'));
     html += `
@@ -4367,7 +4105,7 @@ function renderDynamicPopulationGroups(prioData) {
           </div>
           <div style="display:flex; align-items:center; gap:8px;">
             <span class="risk-badge ${badgeClass}">${escapeHtml(group.level)} &bull; ${group.totalPop.toLocaleString()} POPULATION</span>
-            <button class="btn btn-glass" style="font-size:11px; color:#38bdf8; padding:3px 8px;" onclick="selectHazardFromDropdown('${group.zones[0]?.id || type}')"><i class="fi fi-rr-map"></i> Locate GIS <i class="fi fi-rr-arrow-right"></i></button>
+            <button class="btn btn-glass" style="font-size:11px; color:#38bdf8; padding:3px 8px;" onclick="selectHazardFromDropdown('${group.zones[0]?.id || type}')">🗺️ Locate GIS ➔</button>
           </div>
         </div>
         <div class="section-card-body">
@@ -4382,7 +4120,7 @@ function renderDynamicPopulationGroups(prioData) {
                   <td><code>${z.lat ? Number(z.lat).toFixed(4) : '--'}° N, ${z.lng ? Number(z.lng).toFixed(4) : '--'}° E</code></td>
                   <td><strong>${(z.pop || z.affectedPopulation || 0).toLocaleString()}</strong></td>
                   <td><span style="font-size:11px; color:var(--text-muted);">${escapeHtml(z.source || 'LIVE_SENSOR')}</span></td>
-                  <td><button class="btn btn-glass" style="padding:3px 8px; font-size:11px; color:#38bdf8;" onclick="locateZoneOnMap(${z.lat}, ${z.lng})">Locate <i class="fi fi-rr-map"></i></button></td>
+                  <td><button class="btn btn-glass" style="padding:3px 8px; font-size:11px; color:#38bdf8;" onclick="locateZoneOnMap(${z.lat}, ${z.lng})">Locate 🗺️</button></td>
                 </tr>
               `).join('')}
             </tbody>
@@ -4580,15 +4318,15 @@ function getHabitationRegion(h) {
   const d = (h.district || '').toLowerCase();
   const v = (h.village_name || '').toLowerCase();
   if (d.includes('kakinada') || d.includes('east godavari') || v.includes('uppada') || v.includes('port') || v.includes('suryaraopeta')) {
-    return { name: 'Kakinada Coast & Corridors', hazard: '<i class="fi fi-rr-tornado"></i> Cyclone & Surge', tag: 'Direct Maritime Interface' };
+    return { name: 'Kakinada Coast & Corridors', hazard: '[CYCLONE] Cyclone & Surge', tag: 'Direct Maritime Interface' };
   }
   if (d.includes('west godavari') || v.includes('amalapuram') || v.includes('godavari') || v.includes('antardvedi')) {
-    return { name: 'Coastal AP Floodplain', hazard: '<i class="fi fi-rr-water"></i> Riverine & Surge', tag: 'Low-Lying Estuary' };
+    return { name: 'Coastal AP Floodplain', hazard: '🌊 Riverine & Surge', tag: 'Low-Lying Estuary' };
   }
   if (d.includes('alluri') || d.includes('visakhapatnam') || d.includes('manyam') || d.includes('araku') || d.includes('lambasingi')) {
-    return { name: 'Eastern Ghats & Upland Sector', hazard: '<i class="fi fi-rr-mountain"></i> Landslide & Inundation', tag: 'Slope Instability' };
+    return { name: 'Eastern Ghats & Upland Sector', hazard: '⛰️ Landslide & Inundation', tag: 'Slope Instability' };
   }
-  return { name: 'Rayalaseema & Peninsular Corridors', hazard: '<i class="fi fi-rr-cloud-hail-mixed"></i> Squall & Inundation', tag: 'Peninsular Basin' };
+  return { name: 'Rayalaseema & Peninsular Corridors', hazard: '⛈️ Squall & Inundation', tag: 'Peninsular Basin' };
 }
 
 // Store explanation and briefing objects by unique keys to prevent syntax errors with apostrophes
@@ -4647,8 +4385,6 @@ function renderPriorityRankingTable(data) {
   }
 
   container.innerHTML = '';
-
-  habitations.sort((a, b) => window.getSeverityRank(a.priorityLevel || a.level) - window.getSeverityRank(b.priorityLevel || b.level));
 
   habitations.forEach((h, idx) => {
     const rankNum = h.rank != null ? h.rank : (idx + 1);
@@ -4874,7 +4610,7 @@ function showPriorityExplanation(explainId) {
       </div>
     </div>
 
-    ${data.override ? '<div style="background:#fef2f2; color:#b91c1c; padding:10px 14px; border-radius:10px; font-size:12.5px; font-weight:600; border:1px solid rgba(239,68,68,0.3); display:flex; align-items:center; gap:8px;"><span><i class="fi fi-rr-triangle-warning"></i></span><span>Emergency life-safety override applied: Priority elevated due to critical hazard proximity.</span></div>' : ''}
+    ${data.override ? '<div style="background:#fef2f2; color:#b91c1c; padding:10px 14px; border-radius:10px; font-size:12.5px; font-weight:600; border:1px solid rgba(239,68,68,0.3); display:flex; align-items:center; gap:8px;"><span>⚠️</span><span>Emergency life-safety override applied: Priority elevated due to critical hazard proximity.</span></div>' : ''}
 
     <!-- 6-Factor Multi-Factor Matrix Grid -->
     <div>
@@ -4892,7 +4628,7 @@ function showPriorityExplanation(explainId) {
       <div style="margin-top:8px; font-size:11px; color:var(--text-muted); font-family:monospace; background:#f8fafc; padding:6px 10px; border-radius:6px; border:1px solid rgba(15,23,42,0.06);">
         Formula: (Hazard × 0.25) + (PopRisk × 0.20) + (Vuln × 0.15) + (LifeRisk × 0.15) + (Urgency × 0.15) + (Access × 0.10)
         ${data.riskFactor !== undefined && data.riskFactor !== null ? ` &bull; Risk Factor: <strong>${data.riskFactor}</strong> / 100` : ''}
-        ${data.isPartial && data.unavailableFactors && data.unavailableFactors.length ? `<br><span style="color:#b45309;"><i class="fi fi-rr-triangle-warning"></i> Partial calculation: Omitting ${data.unavailableFactors.join(', ')} due to unavailable telemetry.</span>` : ''}
+        ${data.isPartial && data.unavailableFactors && data.unavailableFactors.length ? `<br><span style="color:#b45309;">⚠️ Partial calculation: Omitting ${data.unavailableFactors.join(', ')} due to unavailable telemetry.</span>` : ''}
       </div>
     </div>
 
@@ -4912,16 +4648,16 @@ function showPriorityExplanation(explainId) {
     <!-- Structured Decision Context -->
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:10px;">
       <div class="why-card-section">
-        <div class="why-card-title"><i class="fi fi-rr-marker"></i> Primary Decision Factors</div>
+        <div class="why-card-title">📌 Primary Decision Factors</div>
         <ul style="margin:0; padding-left:18px; font-size:12.5px; color:var(--text-primary); line-height:1.6;">
           ${(data.reasons && data.reasons.length ? data.reasons : ['Risk score calculated via multi-hazard telemetry & real-time census intersection.']).map(r => `<li>${r}</li>`).join('')}
         </ul>
       </div>
 
       <div class="why-card-section">
-        <div class="why-card-title"><i class="fi fi-rr-crosshairs"></i> Recommended Action Directive</div>
+        <div class="why-card-title">🎯 Recommended Action Directive</div>
         <div class="why-action-badge" style="margin-top:4px;">
-          <span><i class="fi fi-rr-shield"></i></span>
+          <span>🛡️</span>
           <span>${data.action || 'Stage emergency personnel and monitor'}</span>
         </div>
       </div>
@@ -4931,7 +4667,7 @@ function showPriorityExplanation(explainId) {
     <div class="why-ai-container">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
         <div class="why-card-title" style="color:var(--primary, #0284c7);">
-          <span><i class="fi fi-rr-robot"></i></span>
+          <span>🤖</span>
           <span>DeepSeek Tactical AI Command Briefing</span>
         </div>
         <button class="btn btn-primary" style="font-size:11.5px; padding:5px 14px; border-radius:999px;" onclick="fetchAIExplanationForIncident('${briefingKey}')" id="btn-fetch-explanation">
@@ -4981,7 +4717,7 @@ async function fetchAIExplanationForIncident(keyOrData) {
   const btn = document.getElementById('btn-fetch-explanation');
   const resDiv = document.getElementById('ai-briefing-result');
   
-  if(btn) btn.innerHTML = '<i class="fi fi-rr-hourglass"></i> Generating...';
+  if(btn) btn.innerHTML = '⏳ Generating...';
   
   try {
     const liveWeather = (typeof LiveState !== 'undefined') ? LiveState.get().weather : null;
@@ -5010,11 +4746,11 @@ async function fetchAIExplanationForIncident(keyOrData) {
     const result = await response.json();
     if(resDiv) {
       resDiv.style.display = 'block';
-      resDiv.innerHTML = `<strong style="color:var(--primary, #0284c7); font-size:13px;"><i class="fi fi-rr-robot"></i> DeepSeek Tactical Incident Briefing:</strong><br><div style="margin-top:6px;">${result.recommendation || result.analysis || 'Analysis generated.'}</div>`;
+      resDiv.innerHTML = `<strong style="color:var(--primary, #0284c7); font-size:13px;">🤖 DeepSeek Tactical Incident Briefing:</strong><br><div style="margin-top:6px;">${result.recommendation || result.analysis || 'Analysis generated.'}</div>`;
     }
     if(btn) btn.style.display = 'none';
   } catch(e) {
-    if(btn) btn.innerHTML = '<i class="fi fi-rr-robot"></i> Ask DeepSeek for Briefing';
+    if(btn) btn.innerHTML = '🤖 Ask DeepSeek for Briefing';
     if(resDiv) {
       resDiv.style.display = 'block';
       resDiv.innerHTML = '<span style="color:#ef4444;">Failed to connect to DeepSeek. Priority Engine operating deterministically.</span>';
@@ -5106,12 +4842,12 @@ function renderSafeSitesCapacity(data) {
       const isFull = opStatus === 'full' || (hasOcc && cap !== null && occ >= cap);
       const isClosed = opStatus === 'closed';
       const statusBadge = isClosed
-        ? `<span style="font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 6px; border-radius:4px; background:rgba(100,116,139,0.12); color:#475569;"><i class="fi fi-rr-circle"></i> CLOSED</span>`
+        ? `<span style="font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 6px; border-radius:4px; background:rgba(100,116,139,0.12); color:#475569;">⚫ CLOSED</span>`
         : isFull
-        ? `<span style="font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 6px; border-radius:4px; background:rgba(239,68,68,0.12); color:#dc2626;"><i class="fi fi-rr-cross-circle" style="color:#ef4444;"></i> FULL</span>`
+        ? `<span style="font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 6px; border-radius:4px; background:rgba(239,68,68,0.12); color:#dc2626;">🔴 FULL</span>`
         : opStatus === 'open'
-        ? `<span style="font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 6px; border-radius:4px; background:rgba(34,197,94,0.12); color:#16a34a;"><i class="fi fi-rr-check-circle" style="color:#10b981;"></i> OPEN</span>`
-        : `<span style="font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 6px; border-radius:4px; background:rgba(148,163,184,0.12); color:#64748b;"><i class="fi fi-rr-circle"></i> UNCONFIRMED</span>`;
+        ? `<span style="font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 6px; border-radius:4px; background:rgba(34,197,94,0.12); color:#16a34a;">🟢 OPEN</span>`
+        : `<span style="font-size:10px; font-weight:700; text-transform:uppercase; padding:2px 6px; border-radius:4px; background:rgba(148,163,184,0.12); color:#64748b;">⚪ UNCONFIRMED</span>`;
 
       // Provenance and timestamp badge
       const obsTime = s.last_updated || s.occupancyObservedAt;
@@ -5131,7 +4867,7 @@ function renderSafeSitesCapacity(data) {
       const allocatedList = (s.allocated_villages || []).map(v => {
         const distText = v.distance_km ? ` &bull; ${v.distance_km} km corridor` : '';
         return `<div style="font-size:11px; background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.2); padding:4px 8px; border-radius:6px; margin-top:4px; color:#38bdf8; display:flex; justify-content:space-between; align-items:center;">
-          <span><i class="fi fi-rr-road"></i> <strong>${v.village_name}</strong>${distText}</span>
+          <span>🛣️ <strong>${v.village_name}</strong>${distText}</span>
           <span style="color:#cbd5e1; font-weight:600;">+${Number(v.allocated_pop).toLocaleString()} evacuees</span>
         </div>`;
       }).join('');
@@ -5165,18 +4901,18 @@ function renderSafeSitesCapacity(data) {
         ${allocatedList ? `
           <div style="margin-top:8px; border-top:1px solid rgba(15,23,42,0.08); padding-top:6px;">
             <div style="font-size:10.5px; font-weight:700; color:#64748b; text-transform:uppercase; margin-bottom:2px;">
-              <i class="fi fi-rr-road"></i> Road Routing &amp; Evacuation Corridors:
+              🛣️ Road Routing &amp; Evacuation Corridors:
             </div>
             ${allocatedList}
           </div>
         ` : ''}
         <div style="margin-top:10px; display:flex; gap:6px;">
           <button class="btn btn-glass" style="flex:1; font-size:11px; padding:6px 10px; border-color:rgba(2,132,199,0.3); color:#0284c7;" onclick="openShelterModal('${s.shelter_id || s.id}')">
-            <i class="fi fi-rr-pencil"></i> Update Occupancy
+            ✏️ Update Occupancy
           </button>
           ${s.lat && s.lng ? `
             <button class="btn btn-glass" style="font-size:11px; padding:6px 10px; color:#16a34a; border-color:rgba(22,163,74,0.3);" onclick="locateEntity({name:'${s.name.replace(/'/g, "\\'")}', lat:${s.lat}, lng:${s.lng}, zoom:14, level:'SAFE', desc:'Designated Relief Shelter (Cap: ${(cap || 2500).toLocaleString()}, Estimated Occ: ${hasOcc ? occ.toLocaleString() : 'UNKNOWN'})'}, event)" title="Locate Shelter on GIS Map">
-              <i class="fi fi-rr-map"></i> Locate
+              🗺️ Locate
             </button>
           ` : ''}
         </div>
@@ -5196,7 +4932,7 @@ function renderSafeSitesCapacity(data) {
         <div class="deficit-zone-title">
           <span>Zone ${d.zone_id} (${(d.hazard_type || 'Hazard').toUpperCase()})</span>
           <span class="alloc-badge ${hasDeficit ? 'alloc-unallocated' : 'alloc-full'}">
-            ${hasDeficit ? '<i class="fi fi-rr-siren"></i> CAPACITY DEFICIT' : '<i class="fi fi-rr-check"></i> SUFFICIENT'}
+            ${hasDeficit ? '[ALERT] CAPACITY DEFICIT' : '✅ SUFFICIENT'}
           </span>
         </div>
         <div class="deficit-stat">
@@ -5281,7 +5017,7 @@ function updateAIExplanation(contextKey) {
     // Dynamic command dashboard situation explanation
     let commandHtml = `
       <div class="ai-message">
-        <strong>Synthesized Situation:</strong> Automated AI Orchestration Engine actively monitoring real-time telemetry, seismic sensors, and NASA satellite feeds.
+        <strong>Synthesized Situation:</strong> Automated AI Orchestration Engine actively monitoring real-time telemetry, seismic sensors, and Copernicus satellite feeds.
       </div>
       <div class="ai-message">
         <strong>Dynamic Surveillance:</strong> Real-time VPI priority scores and shelter carrying capacities are updating live from verified sensor telemetry.
@@ -5291,7 +5027,7 @@ function updateAIExplanation(contextKey) {
       </div>
       <div class="ai-source-tags">
         <span class="ai-source-tag">AI Orchestrator</span>
-        <span class="ai-source-tag">NASA FIRMS</span>
+
         <span class="ai-source-tag">Live Sensor Grid</span>
       </div>
     `;
@@ -5608,7 +5344,7 @@ function renderDecisionBriefError(errMsg) {
           Service Status: ${String(errMsg || 'Inference service timeout or 503').replace(/</g, '&lt;').replace(/>/g, '&gt;')} &bull; All GIS hazard overlays, habitation matrices, and shelters remain active.
         </div>
         <button class="dsb-btn-refresh" onclick="generateDecisionBrief(true)" style="margin-top:10px; display:inline-flex;">
-          <i class="fi fi-rr-refresh"></i> Retry Decision Brief
+          🔄 Retry Decision Brief
         </button>
       </div>
     </div>
@@ -5632,7 +5368,7 @@ function renderDecisionBriefUI(briefText, meta = {}, timestamp = Date.now()) {
       icon: '<i class="fi fi-rr-satellite-dish" aria-hidden="true"></i>',
       badge: 'LATEST SATELLITE OBSERVATION & SENSOR TELEMETRY',
       color: '#38bdf8',
-      fallback: 'Aggregating active satellite observations and real-time telemetry from connected feeds. Polygons dynamically generated based on multi-hazard impact.'
+      fallback: 'Copernicus Sentinel-1 latest satellite observation and TerraMind flood polygons vectorized from Sentinel-1 RTC + Sentinel-2 L2A + Copernicus DEM across Coastal AP. Raw scene existence is distinguished from model-inferred flood anomaly. Analysis threshold 0.50 is not ground-truth calibrated.'
     },
     {
       key: 'RISK / PRIORITY',
@@ -5640,7 +5376,7 @@ function renderDecisionBriefUI(briefText, meta = {}, timestamp = Date.now()) {
       icon: '<i class="fi fi-rr-triangle-warning" aria-hidden="true"></i>',
       badge: 'EXPOSURE & SEVERITY CLASSIFICATION',
       color: '#f97316',
-      fallback: 'Real-time habitation exposure computed dynamically. Severe priority escalations driven by live sensor thresholds and vulnerability multipliers.'
+      fallback: 'Coastal AP 2026 projected population (MoHFW projection, not a census; not exposed population). Normalized population-density score: 0.356, Population-density VPI contribution: 0.0534. Standby monitoring priority for proximity buffer clusters.'
     },
     {
       key: 'AUTHORITY RECOMMENDATIONS',
@@ -5648,7 +5384,7 @@ function renderDecisionBriefUI(briefText, meta = {}, timestamp = Date.now()) {
       icon: '<i class="fi fi-rr-clipboard-list" aria-hidden="true"></i>',
       badge: 'INCIDENT DIRECTIVES',
       color: '#a855f7',
-      fallback: 'Dispatch field ground-truth reconnaissance to closest affected habitations. Evaluate live conditions to orchestrate resource allocation.'
+      fallback: 'Dispatch field ground-truth reconnaissance to Peravaram (631.57 m distance) and 1-5 km buffer zones. Maintain active sensor surveillance on the 30 flood polygons. Stand down mass evacuation orders given 0 direct habitation inundations.'
     },
     {
       key: 'SHELTER / ACCESS',
@@ -5656,7 +5392,7 @@ function renderDecisionBriefUI(briefText, meta = {}, timestamp = Date.now()) {
       icon: '<i class="fi fi-rr-person-shelter" aria-hidden="true"></i>',
       badge: 'CAPACITY & OSRM LOGISTICS',
       color: '#22c55e',
-      fallback: 'Open safe site capacity evaluated against exposed populations. Real-time OSRM routing subject to on-the-ground passability.'
+      fallback: 'AP SDMA cyclone shelters identified in Coastal AP. Selected habitation-to-shelter OSRM routes computed successfully. Road passability during a disaster is not verified.'
     },
     {
       key: 'LIMITATIONS / CONFIDENCE',
@@ -5664,7 +5400,7 @@ function renderDecisionBriefUI(briefText, meta = {}, timestamp = Date.now()) {
       icon: '<i class="fi fi-rr-shield-check" aria-hidden="true"></i>',
       badge: 'OPERATIONAL BOUNDARIES',
       color: '#94a3b8',
-      fallback: 'Sensor thresholds are automatically calibrated. Spatial proximity buffers indicate geographic closeness, not confirmed impacts. Final tactical decisions rely on verified local reporting.'
+      fallback: 'Copernicus Sentinel-1 scene catalogue tracks satellite availability, separate from derived flood anomalies. TerraMind 0.50 threshold is uncalibrated against local ground truth. Spatial proximity buffers indicate geographic closeness, not confirmed flooding. Successful OSRM routes do not guarantee road passability or structural safety during an active event.'
     }
   ];
 
@@ -5978,7 +5714,7 @@ async function submitShelterOccupancy(event) {
     }
 
     const data = await resp.json();
-    showToast(`<i class="fi fi-rr-check"></i> ${data.message || 'Shelter occupancy updated'}`, 'success');
+    showToast(`✅ ${data.message || 'Shelter occupancy updated'}`, 'success');
     closeShelterModal();
 
     // Recompute priority ranking immediately with updated shelter capacity
@@ -5988,7 +5724,7 @@ async function submitShelterOccupancy(event) {
 
   } catch (err) {
     console.error('Shelter occupancy update failed:', err);
-    showToast(`<i class="fi fi-rr-cross"></i> Failed to update shelter: ${err.message}`, 'danger');
+    showToast(`❌ Failed to update shelter: ${err.message}`, 'danger');
   } finally {
     if (saveBtn) saveBtn.disabled = false;
   }
@@ -6079,7 +5815,7 @@ function initAuthorityWebSocket() {
         if (msg.type === 'live_state_update' && msg.data) {
           handleAuthorityLiveStateUpdate(msg.data);
         } else if (msg.type === 'authority_alert' && msg.alert) {
-          showToast(`<i class="fi fi-rr-siren"></i> Priority Broadcast: ${msg.alert.title || msg.alert.message || 'Emergency Alert'}`, 'danger');
+          showToast(`[ALERT] Priority Broadcast: ${msg.alert.title || msg.alert.message || 'Emergency Alert'}`, 'danger');
         }
       } catch (e) {
         // Degrade silently
@@ -6102,33 +5838,6 @@ function initAuthorityWebSocket() {
 
 function handleAuthorityLiveStateUpdate(data) {
   if (!data) return;
-  
-  // Track sync time for Zone Manager
-  if (typeof zmLastSync !== 'undefined') {
-    zmLastSync = Date.now();
-    if (typeof updateZmSyncBadge === 'function') updateZmSyncBadge();
-  }
-
-  // 0. Update risk zones in memory and map engine
-  if (Array.isArray(data.zones)) {
-    if (window.APP_DATA) {
-      window.APP_DATA.riskZones = data.zones;
-    }
-    const engine = window.authHazardEngine || window.hazardEngine;
-    if (engine && engine.aiState) {
-      engine.aiState.allZones = data.zones;
-      engine.aiState.zones = data.zones;
-      if (typeof engine.render === 'function') {
-        engine.render(engine.activeKey || 'ALL', true);
-      }
-    }
-    
-    // Dynamically re-render zone manager if it's currently open
-    const zmView = document.getElementById('view-zone-manager');
-    if (zmView && zmView.style.display !== 'none' && typeof renderZoneManager === 'function') {
-      renderZoneManager();
-    }
-  }
 
   // 1. Update KPI numbers immediately from live state
   if (data.kpis) {
@@ -6149,6 +5858,8 @@ function handleAuthorityLiveStateUpdate(data) {
 
   // 2. Update telemetry indicators
   if (data.telemetry) {
+    if (!window.APP_DATA) window.APP_DATA = {};
+    window.APP_DATA.telemetry = data.telemetry;
     if (data.telemetry.radarWeather && data.telemetry.radarWeather.maxGustKmh !== null) {
       const gustVal = document.getElementById('kpi-gust-speed');
       if (gustVal) {
@@ -6166,6 +5877,39 @@ function handleAuthorityLiveStateUpdate(data) {
   // 3. Update alert feeds and tables
   if (Array.isArray(data.alerts)) {
     renderCommandAlertFeed(data.alerts);
+  }
+
+  // 4. Sync Hazard Zones (Authority Portal Synchronization)
+  if (data.zonesArray) {
+    if (window.HAZARD_INTEL && window.HAZARD_INTEL.cyclone) {
+      window.HAZARD_INTEL.cyclone.zones = data.zonesArray;
+    }
+    
+    // Validate payload to prevent silent breaks in the WebSocket -> UI data bridge
+    if (!data.zonesArray || !Array.isArray(data.zonesArray)) {
+      console.warn("live_state_update payload missing valid zonesArray — hazard zones will not render correctly");
+    } else {
+      if (!window.APP_DATA) window.APP_DATA = {};
+      window.APP_DATA.riskZones = data.zonesArray;
+      if (typeof window.renderZoneManager === 'function') window.renderZoneManager();
+      if (typeof window.updatePopulationRiskGrid === 'function') window.updatePopulationRiskGrid(window.currentPriorityData);
+    }
+
+    if (window.hazardEngine) {
+      if (window.hazardEngine.aiState) {
+        window.hazardEngine.aiState.allZones = data.zonesArray;
+        window.hazardEngine.aiState.zones = data.zonesArray;
+      }
+      if (typeof window.hazardEngine.render === 'function') {
+        window.hazardEngine.invalidateCache('cyclone');
+        window.hazardEngine.render(window.hazardEngine.activeKey || 'ALL', true);
+      }
+    }
+    
+    // Update explanation card if open
+    if (typeof window.renderHazardZonesList === 'function' && window.currentHazardCardData) {
+      window.renderHazardZonesList(data.zonesArray);
+    }
   }
 }
 

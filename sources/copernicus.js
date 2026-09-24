@@ -259,7 +259,7 @@ function fetchHttpsJson(targetUrl, headers = {}, timeoutMs = 8000) {
 /**
  * Fetch Copernicus Data Space OAuth2 token (if credentials configured)
  */
-async function getCopernicusToken(clientId, clientSecret) {
+async function getCopernicusToken(clientId, clientSecret, timeoutMs = 8000) {
   const now = Date.now();
   if (cachedToken && now < tokenExpiresAt) {
     return cachedToken;
@@ -278,7 +278,7 @@ async function getCopernicusToken(clientId, clientSecret) {
         'Content-Type': 'application/x-www-form-urlencoded',
         'Content-Length': Buffer.byteLength(payload)
       },
-      timeout: 7000
+      timeout: timeoutMs
     }, (res) => {
       let body = '';
       res.on('data', chunk => body += chunk);
@@ -305,7 +305,7 @@ async function getCopernicusToken(clientId, clientSecret) {
 /**
  * Primary Discovery Path: Retrieves the latest genuine Sentinel-1 GRD observation covering AP
  */
-async function getLatestSentinel1Observation(options = {}) {
+async function getLatestSentinel1Observation(timeoutMs = 8000, options = {}) {
   const bypassCache = options.bypassCache === true;
   const discoveredAt = new Date().toISOString();
 
@@ -359,7 +359,7 @@ async function getLatestSentinel1Observation(options = {}) {
     let token = null;
     try {
       if (clientId && clientSecret) {
-        token = await getCopernicusToken(clientId, clientSecret);
+        token = await getCopernicusToken(clientId, clientSecret, timeoutMs);
       }
     } catch (authErr) {
       console.warn('[Copernicus] CDSE Token warning (falling back to public OData catalog):', authErr.message);
@@ -375,7 +375,7 @@ async function getLatestSentinel1Observation(options = {}) {
     const filterQuery = `Collection/Name eq 'SENTINEL-1' and contains(Name,'GRD') and OData.CSC.Intersects(area=geography'SRID=4326;${aoiEnvelope}')`;
     const targetUrl = `https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=${encodeURIComponent(filterQuery)}&$orderby=ContentDate/Start%20desc&$top=10`;
 
-    const catalogResponse = await fetchHttpsJson(targetUrl, headers, 9000);
+    const catalogResponse = await fetchHttpsJson(targetUrl, headers, timeoutMs);
     const rawProducts = Array.isArray(catalogResponse?.value) ? catalogResponse.value : [];
 
     // Filter by product validation and AP polygon intersection
@@ -920,7 +920,7 @@ async function verifySentinel1ProductAccess(options = {}) {
   // 1. Test OAuth2 Authentication
   let token = null;
   try {
-    token = await getCopernicusToken(clientId, clientSecret);
+    token = await getCopernicusToken(clientId, clientSecret, 8000);
   } catch (authErr) {
     return {
       configured: true,
@@ -998,7 +998,7 @@ async function verifySentinel1ProductAccess(options = {}) {
           'Range': 'bytes=0-1023',
           'User-Agent': 'Risk2Rescue-Sentinel1-PayloadVerifier/2.0'
         },
-        timeout: 8000
+        timeout: timeoutMs
       }, (res) => {
         let bytesReceived = 0;
         res.on('data', chunk => {

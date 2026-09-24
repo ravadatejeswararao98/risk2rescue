@@ -128,7 +128,7 @@ class WindyIntegrationController {
       if (typeof icon === 'string' && icon.startsWith('<')) {
         chipIcon.innerHTML = icon;
       } else {
-        chipIcon.textContent = icon;
+        chipIcon.innerHTML = icon;
       }
     }
 

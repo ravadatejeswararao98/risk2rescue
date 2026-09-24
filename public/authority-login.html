@@ -627,6 +627,13 @@
             <span id="signin-btn-text">Sign In <i class="fi fi-rr-arrow-right"></i></span>
           </button>
 
+          <!-- Test Credentials Reference -->
+          <div style="margin-top: 15px; padding: 10px; background: #f1f5f9; border: 1px solid rgba(15, 23, 42, 0.1); border-radius: 8px; font-size: 0.85rem; text-align: center; color: #000000;">
+            <strong>Test Credentials:</strong><br>
+            ID: <span style="color: #000000; font-weight: 600;">admin@risk2rescue.local</span><br>
+            Passcode: <span style="color: #000000; font-weight: 600;">TestPass123!</span>
+          </div>
+
           <!-- View Switch Divider -->
           <div class="view-divider">
             <span class="view-divider-text">First time here?</span>
@@ -820,31 +827,17 @@
 
   <script>
     /* ================================================================
-       AUTHENTICATION CONTROLLER & FIREBASE AUTHENTICATION (PART C)
+
        ================================================================ */
 
-    let auth = null;
-    let db = null;
+    
 
-    // Initialize Firebase Services
-    function initFirebaseServices() {
-      if (typeof firebase !== 'undefined') {
-        try {
-          const config = (typeof getFirebaseConfig === 'function') ? getFirebaseConfig() : null;
-          if (config && !firebase.apps.length) {
-            firebase.initializeApp(config);
-          }
-          auth = firebase.auth();
-          db = firebase.firestore();
-        } catch (e) {
-          console.warn('Firebase initialization warning:', e);
-        }
-      }
-    }
+    
 
-    // 1. Initialize District Dropdown & Firebase
+
+
     document.addEventListener('DOMContentLoaded', () => {
-      initFirebaseServices();
+      
 
       const distSelect = document.getElementById('reg-district');
       if (distSelect && window.RZILocationService) {
@@ -1002,7 +995,11 @@
         profile.authenticatedAt = new Date().toISOString();
 
         sessionStorage.setItem('rzi_authority_officer', JSON.stringify(profile));
-        // The token is automatically set as an HttpOnly cookie by the server
+        
+        // Manually set the cookie because fetch may drop Set-Cookie without credentials: 'include'
+        if (data.token) {
+          document.cookie = "rzi_auth_token=" + data.token + "; path=/; max-age=604800";
+        }
         document.cookie = "rzi_auth=true; path=/";
         btnText.textContent = 'Clearance verified <i class="fi fi-rr-arrow-right"></i>';
         setTimeout(() => {
@@ -1017,7 +1014,7 @@
       }
     }
 
-    // 6. Create Account Form Handler — Firebase Auth createUserWithEmailAndPassword + Firestore (Part C)
+
     async function handleCreateAccountSubmit(e) {
       e.preventDefault();
 
@@ -1214,7 +1211,8 @@
                 department: officerData.department,
                 district: officerData.district,
                 clearanceLevel: officerData.clearanceLevel,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+createdAt: new Date().toISOString()
+
               });
             } catch (dbErr) {
               console.warn('Firestore officers write warning:', dbErr);
@@ -1229,7 +1227,7 @@
           }, 450);
           return;
         } catch (authErr) {
-          console.warn('Firebase createUser error:', authErr);
+
           if (authErr.code === 'auth/email-already-in-use') {
             setError(emailInput, emailErr, 'This official email is already registered. Please sign in instead.');
             submitBtn.disabled = false;

@@ -185,7 +185,7 @@ function getSeverityWeight(severity) {
 /**
  * Fetch and parse a single CAP feed
  */
-async function getCapFeed(sourceId, targetUrl, agencyLabel) {
+async function getCapFeed(sourceId, targetUrl, agencyLabel, timeoutMs = 8000) {
   const now = Date.now();
   const cached = feedCache.get(sourceId);
   if (cached && now < cached.expiresAt) {
@@ -206,7 +206,7 @@ async function getCapFeed(sourceId, targetUrl, agencyLabel) {
     };
   }
 
-  const xml = await fetchText(targetUrl, 8000);
+  const xml = await fetchText(targetUrl, timeoutMs);
   const itemBlocks = xml.split(/<item[\s>]/i).slice(1);
   const alerts = [];
 

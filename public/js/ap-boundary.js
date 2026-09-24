@@ -28,6 +28,32 @@ class APBoundary {
         if (this._resolveReady) this._resolveReady(this);
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('ap-boundary-ready', { detail: { service: this } }));
+          // Automatically re-render active hazard zones to reflect clipped geometry
+          try {
+            if (window.hazardEngine) {
+              window.hazardEngine.invalidateCache();
+              if (window.hazardEngine.activeKey) {
+                window.hazardEngine.render(window.hazardEngine.activeKey, true);
+              }
+            }
+            if (window.authHazardEngine) {
+              window.authHazardEngine.invalidateCache();
+              if (window.authHazardEngine.activeKey) {
+                window.authHazardEngine.render(window.authHazardEngine.activeKey, true);
+              }
+            }
+            if (window.mapApp && typeof window.mapApp.drawRiskZones === 'function') {
+              window.mapApp.drawRiskZones();
+            }
+            if (window.authMapInstance && typeof window.authMapInstance.drawRiskZones === 'function') {
+              window.authMapInstance.drawRiskZones();
+            }
+            if (window.disasterMap && typeof window.disasterMap.drawRiskZones === 'function') {
+              window.disasterMap.drawRiskZones();
+            }
+          } catch(e) {
+            console.warn('[APBoundaryService] Re-render error after load:', e);
+          }
         }
       } else {
         console.error('[APBoundaryService] Invalid GeoJSON structure');

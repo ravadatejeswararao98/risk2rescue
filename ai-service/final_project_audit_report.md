@@ -111,7 +111,7 @@ The verified end-to-end architecture connects foundational geospatial models to 
 | **USGS Earthquakes** | REAL | USGS Earthquake Hazards Program| Yes (`server.js` feed) | Global seismic focus; regional coverage only. |
 | **IMD CAP Alerts** | REAL / CACHE | India Meteorological Dept | Yes (`server.js` feed) | RSS/XML feed latency; fallback cache enabled. |
 | **Open-Meteo** | REAL | Open-Meteo Weather API | Yes (Live weather/AQI) | Numerical weather prediction model, not radar. |
-| **NASA FIRMS VIIRS** | REAL | NASA LANCE FIRMS (NRT) | Yes (`satellite-signal.js`) | Thermal anomaly detection; cloud/smoke attenuation. |
+
 | **CWC / NWIC** | STATIC MOCK| Central Water Commission | Partial (Fallback only) | Direct authenticated telemetry API key not configured. |
 
 ---
@@ -251,10 +251,10 @@ These discrepancies reflect deliberate engineering improvements made during the 
 - **Architectural Reconciliation:** NCS does not maintain a publicly accessible, zero-authentication, machine-readable high-availability REST/GeoJSON feed suitable for real-time event streaming. The USGS global earthquake service provides standardized, sub-minute latency telemetry that reliably covers regional seismic threats along the East Coast of India and the Andaman/Sumatra subduction zones.
 - **Reconciliation Status:** **RECONCILED (Service Reliability & API Standardization)**.
 
-### Discrepancy 5: Sentinel-2 Active Fire vs. NASA FIRMS VIIRS 24h NRT Active Fire Feed
+
 - **Documented Legacy Claim:** Legacy documentation and `citizen.html` described custom Sentinel-2 shortwave infrared (SWIR) fire detection.
-- **Current Verified Implementation:** Wildfire and agricultural burn monitoring is implemented via the NASA LANCE FIRMS (Fire Information for Resource Management System) VIIRS 375m near-real-time feed in `satellite-signal.js`.
-- **Architectural Reconciliation:** Sentinel-2's 5-day revisit cycle makes it ineffective for dynamic, rapid-onset fire alerting. NASA FIRMS VIIRS provides twice-daily day/night thermal anomaly observations at 375m spatial resolution, published within 3 hours of satellite overpass in standard CSV/GeoJSON formats without requiring multi-gigabyte raster processing.
+
+
 - **Reconciliation Status:** **RECONCILED (Low-Latency Operational Telemetry Adoption)**.
 
 ### Discrepancy 6: "Live Shelter Occupancy Data" vs. AP SDMA Published Nominal Capacity (Static)

@@ -55,7 +55,7 @@ const expectedShapes = {
   DATA_GOV_AP_RAINFALL_ID: 'uuid',
   WINDY_DATA_KEY: 'alphanumeric',
   WINDY_MAP_KEY: 'alphanumeric',
-  NASA_FIRMS_MAP_KEY: 'alphanumeric',
+
   RESEND_API_KEY: 'alphanumeric'
 };
 

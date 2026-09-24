@@ -161,7 +161,7 @@ function deriveFloodCondition(waterLevel, warningLevel, dangerLevel) {
 /**
  * Fetches real CWC / NWIC river level telemetry for Andhra Pradesh
  */
-async function getCWCRiverLevels() {
+async function getCWCRiverLevels(timeoutMs = 8000) {
   const now = Date.now();
   if (cwcCache.data && now < cwcCache.expiresAt) {
     return { ...cwcCache.data, cached: true };
@@ -184,7 +184,7 @@ async function getCWCRiverLevels() {
     const apFilterUrl = `https://nwdp.nwic.gov.in/api/3/action/datastore_search?resource_id=${res.id}&filters=${encodeURIComponent(stateFilter)}&sort=_id%20desc&limit=100`;
     
     try {
-      const data = await fetchJson(apFilterUrl, {}, 8000);
+      const data = await fetchJson(apFilterUrl, {}, timeoutMs);
       if (data && data.result && Array.isArray(data.result.records) && data.result.records.length > 0) {
         records.push(...data.result.records);
       }
@@ -195,7 +195,7 @@ async function getCWCRiverLevels() {
     // Also query general recent records to capture stations where State may have slight naming variants
     const generalUrl = `https://nwdp.nwic.gov.in/api/3/action/datastore_search?resource_id=${res.id}&sort=_id%20desc&limit=150`;
     try {
-      const genData = await fetchJson(generalUrl, {}, 8000);
+      const genData = await fetchJson(generalUrl, {}, timeoutMs);
       if (genData && genData.result && Array.isArray(genData.result.records)) {
         records.push(...genData.result.records);
       }

@@ -98,7 +98,6 @@ graph TD
     end
 
     subgraph "Real-Time & Offline Sync"
-        L[Firebase Live Firestore: js/firebase-live.js]
         M[Local Mesh BroadcastChannel / localStorage]
         B <--> L
         C <--> L
@@ -140,9 +139,6 @@ Teja/
 │   ├── authority.js            # Authority operations & Chart.js logic
 │   ├── alerts.js               # Emergency alerts management
 │   ├── reports.js              # Citizen report handling & queue
-│   ├── firebase-config.js      # Firebase configuration & runtime keys
-│   ├── firebase-live.js        # Real-time Firestore & BroadcastChannel sync
-│   ├── firebase-modal.js       # Live Firebase connection settings UI
 │   ├── simulation-engine.js    # Multi-phase drill engine & Web Audio siren
 │   ├── sos-beacon.js           # Emergency SOS distress beacon dispatcher
 │   ├── export-utils.js         # Incident Commander SitRep generator & exporter

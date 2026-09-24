@@ -136,14 +136,7 @@
 
 ### 6. Earth Observation Satellites & Thermal Feeds
 
-#### `nasa_firms_viirs` — VIIRS NRT 24-Hour Active Fire & Thermal Anomaly Feed
-- **Agency:** NASA Earth Observing System Data and Information System (EOSDIS) / LANCE FIRMS
-- **What it Measures:** Satellite thermal anomalies, fire radiative power (FRP in MW), and 375m pixel brightness temperatures from Suomi NPP VIIRS C2.
-- **Cadence:** 15 minutes (`900,000 ms`).
-- **Role:** `PRIMARY`
-- **Accuracy Caveats:** Detects thermal anomalies (industrial flaring, agricultural burning, forest fires). Filtered spatially to Andhra Pradesh and Indian subcontinent.
-- **Licence & Attribution:** NASA Open Data Policy. Attribute: `NASA FIRMS VIIRS Near-Real-Time Active Fire Data`.
-- **UI Failure Behaviour:** Returns empty array with `UNAVAILABLE`. **Zero synthetic fire hotspots.**
+
 
 #### `copernicus_dataspace` — Sentinel-1 SAR Radar Flood Penetration
 - **Agency:** European Space Agency (ESA) / Copernicus Data Space Ecosystem

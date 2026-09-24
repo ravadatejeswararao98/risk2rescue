@@ -63,11 +63,18 @@
       <!-- Divider -->
       <div class="dock-divider"></div>
 
-      <!-- Red Zones & Habitations -->
-      <button class="dock-item" data-view="habitations" style="--item-accent: var(--risk-red)" title="Red Zones & Habitations">
+      <!-- Habitations -->
+      <button class="dock-item" data-view="habitations" style="--item-accent: var(--risk-red)" title="Habitations">
         <span class="dock-icon"><i class="fi fi-rr-house-building" aria-hidden="true"></i></span>
-        <span class="dock-label">Red Zones &amp; Habitations</span>
+        <span class="dock-label">Habitations</span>
         <span class="dock-badge" id="dock-habs-badge" style="display:none;">0</span>
+      </button>
+
+      <!-- Priority Incident Queue -->
+      <button class="dock-item" data-view="priority-queue" style="--item-accent: var(--risk-orange)" title="Priority Incident Queue">
+        <span class="dock-icon"><i class="fi fi-rr-bell" aria-hidden="true"></i></span>
+        <span class="dock-label">Priority Incident Queue</span>
+        <span class="dock-badge" id="dock-priority-badge" style="display:none;">0</span>
       </button>
 
       <!-- Zone Manager -->
@@ -270,9 +277,9 @@
           <button class="mhd-filter-btn active" id="mhd-filter-all" onclick="setHazardStatusFilter('ALL', event)">All</button>
           <button class="mhd-filter-btn filter-active" id="mhd-filter-critical" onclick="setHazardStatusFilter('Critical', event)">Critical</button>
           <button class="mhd-filter-btn filter-monitoring" id="mhd-filter-high-alert" onclick="setHazardStatusFilter('High Alert', event)">High Alert</button>
-          <button class="mhd-filter-btn filter-monitoring" id="mhd-filter-moderate" onclick="setHazardStatusFilter('Moderate', event)">Moderate</button>
+          <button class="mhd-filter-btn filter-moderate" id="mhd-filter-moderate" onclick="setHazardStatusFilter('Moderate', event)">Moderate</button>
           <button class="mhd-filter-btn filter-normal" id="mhd-filter-safe" onclick="setHazardStatusFilter('Safe', event)">Safe</button>
-          <button class="mhd-filter-btn filter-normal" id="mhd-filter-historical" style="color:#38bdf8; border-color:rgba(56,189,248,0.3); background:rgba(56,189,248,0.1);" onclick="setHazardStatusFilter('Historical', event)">Historical</button>
+          <button class="mhd-filter-btn filter-historical" id="mhd-filter-historical" onclick="setHazardStatusFilter('Historical', event)">Historical</button>
         </div>
         <div class="mhd-list" id="map-hazard-dropdown-list">
           <!-- Populated dynamically via js/authority.js -->
@@ -490,15 +497,23 @@
               <div class="mhd-filter-tabs" style="margin:0;">
                 <button class="mhd-filter-btn active" id="zm-filter-all" onclick="setZoneManagerFilter('ALL')">All</button>
                 <button class="mhd-filter-btn filter-active" id="zm-filter-critical" onclick="setZoneManagerFilter('CRITICAL')">Critical</button>
-                <button class="mhd-filter-btn filter-monitoring" id="zm-filter-high-alert" style="color:#f97316; border-color:rgba(249,115,22,0.3); background:rgba(249,115,22,0.1);" onclick="setZoneManagerFilter('HIGH ALERT')">High Alert</button>
-                <button class="mhd-filter-btn filter-monitoring" id="zm-filter-moderate" style="color:#eab308; border-color:rgba(234,179,8,0.3); background:rgba(234,179,8,0.1);" onclick="setZoneManagerFilter('MODERATE')">Moderate</button>
+                <button class="mhd-filter-btn filter-monitoring" id="zm-filter-high-alert" onclick="setZoneManagerFilter('HIGH ALERT')">High Alert</button>
+                <button class="mhd-filter-btn filter-moderate" id="zm-filter-moderate" onclick="setZoneManagerFilter('MODERATE')">Moderate</button>
                 <button class="mhd-filter-btn filter-normal" id="zm-filter-safe" onclick="setZoneManagerFilter('SAFE')">Safe</button>
-                <button class="mhd-filter-btn filter-normal" id="zm-filter-historical" style="color:#38bdf8; border-color:rgba(56,189,248,0.3); background:rgba(56,189,248,0.1);" onclick="setZoneManagerFilter('HISTORICAL')">Historical</button>
+                <button class="mhd-filter-btn filter-historical" id="zm-filter-historical" onclick="setZoneManagerFilter('HISTORICAL')">Historical</button>
               </div>
               
               <button class="btn" id="zm-refresh-btn" onclick="forceRefreshZoneManager()" style="background: rgba(56,189,248,0.1); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); padding: 8px 16px; font-size: 0.85rem; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-left: 16px;">
                 <i class="fi fi-rr-refresh"></i> Refresh
               </button>
+            </div>
+            
+            <!-- Zone Search Bar -->
+            <div style="margin-top: 16px; display: flex; align-items: center; gap: 12px; width: 100%;">
+              <div style="position: relative; flex-grow: 1;">
+                <i class="fi fi-rr-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-secondary);"></i>
+                <input type="text" id="zm-search-input" placeholder="Search zone by name, ID, or description..." oninput="filterZoneManagerTable()" style="width: 100%; padding: 12px 16px 12px 42px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-surface-hover, #f8fafc); font-size: 0.9rem; color: var(--text-primary); outline: none; transition: border-color 0.2s, background 0.2s;">
+              </div>
             </div>
           </div>
           <div class="dsb-body" style="overflow-x: auto;">
@@ -628,7 +643,7 @@
             <span id="command-live-sync-time" style="font-size:12px; color:#22c55e; font-weight:600;">Synced: Active</span>
           </div>
           <div style="display:flex; align-items:center; gap:12px;">
-            <span style="font-size:11px; color:var(--text-muted); background:rgba(255,255,255,0.06); padding:4px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">15 Feeds Live (Open-Meteo, USGS, CWC, CPCB, NASA, IMD)</span>
+            <span style="font-size:11px; color:var(--text-muted); background:rgba(255,255,255,0.06); padding:4px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.08);">14 Feeds Live (Open-Meteo, USGS, CWC, CPCB, IMD)</span>
             <button class="btn btn-glass" style="padding:4px 12px; font-size:11px; border-color:rgba(56,189,248,0.4);" onclick="fetchDashboardState(); showToast('Live telemetry refreshed', 'info');">
               <i class="fi fi-rr-refresh"></i> Refresh Now
             </button>
@@ -638,7 +653,7 @@
         <!-- 8 Core KPIs (Clickable for Instant Drilldown) -->
         <div class="dashboard-kpis">
           <!-- Active Hazards -->
-          <div class="kpi-card critical" onclick="switchView('hazards')" style="cursor:pointer;" title="Click to view all monitored hazards">
+          <div class="kpi-card critical" onclick="switchView('zone-manager')" style="cursor:pointer;" title="Click to view all monitored hazards">
             <div class="kpi-icon"><i class="fi fi-rr-tornado"></i></div>
             <div class="kpi-value" id="kpi-active-hazards">0</div>
             <div class="kpi-label">Hazard Zones</div>
@@ -687,7 +702,7 @@
 
           <!-- Live USGS Seismic Feed -->
           <div class="kpi-card warning" id="kpi-card-seismic" onclick="openTelemetryInspector('seismic')" style="cursor:pointer;" title="Click to view USGS earthquake stream">
-            <div class="kpi-icon"><i class="fi fi-rr-siren"></i></div>
+            <div class="kpi-icon"><i class="fi fi-rr-bell"></i></div>
             <div class="kpi-value" id="kpi-seismic-mag">-- M</div>
             <div class="kpi-label">Latest Quake Event <span class="data-source-badge">USGS Live</span></div>
             <div class="kpi-trend neutral" id="kpi-seismic-trend">Querying USGS feed… <i class="fi fi-rr-arrow-right"></i></div>
@@ -811,13 +826,48 @@
       </section>
 
       <!-- ========================================================
-           VIEW 4: RED ZONES & HABITATIONS (Priority Engine)
+           VIEW 4: HABITATIONS (Census Lookup – All 53 Zones)
            ======================================================== -->
       <section id="view-habitations" style="display:none;">
+        <div class="section-card">
+          <div class="section-card-header">
+            <div class="section-card-title">
+              <span><i class="fi fi-rr-house-building"></i></span>
+              <span>Live Habitations (53 Total)</span>
+            </div>
+            <span style="font-size:11px; color:var(--text-muted);">Source: Census of India 2011 · AP SDMA Reference Baseline</span>
+          </div>
+          <div class="section-card-body" style="padding:0;">
+            <div style="overflow-x:auto;">
+              <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                <thead>
+                  <tr style="background:var(--bg-elevated,#f1f5f9); border-bottom:2px solid var(--glass-border,rgba(15,23,42,0.1));">
+                    <th style="padding:10px 14px; text-align:left; font-weight:700; color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:.05em;">#</th>
+                    <th style="padding:10px 14px; text-align:left; font-weight:700; color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:.05em;">Habitation</th>
+                    <th style="padding:10px 14px; text-align:left; font-weight:700; color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:.05em;">District</th>
+                    <th style="padding:10px 14px; text-align:right; font-weight:700; color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:.05em;">Population</th>
+                    <th style="padding:10px 14px; text-align:center; font-weight:700; color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:.05em;">Hazard</th>
+                    <th style="padding:10px 14px; text-align:right; font-weight:700; color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:.05em;">Elevation</th>
+                    <th style="padding:10px 14px; text-align:right; font-weight:700; color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:.05em;">ETA (mins)</th>
+                  </tr>
+                </thead>
+                <tbody id="habitations-table-body">
+                  <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-muted);"><i class="fi fi-rr-hourglass"></i> Loading habitations...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+           VIEW 4b: PRIORITY INCIDENT QUEUE (Deterministic Engine)
+           ======================================================== -->
+      <section id="view-priority-queue" style="display:none;">
         <div class="section-card priority-queue-card">
           <div class="section-card-header priority-queue-header">
             <div class="section-card-title">
-              <span><i class="fi fi-rr-siren"></i></span>
+              <span><i class="fi fi-rr-bell"></i></span>
               <span>Priority Incident Queue (Deterministic Engine)</span>
             </div>
             <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -1293,6 +1343,7 @@
   <script src="js/windy-integration.js?v=16"></script>
   <script src="js/alerts.js?v=16"></script>
   <script src="js/reports.js?v=16"></script>
+  <script src="js/shared-hazard-ui.js"></script>
   <script src="js/authority.js?v=27"></script>
 
   <!-- Teja Simulation & Incident Command Extensions -->
@@ -1428,7 +1479,7 @@
         severity: tier,
         tier: tier,
         type: 'authority alert',
-        title: `<i class="fi fi-rr-siren"></i> ${tier}: ${type.toUpperCase()}`,
+        title: `<i class="fi fi-rr-bell"></i> ${tier}: ${type.toUpperCase()}`,
         message: msg.trim(),
         zone: region,
         area: region,
@@ -1468,16 +1519,11 @@
         console.warn('[Authority] Backend broadcast relay error:', wsBroadcastErr);
       }
 
-      // 3. Broadcast via Firebase Live if available
-      if (window.firebaseLive) {
-        try {
-          await window.firebaseLive.broadcastEmergencyAlert(alertPayload);
-        } catch (fbErr) {}
-      }
+      
 
       closeEmergencyAlertModal();
       if (submitBtn) submitBtn.disabled = false;
-      showToast('<i class="fi fi-rr-siren"></i> Regional Emergency Alert broadcast pushed live to all citizen devices!', 'danger');
+      showToast('<i class="fi fi-rr-bell"></i> Regional Emergency Alert broadcast pushed live to all citizen devices!', 'danger');
       if (typeof switchView === 'function') switchView('map-view');
       if (window.authMapInstance && window.authMapInstance.flyToLocation) {
         window.authMapInstance.flyToLocation(lat, lng, 11);

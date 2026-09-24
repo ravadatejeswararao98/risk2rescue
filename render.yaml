@@ -1,0 +1,97 @@
+projects:
+- name: My project
+  environments:
+  - name: Production
+    databases:
+    - name: risk2rescue-db
+      plan: starter
+      databaseName: risk2rescue
+      user: risk2rescue
+      enablePostGIS: true
+
+    services:
+    - type: web
+      name: risk2rescue
+      runtime: node
+      repo: https://github.com/ravadatejeswararao98/risk2rescue
+      plan: free
+      region: ohio
+      buildCommand: npm install
+      startCommand: node server.js
+      autoDeployTrigger: commit
+      envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: risk2rescue-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: risk2rescue-db
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: risk2rescue-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: risk2rescue-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: risk2rescue-db
+          property: database
+      - key: REDIS_URL
+        fromService:
+          name: risk2rescue-redis
+          type: keyvalue
+          property: connectionString
+      - key: MINIO_ENDPOINT
+        fromService:
+          name: object-storage
+          type: pserv
+          property: hostport
+      - key: MINIO_ACCESS_KEY
+        fromService:
+          name: object-storage
+          type: pserv
+          envVarKey: MINIO_ROOT_USER
+      - key: MINIO_SECRET_KEY
+        fromService:
+          name: object-storage
+          type: pserv
+          envVarKey: MINIO_ROOT_PASSWORD
+
+    - type: keyvalue
+      name: risk2rescue-redis
+      plan: free
+      maxmemoryPolicy: allkeys-lru
+
+    - type: pserv
+      name: object-storage
+      runtime: docker
+      plan: starter
+      image:
+        url: docker.io/pgsty/silo:RELEASE.2026-09-03T13-18-01Z
+      disk:
+        name: silo-data
+        mountPath: /data
+        sizeGB: 10
+      envVars:
+      - key: MINIO_ROOT_USER
+        generateValue: true
+      - key: MINIO_ROOT_PASSWORD
+        generateValue: true
+
+    - type: pserv
+      name: timescaledb
+      runtime: docker
+      plan: starter
+      image:
+        url: docker.io/timescale/timescaledb-ha:pg15
+      disk:
+        name: timescale-data
+        mountPath: /home/postgres/pgdata/data
+        sizeGB: 10
+      envVars:
+      - key: POSTGRES_PASSWORD
+        generateValue: true

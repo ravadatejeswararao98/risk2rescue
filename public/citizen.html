@@ -71,6 +71,36 @@
       <span class="sos-text">SOS</span>
     </button>
 
+    <!-- Pill: Hazard Zones Button -->
+    <div class="floating-widget floating-notif-widget topbar-pill" id="floating-hazard-widget">
+      <button id="btn-map-hazard" class="floating-widget-btn notif-bell-btn" onclick="toggleMapHazardDropdown(event)" title="Hazard Zones">
+        <span class="hazard-btn-icon"><i class="fi fi-rr-triangle-warning"></i></span>
+        <span class="hazard-badge-count" id="hazard-badge-count" style="display:none;">0</span>
+      </button>
+
+      <!-- Floating Hazard Dropdown Window (Smoothly animates downward) -->
+      <div id="map-hazard-dropdown" class="map-hazard-dropdown" style="display:none;" onclick="event.stopPropagation()">
+        <div class="mhd-header">
+          <div class="mhd-title">
+            <span><i class="fi fi-rr-triangle-warning"></i></span>
+            <span>Hazard Zones</span>
+          </div>
+          <span class="mhd-chip">LIVE TELEMETRY</span>
+        </div>
+        <div class="mhd-filter-tabs">
+          <button class="mhd-filter-btn active" id="mhd-filter-all" onclick="setHazardStatusFilter('ALL', event)">All</button>
+          <button class="mhd-filter-btn filter-active" id="mhd-filter-critical" onclick="setHazardStatusFilter('Critical', event)">Critical</button>
+          <button class="mhd-filter-btn filter-monitoring" id="mhd-filter-high-alert" onclick="setHazardStatusFilter('High Alert', event)">High Alert</button>
+          <button class="mhd-filter-btn filter-moderate" id="mhd-filter-moderate" onclick="setHazardStatusFilter('Moderate', event)">Moderate</button>
+          <button class="mhd-filter-btn filter-normal" id="mhd-filter-safe" onclick="setHazardStatusFilter('Safe', event)">Safe</button>
+          <button class="mhd-filter-btn filter-historical" id="mhd-filter-historical" onclick="setHazardStatusFilter('Historical', event)">Historical</button>
+        </div>
+        <div class="mhd-list" id="map-hazard-dropdown-list">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+    </div>
+
     <!-- Pill 5: Notifications Bell Widget -->
     <div class="floating-widget floating-notif-widget topbar-pill" id="floating-notif-widget">
       <button class="floating-widget-btn notif-bell-btn" id="notif-btn-trigger" title="Official Notifications & Alerts" aria-expanded="false" aria-label="Notifications">
@@ -187,10 +217,7 @@
         <div class="windy-stat-lbl">People in Zone</div>
         <div class="windy-stat-val" id="insp-people"></div>
       </div>
-      <div class="windy-inspector-stat windy-stat-wide">
-        <div class="windy-stat-lbl">NASA FIRMS Active Fires</div>
-        <div class="windy-stat-val" id="insp-fires">None detected</div>
-      </div>
+
     </div>
 
     <!-- Section: Safe Sites Nearby -->
@@ -274,11 +301,12 @@
   <script src="js/hazards.js?v=16"></script>
   <script src="js/location-service.js?v=16"></script>
   <script src="js/windy-integration.js?v=16"></script>
-  <script src="js/citizen.js?v=17"></script>
+  <script src="js/shared-hazard-ui.js"></script>
+  <script src="js/citizen.js?v=24"></script>
 
   <!-- Teja Simulation & Emergency Extensions -->
   <script src="js/simulation-engine.js?v=16"></script>
-  <script src="js/sos-beacon.js?v=16"></script>
+  <script src="js/sos-beacon.js?v=17"></script>
   <script src="js/scenarios-ui.js?v=16"></script>
 </body>
 </html>

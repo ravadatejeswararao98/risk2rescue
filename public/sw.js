@@ -5,8 +5,8 @@
  * Cache-first for core app shell; network-first for live data APIs
  */
 
-const SHELL_CACHE_NAME = 'rzi-citizen-shell-v4';
-const DATA_CACHE_NAME = 'rzi-citizen-data-v4';
+const SHELL_CACHE_NAME = 'rzi-citizen-shell-v6';
+const DATA_CACHE_NAME = 'rzi-citizen-data-v6';
 
 const APP_SHELL_URLS = [
   '/',
@@ -25,9 +25,6 @@ const APP_SHELL_URLS = [
   '/js/simulation-engine.js',
   '/js/sos-beacon.js',
   '/js/scenarios-ui.js',
-  '/js/firebase-config.js',
-  '/js/firebase-live.js',
-  '/js/firebase-modal.js',
   '/data/census_lookup.json',
   '/data/ap_districts_census.json',
   '/data/shelters.json',
@@ -98,7 +95,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 2. Navigation requests: Network-first falling back to cached shell
-  if (request.mode === 'navigate' || url.pathname === '/citizen' || url.pathname === '/citizen.html') {
+  if (request.mode === 'navigate' || url.pathname === '/citizen' || url.pathname === '/citizen.html' || url.pathname.startsWith('/authority')) {
     event.respondWith(
       fetch(request)
         .then((res) => {
@@ -109,6 +106,12 @@ self.addEventListener('fetch', (event) => {
           return res;
         })
         .catch(async () => {
+          // If authority path, try to serve authority from cache
+          if (url.pathname.startsWith('/authority')) {
+            const cachedAuth = await caches.match('/authority.html') || await caches.match('/authority-login.html');
+            if (cachedAuth) return cachedAuth;
+          }
+          
           const cached = await caches.match('/citizen.html') || await caches.match('/citizen');
           if (cached) return cached;
           return new Response('Offline - Risk2Rescue', { status: 503 });

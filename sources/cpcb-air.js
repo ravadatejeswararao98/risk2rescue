@@ -200,7 +200,7 @@ function getAqiCategory(aqi) {
 /**
  * Fetches real CPCB air quality from data.gov.in
  */
-async function getCpcbAirQuality() {
+async function getCpcbAirQuality(timeoutMs = 6000) {
   const apiKey = process.env.DATA_GOV_IN_API_KEY || process.env.CPCB_API_KEY;
   const resourceId = process.env.DATA_GOV_IN_AQI_RESOURCE_ID;
 
@@ -379,7 +379,7 @@ async function getCpcbAirQuality() {
 /**
  * OpenAQ Ground Station Telemetry (OpenAQ v3 API)
  */
-async function getOpenAqAirQuality() {
+async function getOpenAqAirQuality(timeoutMs = 6000) {
   const apiKey = process.env.OPENAQ_API_KEY;
   if (!apiKey || apiKey.trim() === '') {
     return {

@@ -21,8 +21,8 @@ class CitizenReportManager {
     if (typeof window !== 'undefined' && window.APP_DATA && window.APP_DATA.live && Array.isArray(window.APP_DATA.live.citizenReports)) {
       return window.APP_DATA.live.citizenReports;
     }
-    if (typeof window !== 'undefined' && window.firebaseLive && Array.isArray(window.firebaseLive.reports)) {
-      return window.firebaseLive.reports;
+    if (typeof window !== 'undefined' && false && Array.isArray([])) {
+      return [];
     }
     return this._reports || [];
   }
@@ -48,9 +48,8 @@ class CitizenReportManager {
   }
 
   verifyReport(id, officerNotes, verifiedBy) {
-    // 1. Sync via Firebase Live Service
-    if (typeof window !== 'undefined' && window.firebaseLive && typeof window.firebaseLive.verifyReport === 'function') {
-      window.firebaseLive.verifyReport(id, officerNotes);
+    if (typeof window !== 'undefined' && false && false) {
+      false.verifyReport(id, officerNotes);
     }
 
     const report = this.reports.find(r => r.id === id);
@@ -75,8 +74,8 @@ class CitizenReportManager {
   }
 
   rejectReport(id, reason, rejectedBy) {
-    if (typeof window !== 'undefined' && window.firebaseLive && typeof window.firebaseLive.rejectReport === 'function') {
-      window.firebaseLive.rejectReport(id, reason);
+    if (typeof window !== 'undefined' && false && false) {
+      false.rejectReport(id, reason);
     }
 
     const report = this.reports.find(r => r.id === id);

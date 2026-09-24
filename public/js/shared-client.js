@@ -1,7 +1,7 @@
 /**
  * RISK2RESCUE — Shared Auth, Data, & Real-Time Sync Client
  * 
- * Replaces fragmented Firebase initialization across Citizen & Authority portals
+
  * with a single unified client backed by PostgreSQL + Redis via Node REST & WebSockets.
  * 
  * Role-Based Access Control (RBAC):
@@ -10,7 +10,7 @@
  * 
  * Zero-Breakage Compatibility:
  *   - Exports window.RZIClient & singleton window.rziClient
- *   - Aliases window.firebaseLive = window.rziClient
+ *   - Aliases false = window.rziClient
  */
 
 (function(global) {
@@ -303,14 +303,23 @@
 
       // 1. Live state snapshot broadcast
       if (data.type === 'live_state_update' && data.data) {
-        if (Array.isArray(data.data.zones)) {
-          this.zones = data.data.zones;
+        const payload = data.data;
+        const zonesArray = payload.riskZones || payload.zones;
+        
+        if (zonesArray && Array.isArray(zonesArray)) {
+          this.zones = zonesArray;
           this.notifyZoneListeners(this.zones);
+        } else {
+          console.warn("SharedClient: live_state_update payload missing valid riskZones/zones array.");
         }
-        if (Array.isArray(data.data.alerts)) {
-          this.alerts = data.data.alerts;
+        
+        if (Array.isArray(payload.alerts)) {
+          this.alerts = payload.alerts;
           this.notifyAlertListeners(this.alerts);
+        } else {
+          console.warn("SharedClient: live_state_update payload missing alerts array.");
         }
+        
         this.syncToAppData();
       }
 
@@ -373,18 +382,26 @@
 
       // 7. Full live state update pushed over WebSocket
       if (data.type === 'live_state_update' && data.data) {
-        if (Array.isArray(data.data.zones)) {
-          this.zones = data.data.zones;
+        const payload = data.data;
+        const zonesArray = payload.riskZones || payload.zones;
+        
+        if (zonesArray && Array.isArray(zonesArray)) {
+          this.zones = zonesArray;
           this.notifyZoneListeners(this.zones);
           this.syncToAppData();
           if (window.mapApp && typeof window.mapApp.drawRiskZones === 'function') window.mapApp.drawRiskZones();
           if (window.authMapInstance && typeof window.authMapInstance.drawRiskZones === 'function') window.authMapInstance.drawRiskZones();
           if (window.disasterMap && typeof window.disasterMap.drawRiskZones === 'function') window.disasterMap.drawRiskZones();
+        } else {
+          console.warn("SharedClient: live_state_update payload missing valid riskZones/zones array (Block 7).");
         }
-        if (Array.isArray(data.data.alerts)) {
-          this.alerts = data.data.alerts;
+        
+        if (Array.isArray(payload.alerts)) {
+          this.alerts = payload.alerts;
           this.notifyAlertListeners(this.alerts);
           this.syncToAppData();
+        } else {
+          console.warn("SharedClient: live_state_update payload missing alerts array (Block 7).");
         }
       }
 
@@ -409,8 +426,13 @@
         const headers = {};
         if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
 
-        // Fetch reports
-        const repRes = await fetch('/api/reports', { headers }).catch(() => null);
+        // Fetch reports, active zones, and alerts in parallel
+        const [repRes, zoneRes, altRes] = await Promise.all([
+          fetch('/api/reports', { headers }).catch(() => null),
+          fetch('/api/gis/zones').catch(() => null),
+          fetch('/api/alerts').catch(() => null)
+        ]);
+
         if (repRes && repRes.ok) {
           const repData = await repRes.json();
           if (Array.isArray(repData.reports)) {
@@ -419,8 +441,6 @@
           }
         }
 
-        // Fetch active zones
-        const zoneRes = await fetch('/api/gis/zones').catch(() => null);
         if (zoneRes && zoneRes.ok) {
           const zoneData = await zoneRes.json();
           if (Array.isArray(zoneData.zones)) {
@@ -429,8 +449,6 @@
           }
         }
 
-        // Fetch alerts
-        const altRes = await fetch('/api/alerts').catch(() => null);
         if (altRes && altRes.ok) {
           const altData = await altRes.json();
           if (Array.isArray(altData.alerts)) {
@@ -786,13 +804,10 @@
   global.RZIClient = RZIClient;
   global.rziClient = client;
 
-  // Backward-compatibility: window.firebaseLive maps to the unified client
-  global.firebaseLive = client;
+  // Backward-compatibility: false maps to the unified client
+  
 
   // Dummy helper functions for any lingering legacy calls
-  global.getFirebaseConfig = function() {
-    return { projectId: 'risk2rescue-postgres-live', isCustom: false };
-  };
-  global.saveFirebaseConfig = function() {};
+  
 
 })(typeof window !== 'undefined' ? window : this);

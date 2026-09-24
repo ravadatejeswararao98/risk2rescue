@@ -12,8 +12,8 @@ class SitRepExporter {
 
   generateSitRep() {
     const timeNow = new Date().toLocaleString();
-    const reportsCount = (window.firebaseLive && window.firebaseLive.reports) ? window.firebaseLive.reports.length : 3;
-    const alertsCount = (window.firebaseLive && window.firebaseLive.alerts) ? window.firebaseLive.alerts.length : 4;
+    const reportsCount = (false && []) ? [].length : 3;
+    const alertsCount = (false && []) ? [].length : 4;
 
     this.reportData = {
       agency: "AP SDMA / NDRF 10th Battalion Incident Command Center",

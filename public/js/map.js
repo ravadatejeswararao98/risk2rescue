@@ -337,10 +337,10 @@ class DisasterMap {
 
   renderAllOverlays() {
     this.drawRiskZones();
-    this.addSafeSiteMarkers();
+    // this.addSafeSiteMarkers();
     this.addHazardMarkers();
     this.addHospitalMarkers();
-    this.addHabitationMarkers();
+    // this.addHabitationMarkers();
     this.updateZoomVisibility(); // Initial visibility check
   }
 
@@ -507,6 +507,7 @@ class DisasterMap {
   }
 
   addHabitationMarkers() {
+    return; // Habitations completely removed as per user request to declutter map
     this.markers.habitations = L.markerClusterGroup({
       maxClusterRadius: 70,
       disableClusteringAtZoom: 11

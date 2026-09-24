@@ -263,7 +263,7 @@ class AIEngine {
         }
       }
 
-      // 4B. Ingest lightweight satellite hazard signals (NASA FIRMS & Sentinel Hub)
+      // 4B. Ingest lightweight satellite hazard signals (Sentinel Hub)
       let satelliteTelemetry = null;
       try {
         satelliteTelemetry = await SatelliteSignal.getSatelliteHazardSummary(dynamicZones, habitations);
@@ -729,17 +729,17 @@ class AIEngine {
         if (hab) {
           const inlandDistricts = ['kurnool', 'anantapur', 'nandyal', 'kadapa', 'ysr', 'chittoor', 'sri sathya sai', 'annamayya'];
           if (hab.district && inlandDistricts.includes(hab.district.toLowerCase())) {
-            return 'Inland Wind Corridor';
+            return 'Cyclone - Inland Wind Corridor';
           }
-          if (hab.elevation_m > 50) return 'Inland Severe Wind Sector';
+          if (hab.elevation_m > 50) return 'Cyclone - Inland Severe Wind Sector';
         }
-        return 'Coastal Landfall Corridor';
-      case 'flood': return 'Riverine Inundation Belt';
-      case 'landslide': return 'Slope Debris Sector';
-      case 'earthquake': return 'Fault Line Focal Zone';
-      case 'cloudburst': return 'High-Catchment Flash Corridor';
-      case 'tsunami': return 'Shoreline Subduction Belt';
-      case 'erosion': return 'Shoreline Retreat Arc';
+        return 'Cyclone - Coastal Landfall Corridor';
+      case 'flood': return 'Flood - Riverine Inundation Belt';
+      case 'landslide': return 'Landslide - Slope Debris Sector';
+      case 'earthquake': return 'Earthquake - Fault Line Focal Zone';
+      case 'cloudburst': return 'Cloudburst - High-Catchment Flash Corridor';
+      case 'tsunami': return 'Tsunami - Shoreline Subduction Belt';
+      case 'erosion': return 'Erosion - Shoreline Retreat Arc';
       default: return 'Hazard Zone';
     }
   }
@@ -840,7 +840,7 @@ class AIEngine {
     const highOccShelters = (priorityData?.shelterStatus || []).filter(s => s.occupancy_pct !== null && s.occupancy_pct >= 70);
     const elevatedRecurrenceZones = zones.filter(z => z.disaster_recurrence?.elevated);
 
-    const satFireStatement = satelliteTelemetry?.briefingStatements?.[0] || 'NASA VIIRS thermal anomaly data unavailable or not configured.';
+    const satFireStatement = satelliteTelemetry?.briefingStatements?.[0] || 'Satellite thermal anomaly data unavailable or not configured.';
     const satFloodStatement = satelliteTelemetry?.briefingStatements?.[1] || 'Copernicus Sentinel-1 SAR latest observation unavailable or not configured.';
 
     const prompt = `Current Disaster Situation Data:
@@ -852,7 +852,7 @@ ${topHabitations.map((h, i) => `  ${i + 1}. ${h.village_name} (${h.hazard_type})
 - Deficit Reports: ${deficitReports.length > 0 ? deficitReports.map(d => `Zone ${d.zone_id} deficit: ${d.deficit} persons`).join(', ') : 'Adequate regional capacity'}
 - Shelters Near Capacity (>70%): ${highOccShelters.map(s => `${s.name} (${s.occupancy_pct}%)`).join(', ') || 'None'}
 - Sensor Telemetry: Peak Gusts ${telemetry?.summary?.radar?.maxGustSpeedKmH ?? 'N/A'} km/h | Pressure ${telemetry?.summary?.radar?.corePressureHpa ?? 'N/A'} hPa | Seismic Max M${telemetry?.summary?.seismic?.maxRecordedMagnitude ?? 0}
-- Satellite Hazard Telemetry (NASA FIRMS & Copernicus Data Space):
+- Satellite Hazard Telemetry (Copernicus Data Space):
   Thermal Anomaly Sweep: ${satFireStatement}
   Surface Water & Flood Inundation Index: ${satFloodStatement}
 
@@ -953,7 +953,7 @@ Provide a concise, professional 2-4 sentence operational briefing recommendation
     } else if (activeRedCount > 0) {
       briefText = `CRITICAL ACTIVE IMPACT: ${activeRedCount} habitations are currently crossing severe thresholds with observed gusts of ${maxGust}. Priority evacuation of ${h1Name}${h1PopClause} is underway; field units must monitor shelter capacities and divert secondary evacuees to inland centers.${satSuffix}`;
     } else {
-      briefText = `All sectors are currently maintaining stable low-to-moderate baselines. Automated sensor telemetry, NASA VIIRS fire scans, and 48-hour forward projections show no immediate threshold breaches across monitored habitations. Routine disaster grid surveillance and shelter readiness standbys remain active.${satSuffix}`;
+      briefText = `All sectors are currently maintaining stable low-to-moderate baselines. Automated sensor telemetry and 48-hour forward projections show no immediate threshold breaches across monitored habitations. Routine disaster grid surveillance and shelter readiness standbys remain active.${satSuffix}`;
     }
 
     return {

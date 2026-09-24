@@ -14,7 +14,7 @@
 | **2** | Doppler Radar Gusts | Injected fake `85.0` km/h and `988` hPa | `server.js:2007-2008` | Returns `null` on failure, rendering `—` with `UNAVAILABLE` badge | **PURGED** |
 | **3** | Atmospheric CAPE | Hardcoded `2450 J/kg` Cape instability | `server.js:463` | Real Open-Meteo instability query or honest `UNAVAILABLE` | **PURGED** |
 | **4** | River Water Levels | Hardcoded `14.2m Dowleswaram`, `11.9m Prakasam`, `98.6m Somasila` | `server.js:527-531` | CWC NWIC CKAN live query; returns empty stations with `UNAVAILABLE` if offline | **PURGED** |
-| **5** | NASA FIRMS Active Fires | 3 synthetic hotspots (`16.98, 82.23`, `17.02, 82.26`, `26.22, 91.80`) | `js/satellite-signal.js:147-151` | Returns empty array with `UNAVAILABLE` status and honest error details | **PURGED** |
+
 | **6** | Sentinel Flood Composite | Synthesized fake `+18.6%` coastal surge & `+24.2%` delta expansion | `js/satellite-signal.js:180-217` | Connected to real `sources/copernicus.js` (Sentinel-1 SAR); returns `NOT_CONFIGURED` without keys | **PURGED** |
 | **7** | Firestore Demo Seed | Synthetic citizen reports & `Math.random()` timestamp backdating | `js/firebase-live.js:516, 525` | Gated strictly behind `window.SEED_DEMO_DATA === true`; uses deterministic offsets | **PURGED** |
 | **8** | AI Fallback Locations | Assam habitations (`Barpeta`, `Majuli`, `Jorhat`) in AP disaster tool | `server.js:2154-2160` | Real Andhra Pradesh habitations (`Pedana`, `Machilipatnam`, `Krishna District Shelter`) | **PURGED** |
@@ -37,7 +37,7 @@ The platform centralizes **21 data feeds** in `source-registry.js` under honest 
 8. **`openaq_air_quality`** (OpenAQ Indian Stations): Ground station backup. Role: `CROSS_CHECK`.
 9. **`open_meteo_air_quality`** (Open-Meteo Atmospheric Reanalysis): Modelled air quality. Role: `CROSS_CHECK`.
 10. **`usgs_earthquakes`** (USGS Earthquake Hazards Program): Real-time seismic telemetry. Role: `PRIMARY`.
-11. **`nasa_firms_hotspots`** (NASA FIRMS VIIRS NRT): 24-hour active fire and thermal anomalies. Role: `PRIMARY`.
+
 12. **`copernicus_dataspace`** (Copernicus CDSE Sentinel-1 SAR GRD): All-weather radar surface water detection. Role: `PRIMARY`.
 13. **`bhuvan_wms_tiles`** (ISRO NRSC Bhuvan): Visual satellite tile overlay for Leaflet. Role: `CROSS_CHECK`.
 14. **`gdacs_events`** (GDACS Multi-Hazard Event Stream): International corroboration feed. Role: `CROSS_CHECK`.

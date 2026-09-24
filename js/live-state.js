@@ -196,18 +196,7 @@
       shelters: [],
       habitations: [],
       priorityQueue: [],
-      fire: {
-        sourceId: 'nasa_firms_viirs',
-        source: 'NASA FIRMS VIIRS (Active Fire / Thermal Anomaly)',
-        status: 'UNAVAILABLE',
-        observations: [],
-        observationCount: 0,
-        latestObservedAt: null,
-        fetchedAt: null,
-        peakFrpMw: null,
-        stale: false,
-        provenance: 'nasa_firms_live'
-      },
+
       satellite: {
         status: 'NOT_CONFIGURED',
         sourceId: 'copernicus_dataspace',
@@ -233,9 +222,7 @@
         historical: false,
         scenes: [],
         sceneList: [],
-        nasaFirmsHotspots: [],
-        hotspotsInsideAPCount: 0,
-        peakFrpMw: 0,
+
         sentinelFloodStatus: 'NOT_CONFIGURED',
         briefingStatements: [],
         processing: {
@@ -277,7 +264,7 @@
     googleFloodRaw = null,
     capAlerts = [],
     gdacsRaw = [],
-    firmsRaw = null,
+
     sentinelRaw = null,
     sheltersRaw = [],
     censusHabitations = [],
@@ -1021,39 +1008,7 @@
       });
     }
 
-    // 8. Satellite & Fire Telemetry (NASA FIRMS VIIRS & Copernicus)
-    let apHotspots = [];
-    let peakFrp = null;
-    if (firmsRaw) {
-      const rawObs = Array.isArray(firmsRaw.observations) ? firmsRaw.observations : (Array.isArray(firmsRaw.hotspots) ? firmsRaw.hotspots : []);
-      apHotspots = rawObs;
-      if (typeof isCoordInsideAP === 'function') {
-        apHotspots = apHotspots.filter(h => {
-          const lon = h.longitude !== undefined ? h.longitude : h.lon;
-          const lat = h.latitude !== undefined ? h.latitude : h.lat;
-          return (lon !== null && lat !== null && typeof lon === 'number' && typeof lat === 'number') ? isCoordInsideAP(lon, lat) : false;
-        });
-      }
 
-      const validFrps = apHotspots.map(h => typeof h.frp === 'number' ? h.frp : null).filter(f => f !== null);
-      peakFrp = validFrps.length > 0 ? Math.max(...validFrps) : null;
-
-      const fStatus = firmsRaw.status || (apHotspots.length > 0 ? 'LIVE' : (firmsRaw.status === 'NOT_CONFIGURED' ? 'NOT_CONFIGURED' : 'UNAVAILABLE'));
-
-      state.fire = {
-        sourceId: firmsRaw.sourceId || 'nasa_firms_viirs',
-        source: firmsRaw.source || 'NASA FIRMS VIIRS (Active Fire / Thermal Anomaly)',
-        status: fStatus,
-        observations: apHotspots,
-        observationCount: apHotspots.length,
-        latestObservedAt: firmsRaw.latestObservedAt || (apHotspots.length > 0 ? apHotspots[0].observedAt : null),
-        fetchedAt: firmsRaw.fetchedAt || null,
-        peakFrpMw: peakFrp !== null ? Math.round(peakFrp * 10) / 10 : null,
-        stale: !!firmsRaw.stale,
-        provenance: firmsRaw.provenance || 'nasa_firms_live'
-      };
-
-    }
 
     // 8b. Copernicus Data Space Ecosystem (Sentinel-1 SAR GRD Latest Observation)
     const satObs = (sentinelRaw && sentinelRaw.latestObservation) ? sentinelRaw.latestObservation : (sentinelRaw || null);
@@ -1107,13 +1062,11 @@
       historical: false,
       scenes: (satObs && Array.isArray(satObs.scenes)) ? satObs.scenes : [],
       sceneList: (satObs && Array.isArray(satObs.sceneList)) ? satObs.sceneList : [],
-      nasaFirmsHotspots: (state.fire && Array.isArray(state.fire.observations)) ? state.fire.observations.slice(0, 50) : [],
-      hotspotsInsideAPCount: (state.fire && state.fire.observationCount !== undefined) ? state.fire.observationCount : 0,
-      peakFrpMw: (state.fire && state.fire.peakFrpMw !== undefined && state.fire.peakFrpMw !== null) ? state.fire.peakFrpMw : 0,
+
       sentinelFloodStatus: satStatus,
       briefingStatements: (satObs && satObs.briefingStatements && satObs.briefingStatements.length > 0)
         ? satObs.briefingStatements
-        : ((sentinelRaw && sentinelRaw.briefingStatements) ? sentinelRaw.briefingStatements : ((firmsRaw && firmsRaw.briefingStatements) ? firmsRaw.briefingStatements : [])),
+        : ((sentinelRaw && sentinelRaw.briefingStatements) ? sentinelRaw.briefingStatements : []),
       processing: satProcessing
     };
 

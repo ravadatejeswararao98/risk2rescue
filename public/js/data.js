@@ -153,38 +153,7 @@ const DRILL_SCENARIO_DATA = {
     stale: false,
     stations: []
   },
-  simulatedFire: {
-    status: 'SIMULATED',
-    sourceId: 'nasa_firms_viirs',
-    source: 'NASA FIRMS VIIRS Drill Scenario Data',
-    role: 'DRILL',
-    tier: 'SIMULATED',
-    observations: [
-      {
-        id: 'drill_hotspot_001',
-        latitude: 17.0,
-        longitude: 82.2,
-        brightness: 340.5,
-        scan: 0.4,
-        track: 0.4,
-        observedAt: '2026-09-15T12:00:00Z',
-        satellite: 'N',
-        instrument: 'VIIRS',
-        confidence: 'n',
-        version: '2.0NRT',
-        brightT31: 295.2,
-        frp: 15.6,
-        daynight: 'D',
-        provenance: 'nasa_firms_drill'
-      }
-    ],
-    observationCount: 1,
-    latestObservedAt: '2026-09-15T12:00:00Z',
-    fetchedAt: '2026-09-15T12:05:00Z',
-    peakFrpMw: 15.6,
-    stale: false,
-    provenance: 'nasa_firms_drill'
-  },
+
   simulatedSatellite: {
     status: 'SIMULATED',
     sourceId: 'copernicus_dataspace',
@@ -400,7 +369,7 @@ const APP_DATA = {
       overallRiskScore: 8.4,
       status: 'SIMULATION_DRILL_ACTIVE'
     };
-    console.log('<i class="fi fi-rr-cross-circle" style="color:#ef4444;"></i> [APP_DATA] EXPLICIT DRILL MODE ACTIVATED. Displaying simulated scenarios.');
+    console.log('🔴 [APP_DATA] EXPLICIT DRILL MODE ACTIVATED. Displaying simulated scenarios.');
     if (typeof window !== 'undefined' && typeof window.renderZoneManager === 'function') {
       window.renderZoneManager();
     }
@@ -432,7 +401,7 @@ const APP_DATA = {
       overallRiskScore: null,
       status: 'READY'
     };
-    console.log('<i class="fi fi-rr-check-circle" style="color:#10b981;"></i> [APP_DATA] DRILL MODE DEACTIVATED. Restoring live telemetry operational state.');
+    console.log('🟢 [APP_DATA] DRILL MODE DEACTIVATED. Restoring live telemetry operational state.');
     syncLiveDashboardState();
   }
 };
@@ -515,15 +484,15 @@ async function syncLiveDashboardState() {
         APP_DATA.live.riverLevels = liveState.riverLevels || null;
         APP_DATA.live.earthquakes = liveState.earthquakes || null;
         APP_DATA.live.satellite = liveState.satellite || null;
-        APP_DATA.live.fire = liveState.fire || ((liveState.satellite && liveState.satellite.nasaFirmsHotspots) ? liveState.satellite : null);
+
         
         const backendReports = liveState.citizenReports ? [
           ...(Array.isArray(liveState.citizenReports.verified) ? liveState.citizenReports.verified : []),
           ...(Array.isArray(liveState.citizenReports.pendingQueue) ? liveState.citizenReports.pendingQueue : [])
         ] : [];
 
-        const realtimeReports = (typeof window !== 'undefined' && window.firebaseLive && Array.isArray(window.firebaseLive.reports))
-          ? window.firebaseLive.reports
+        const realtimeReports = (typeof window !== 'undefined' && false && Array.isArray([]))
+          ? []
           : (APP_DATA.live.citizenReports || []);
 
         const mergedReports = [...realtimeReports];
@@ -578,7 +547,7 @@ async function syncLiveDashboardState() {
   // This ensures zones visually refresh within 10 seconds of new live data
   if (typeof window !== 'undefined') {
     if (window.hazardEngine && typeof window.hazardEngine.render === 'function') {
-      window.hazardEngine.render(window.hazardEngine.currentHazard || 'all', true);
+      window.hazardEngine.render(window.hazardEngine.activeKey || 'ALL', true);
     }
     // Also dispatch a custom event so other components can react
     window.dispatchEvent(new CustomEvent('liveSyncUpdated', {
@@ -600,9 +569,9 @@ if (typeof document !== 'undefined') {
     // Then poll every 10 seconds for live updates
     setInterval(() => {
       syncLiveDashboardState().then(() => {
-        console.log(`[LiveSync] <i class="fi fi-rr-check"></i> Data refreshed at ${new Date().toLocaleTimeString()}`);
+        console.log(`[LiveSync] ✅ Data refreshed at ${new Date().toLocaleTimeString()}`);
       }).catch(err => {
-        console.warn('[LiveSync] <i class="fi fi-rr-triangle-warning"></i> Sync failed:', err.message);
+        console.warn('[LiveSync] ⚠️ Sync failed:', err.message);
       });
     }, 10000); // 10,000ms = 10 seconds
   });

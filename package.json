@@ -10,7 +10,11 @@
     "start:all": "concurrently -n \"NODE,GEOAI\" -c \"blue,green\" \"node server.js\" \"python ai-service/app.py\"",
     "dev": "node server.js",
     "serve": "node server.js",
-    "test": "node server.js --check"
+    "test": "node server.js --check",
+    "lint:syntax": "node scripts/syntax-check.js",
+    "lint:legacy": "node scripts/check-legacy-refs.js",
+    "predeploy": "node scripts/predeploy.js",
+    "prepare": "husky"
   },
   "keywords": [
     "disaster-management",
@@ -25,10 +29,19 @@
   "author": "Teja",
   "license": "MIT",
   "devDependencies": {
-    "concurrently": "^10.0.5"
+    "concurrently": "^10.0.5",
+    "eslint": "^10.11.0",
+    "husky": "^9.1.7"
   },
   "dependencies": {
     "@flaticon/flaticon-uicons": "^3.3.1",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^18.0.3",
+    "express": "^5.2.1",
+    "ioredis": "^6.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "minio": "^8.0.7",
+    "pg": "^8.23.0",
     "ws": "^8.21.3"
   }
 }

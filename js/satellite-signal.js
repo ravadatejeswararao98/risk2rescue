@@ -3,7 +3,7 @@
  * Server-side Satellite Telemetry Module (js/satellite-signal.js)
  *
  * Lightweight, zero-dependency satellite observation engine:
- * 1. NASA FIRMS (Fire Information for Resource Management System) NRT VIIRS 24h Active Fire Feed
+
  *    - Free, no key required, direct open South Asia CSV ingestion
  *    - Spatial filtering against monitored hazard zones & habitations
  *    - Extraction of hotspot counts, Fire Radiative Power (FRP), and brightness temperature
@@ -16,17 +16,11 @@
 const https = require('https');
 const http = require('http');
 
-// NASA FIRMS South Asia 24-hour NRT Active Fire CSV (Suomi NPP VIIRS C2)
-const NASA_FIRMS_VIIRS_CSV_URL = 'https://firms.modaps.eosdis.nasa.gov/data/active_fire/suomi-npp-viirs-c2/csv/SUOMI_VIIRS_C2_South_Asia_24h.csv';
-const FIRMS_CACHE_TTL_MS = 15 * 60 * 1000; // 15-minute cache
+
 
 class SatelliteSignal {
   constructor() {
-    this.firmsCache = {
-      hotspots: [],
-      rawCount: 0,
-      fetchedAt: 0
-    };
+
     this.sentinelToken = null;
     this.sentinelTokenExpiry = 0;
   }
@@ -81,27 +75,7 @@ class SatelliteSignal {
     return R * c;
   }
 
-  /**
-   * 1. NASA FIRMS Active Fire Hotspots Ingestion
-   */
-  async fetchNasaFirmsHotspots() {
-    try {
-      const { getNasaFirmsHotspots } = require('../sources/nasa-firms.js');
-      return await getNasaFirmsHotspots();
-    } catch (err) {
-      console.warn('[SatelliteSignal] NASA FIRMS module call failed:', err.message);
-      return {
-        status: 'UNAVAILABLE',
-        sourceId: 'nasa_firms_viirs',
-        observations: [],
-        hotspots: [],
-        rawCount: 0,
-        observationCount: 0,
-        fetchedAt: new Date().toISOString(),
-        error: err.message
-      };
-    }
-  }
+
 
   /**
    * 2. Primary Sentinel-1 GRD Discovery via Copernicus Data Space Ecosystem
@@ -300,7 +274,7 @@ function evaluatePixel(sample) {
    * Main Correlator: Associates Satellite Signals with Dynamic Zones & Clusters
    */
   async getSatelliteHazardSummary(zones = [], habitations = []) {
-    const firmsData = await this.fetchNasaFirmsHotspots();
+
     const focalPoints = [
       { key: 'kakinada_uppada', lat: 16.98, lng: 82.25, name: 'Kakinada-Uppada Coast' },
       { key: 'godavari_delta', lat: 16.58, lng: 82.01, name: 'Godavari Delta Inundation Corridor' },
@@ -314,28 +288,6 @@ function evaluatePixel(sample) {
     const zoneSignals = zones.map(zone => {
       const zLat = zone.lat;
       const zLng = zone.lng;
-      let nearbyHotspots = [];
-      let maxFrp = 0;
-
-      const hotspotList = firmsData.observations || firmsData.hotspots || [];
-      if (zLat && zLng && Array.isArray(hotspotList)) {
-        for (const spot of hotspotList) {
-          const sLat = spot.latitude !== undefined ? spot.latitude : spot.lat;
-          const sLon = spot.longitude !== undefined ? spot.longitude : spot.lon;
-          if (typeof sLat !== 'number' || typeof sLon !== 'number') continue;
-          const dist = this.calcDistanceKm(zLat, zLng, sLat, sLon);
-          if (dist <= 35) { // 35 km radius
-            nearbyHotspots.push({
-              distKm: Math.round(dist * 10) / 10,
-              frp: spot.frp,
-              confidence: spot.confidence,
-              brightness: spot.brightness,
-              date: spot.observedAt || spot.date
-            });
-            if (typeof spot.frp === 'number' && spot.frp > maxFrp) maxFrp = spot.frp;
-          }
-        }
-      }
 
       // Match closest Sentinel composite if available
       let matchedSentinel = (sentinelData.composites && sentinelData.composites.length > 0) ? sentinelData.composites[0] : null;
@@ -355,9 +307,7 @@ function evaluatePixel(sample) {
         zoneName: zone.name,
         lat: zLat,
         lng: zLng,
-        activeHotspotCount: nearbyHotspots.length,
-        maxFrpMw: Math.round(maxFrp * 10) / 10,
-        nearbyHotspots: nearbyHotspots.slice(0, 5),
+
         floodExpansionPct: matchedSentinel ? matchedSentinel.waterIndexExpansionPct : null,
         floodRiskStatus: matchedSentinel ? matchedSentinel.floodRiskStatus : (sentinelData.status || 'NOT_CONFIGURED'),
         sensor: matchedSentinel ? matchedSentinel.satelliteSensor : 'Copernicus Sentinel-1 SAR (Not Configured)'
@@ -365,21 +315,9 @@ function evaluatePixel(sample) {
     });
 
     // Total subcontinental and regional summary
-    const totalMonitoredHotspots = zoneSignals.reduce((acc, z) => acc + z.activeHotspotCount, 0);
-    const zonesWithFires = zoneSignals.filter(z => z.activeHotspotCount > 0);
     const zonesWithFloods = zoneSignals.filter(z => z.floodExpansionPct !== null && z.floodExpansionPct >= 15);
 
     const briefingStatements = [];
-    if (firmsData.status === 'NOT_CONFIGURED') {
-      briefingStatements.push('NASA FIRMS VIIRS fire feed not configured (add NASA_FIRMS_MAP_KEY to .env).');
-    } else if (firmsData.status === 'UNAVAILABLE') {
-      briefingStatements.push('NASA VIIRS thermal anomaly feed currently unavailable from upstream.');
-    } else if (zonesWithFires.length > 0) {
-      const topFireZone = zonesWithFires[0];
-      briefingStatements.push(`NASA VIIRS detected ${topFireZone.activeHotspotCount} active fire hotspot(s) (peak FRP ${topFireZone.maxFrpMw} MW) within 35km of ${topFireZone.zoneName}.`);
-    } else {
-      briefingStatements.push('NASA VIIRS thermal anomaly sweep confirms zero active fire clusters in monitored habitations.');
-    }
 
     if (sentinelData.status === 'NOT_CONFIGURED') {
       briefingStatements.push('Copernicus Data Space Ecosystem (Sentinel-1 SAR) not configured (add credentials to .env).');
@@ -397,12 +335,10 @@ function evaluatePixel(sample) {
       briefingStatements.push(`Sentinel-1 SAR radar reveals +${topFloodZone.floodExpansionPct}% surface-water inundation expansion across ${topFloodZone.zoneName}.`);
     }
 
+
+
     return {
       fetchedAt: new Date().toISOString(),
-      firmsStatus: firmsData.status || 'UNAVAILABLE',
-      firmsSubcontinentTotal: firmsData.rawCount || firmsData.observationCount || 0,
-      totalMonitoredHotspots,
-      zonesWithFiresCount: zonesWithFires.length,
       zonesWithFloodsCount: zonesWithFloods.length,
       briefingStatements,
       zoneSignals,

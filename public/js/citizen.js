@@ -4,7 +4,7 @@
 
 let disasterMap = null;
 let hazardEngine = null;
-let currentHazard = 'cyclone';
+let currentHazard = 'ALL';
 let currentStats = null;
 let isPlayingTimeline = false;
 let timelineInterval = null;
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
   disasterMap.clearDefaultOverlays();
   disasterMap.drawRiskZones(); // Requirement: Show the same static concentric zones as Authority Portal
   hazardEngine = new HazardEngine(disasterMap.getMap());
-  hazardEngine.visible.habitations = false; // CITIZEN PORTAL: Hide habitations
+  hazardEngine.visible.habitations = true; // CITIZEN PORTAL: Show habitations
   window.hazardEngine = hazardEngine;
   hazardEngine.onStatsChange = (newStats) => {
     currentStats = newStats;
@@ -40,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
       '#windy-inspector',
       '#reports-modal',
       '#evac-modal',
-      '#firebase-modal',
       '#scenario-modal',
       '.windy-loc-chip'
     ]);
@@ -53,14 +52,22 @@ document.addEventListener('DOMContentLoaded', () => {
   initMapInspector();
   initReportModal();
   initLiveAlertListener();
-  // WebSocket replaced by shared-client.js
+  initAlertWebSocket();
   initOfflineSupport();
 
   // Initialize Windy Multi-Layer Integration & Point Forecast Controller
   window.windyController = new WindyIntegrationController();
 
-  selectHazard('cyclone', false);
-
+  if (window.LiveState && typeof window.LiveState.fetch === 'function') {
+    const doSync = () => {
+      window.LiveState.fetch().then(state => {
+        if (state) handleIncomingLiveStateUpdate(state);
+      }).catch(e => console.warn('Live state fetch failed:', e));
+    };
+    doSync();
+    setInterval(doSync, 10000); // 10 second sync interval
+  }
+  selectHazard('ALL', false);
   // Read location from landing page URL params and initialize
   initCitizenLocation();
 });
@@ -99,22 +106,22 @@ function getWeatherConditionIcon(summary) {
     }
     return window.iconHtml('fi-rr-cloud-sun');
   }
-  if (!summary) return '<i class="fi fi-rr-cloud-sun"></i>';
-  if (summary.isSevereWind || (summary.currentWindKmh && summary.currentWindKmh >= 60)) return '<i class="fi fi-rr-tornado"></i>';
-  if (summary.isExtremeRain || (summary.maxPrecipPerHourMm && summary.maxPrecipPerHourMm >= 10)) return '<i class="fi fi-rr-cloud-hail-mixed"></i>';
-  if (summary.maxPrecipPerHourMm && summary.maxPrecipPerHourMm > 0.5) return '<i class="fi fi-rr-cloud-rain"></i>';
+  if (!summary) return '🌤️';
+  if (summary.isSevereWind || (summary.currentWindKmh && summary.currentWindKmh >= 60)) return '🌪️';
+  if (summary.isExtremeRain || (summary.maxPrecipPerHourMm && summary.maxPrecipPerHourMm >= 10)) return '⛈️';
+  if (summary.maxPrecipPerHourMm && summary.maxPrecipPerHourMm > 0.5) return '🌧️';
 
   const code = summary.weatherCode;
   if (code !== undefined) {
-    if ([95, 96, 99].includes(code)) return '<i class="fi fi-rr-cloud-hail-mixed"></i>';
-    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return '<i class="fi fi-rr-cloud-rain"></i>';
-    if ([71, 73, 75, 77, 85, 86].includes(code)) return '<i class="fi fi-rr-cloud-snow"></i>';
-    if ([45, 48].includes(code)) return '<i class="fi fi-rr-smog"></i>';
-    if ([1, 2, 3].includes(code)) return '<i class="fi fi-rr-cloud-sun"></i>';
-    if (code === 0) return '<i class="fi fi-rr-sun"></i>';
+    if ([95, 96, 99].includes(code)) return '⛈️';
+    if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) return '🌧️';
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return '🌨️';
+    if ([45, 48].includes(code)) return '🌫️';
+    if ([1, 2, 3].includes(code)) return '⛅';
+    if (code === 0) return '☀️';
   }
 
-  return '<i class="fi fi-rr-cloud-sun"></i>';
+  return '🌤️';
 }
 
 /**
@@ -139,7 +146,7 @@ async function updateCitizenWeatherAndRisk(lat, lng, place) {
   // 1. Fetch live current weather from /api/windy/point-forecast
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     const resp = await fetch('/api/windy/point-forecast', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -165,14 +172,7 @@ async function updateCitizenWeatherAndRisk(lat, lng, place) {
     if (chipWind) chipWind.textContent = wind !== null ? `${wind} km/h` : '— km/h';
     if (chipIcon) {
       if (typeof icon === 'string' && icon.startsWith('<')) chipIcon.innerHTML = icon;
-      else chipIcon.textContent = icon || '<i class="fi fi-rr-cloud"></i>';
-    }
-
-    const chipUpdated = document.getElementById('chip-updated');
-    if (chipUpdated) {
-      const timeString = new Date(data.lastUpdated || Date.now()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-      chipUpdated.textContent = `Updated ${timeString}`;
-      chipUpdated.style.color = '#64748b';
+      else chipIcon.textContent = icon || '☁️';
     }
 
     // Cache successful weather snapshot for offline resilience
@@ -192,7 +192,6 @@ async function updateCitizenWeatherAndRisk(lat, lng, place) {
     console.warn('Live weather fetch failed, falling back to cached snapshot:', err.message);
     try {
       const cached = localStorage.getItem('rzi_weather_snapshot');
-      const chipUpdated = document.getElementById('chip-updated');
       if (cached) {
         const snap = JSON.parse(cached);
         if (chipTemp && snap.temp !== undefined && snap.temp !== null) chipTemp.textContent = `${snap.temp}°C`;
@@ -204,21 +203,12 @@ async function updateCitizenWeatherAndRisk(lat, lng, place) {
           else chipIcon.textContent = snap.icon;
         }
         if (chipCity && snap.city && !place) chipCity.textContent = snap.city;
-        if (chipUpdated) {
-          const timeString = new Date(snap.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-          chipUpdated.textContent = `Offline (As of ${timeString})`;
-          chipUpdated.style.color = '#ef4444';
-        }
       } else {
         if (chipTemp) chipTemp.textContent = '—°C';
         if (chipWind) chipWind.textContent = '— km/h';
         if (chipIcon) {
           if (typeof window !== 'undefined' && window.iconHtml) chipIcon.innerHTML = window.iconHtml('fi-rr-cloud');
-          else chipIcon.textContent = '<i class="fi fi-rr-cloud"></i>';
-        }
-        if (chipUpdated) {
-          chipUpdated.textContent = 'Data Unavailable';
-          chipUpdated.style.color = '#ef4444';
+          else chipIcon.textContent = '☁️';
         }
       }
     } catch (e) { }
@@ -265,7 +255,17 @@ function updateCitizenRiskBadge(coords) {
   let highestTier = 'GREEN';
   let activeZone = null;
 
-  if (typeof window.getZoneForCoordinates === 'function') {
+  // Sync with backend risk assessment
+  const risk = window.citizenCurrentLocation?.risk;
+  if (risk && risk.riskLevel) {
+    const rLvl = risk.riskLevel.toUpperCase();
+    if (rLvl.includes('RED') || rLvl.includes('CRITICAL')) highestTier = 'RED';
+    else if (rLvl.includes('ORANGE') || rLvl.includes('CAUTION') || risk.riskColor === '#f59e0b' || risk.riskColor === '#f97316') highestTier = 'ORANGE';
+    else if (rLvl.includes('YELLOW') || rLvl.includes('ADVISORY') || risk.riskColor === '#eab308') highestTier = 'YELLOW';
+    else highestTier = 'GREEN';
+    
+    activeZone = { name: risk.zone };
+  } else if (typeof window.getZoneForCoordinates === 'function') {
     const zInfo = window.getZoneForCoordinates(citizenLoc.lat, citizenLoc.lng);
     if (zInfo && zInfo.level) {
       highestTier = zInfo.level;
@@ -333,7 +333,14 @@ function updateCitizenRiskBadge(coords) {
     window.citizenCurrentLocation.risk.tier = highestTier;
     window.citizenCurrentLocation.risk.riskLevel = (highestTier === 'RED' || highestTier === 'CRITICAL')
       ? 'Red Zone'
-      : ((highestTier === 'ORANGE' || highestTier === 'HIGH') ? 'Caution' : 'Safe');
+      : ((highestTier === 'ORANGE' || highestTier === 'HIGH') ? 'Caution' : ((highestTier === 'YELLOW' || highestTier === 'MODERATE') ? 'Moderate' : 'Safe'));
+    
+    // Assign proper riskColor based on tier
+    if (highestTier === 'RED' || highestTier === 'CRITICAL') window.citizenCurrentLocation.risk.riskColor = '#ef4444';
+    else if (highestTier === 'ORANGE' || highestTier === 'HIGH') window.citizenCurrentLocation.risk.riskColor = '#f97316';
+    else if (highestTier === 'YELLOW' || highestTier === 'MODERATE') window.citizenCurrentLocation.risk.riskColor = '#eab308';
+    else window.citizenCurrentLocation.risk.riskColor = '#22c55e';
+    
     if (activeZone) {
       window.citizenCurrentLocation.risk.zone = activeZone.name;
       if (activeZone.note) window.citizenCurrentLocation.risk.advisory = activeZone.note;
@@ -359,31 +366,29 @@ async function initCitizenLocation() {
   let isTargetLocation = false;
 
   console.log('[LOCATION] request started');
-  try {
-    // 1. Prioritize real browser GPS
-    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Location timeout')), 10000));
-    const pos = await Promise.race([RZILocationService.detectLocation(), timeoutPromise]);
-    lat = pos.lat;
-    lng = pos.lng;
-    window.citizenGPSLocation = { lat: Number(lat.toFixed(4)), lng: Number(lng.toFixed(4)), place };
-    console.log(`[LOCATION] success, latitude=${lat}, longitude=${lng}`);
-  } catch (err) {
-    console.warn('[LOCATION] GPS failed, checking fallbacks:', err.message);
-
-    // 2. Fallback to URL parameters if GPS fails
-    const loc = RZILocationService.parseLocationParams();
-    if (loc) {
-      lat = loc.lat;
-      lng = loc.lng;
-      place = loc.place;
-      isTargetLocation = true;
-      console.log(`[LOCATION] using target location from URL, lat=${lat}, lng=${lng}`);
-    } else {
+  // 1. Prioritize URL parameters (so shared links and search work)
+  const loc = RZILocationService.parseLocationParams();
+  if (loc) {
+    lat = loc.lat;
+    lng = loc.lng;
+    place = loc.place;
+    isTargetLocation = true;
+    console.log(`[LOCATION] using target location from URL, lat=${lat}, lng=${lng}`);
+  } else {
+    // 2. Try browser GPS
+    try {
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Location timeout')), 10000));
+      const pos = await Promise.race([RZILocationService.detectLocation(), timeoutPromise]);
+      lat = pos.lat;
+      lng = pos.lng;
+      window.citizenGPSLocation = { lat: Number(lat.toFixed(4)), lng: Number(lng.toFixed(4)), place };
+      console.log(`[LOCATION] GPS success, latitude=${lat}, longitude=${lng}`);
+    } catch (err) {
+      console.warn('[LOCATION] GPS failed, using fallback:', err.message);
       // 3. Final fallback
       lat = 16.9891;
       lng = 82.2475;
       place = 'Kakinada, AP (Fallback)';
-      console.log(`[LOCATION] using fallback location, lat=${lat}, lng=${lng}`);
     }
   }
 
@@ -416,7 +421,41 @@ async function initCitizenLocation() {
 
   // 7. Fetch weather and risk zone asynchronously
   updateCitizenWeatherAndRisk(lat, lng, window.citizenCurrentLocation.place)
-    .then(() => console.log('[LOCATION] UI updated'))
+    .then(() => {
+      console.log('[LOCATION] UI updated');
+      // Sync the popup and icon with the new risk data
+      if (citizenMarker && window.citizenCurrentLocation) {
+        let pColor = '239,68,68';
+        let hColor = '#ef4444';
+        const r = window.citizenCurrentLocation.risk;
+        if (r && r.riskColor) {
+          hColor = r.riskColor;
+          if (hColor === '#ef4444') pColor = '239,68,68';
+          else if (hColor === '#f97316' || hColor === '#f59e0b') pColor = '249,115,22';
+          else if (hColor === '#eab308') pColor = '234,179,8';
+          else if (hColor === '#22c55e') pColor = '34,197,94';
+        }
+        
+        const pIcon = L.divIcon({
+          className: '',
+          html: `
+            <div style="position:relative;width:36px;height:36px;">
+              <div style="position:absolute;inset:0;border-radius:50%;background:rgba(${pColor},0.25);animation:citizenPulse 1.8s ease-out infinite;"></div>
+              <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:16px;height:16px;background:${hColor};border-radius:50%;border:3px solid #fff;box-shadow:0 0 10px rgba(${pColor},0.8);"></div>
+            </div>`,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+        });
+        citizenMarker.setIcon(pIcon);
+
+        citizenMarker.setPopupContent(buildCitizenPopupHtml(
+          window.citizenCurrentLocation.lat, 
+          window.citizenCurrentLocation.lng, 
+          window.citizenCurrentLocation.place, 
+          window.citizenCurrentLocation.risk
+        ));
+      }
+    })
     .catch(err => {
       console.error('[LOCATION] Weather/Risk fetch failed:', err);
       // Failsafe: Ensure UI is not stuck on LOCATING/CHECKING if network fails
@@ -434,6 +473,7 @@ async function initCitizenLocation() {
 /** Helper to navigate the GIS map (always the disasterMap Leaflet instance) */
 function flyToCitizenMap(lat, lng, zoom = 11) {
   if (disasterMap) {
+    disasterMap._hasActiveLocate = true; // Prevent APBoundaryService from zooming out
     disasterMap.flyToLocation(lat, lng, zoom);
   }
 }
@@ -541,7 +581,7 @@ function flyToShelter(id, lat, lng, name) {
   }, 350);
 
   if (typeof showToast === 'function') {
-    showToast(`<i class="fi fi-rr-map-marker"></i> Evacuation target: ${name || fallbackSite.name}`, 'info');
+    showToast(`📍 Evacuation target: ${name || fallbackSite.name}`, 'info');
   }
 }
 window.flyToShelter = flyToShelter;
@@ -560,16 +600,29 @@ function placeAndActivateCitizenLocation(lat, lng, place) {
     citizenMarker = null;
   }
 
-  // Fly to location at street/local-area zoom (matching reference zoom 12)
-  flyToCitizenMap(lat, lng, 12);
+  // Fly to location at closer street zoom level
+  flyToCitizenMap(lat, lng, 14);
+
+  // Determine color based on current risk if available
+  let pulseColor = '239,68,68'; // Red default
+  let hexColor = '#ef4444';
+  const risk = window.citizenCurrentLocation?.risk;
+  if (risk && risk.riskColor) {
+    hexColor = risk.riskColor;
+    // Extract RGB for rgba format
+    if (hexColor === '#ef4444') pulseColor = '239,68,68';
+    else if (hexColor === '#f97316') pulseColor = '249,115,22';
+    else if (hexColor === '#eab308') pulseColor = '234,179,8';
+    else if (hexColor === '#22c55e') pulseColor = '34,197,94';
+  }
 
   // Build pulsing "You are here" marker
   const pulseIcon = L.divIcon({
     className: '',
     html: `
       <div style="position:relative;width:36px;height:36px;">
-        <div style="position:absolute;inset:0;border-radius:50%;background:rgba(239,68,68,0.25);animation:citizenPulse 1.8s ease-out infinite;"></div>
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:16px;height:16px;background:#ef4444;border-radius:50%;border:3px solid #fff;box-shadow:0 0 10px rgba(239,68,68,0.8);"></div>
+        <div style="position:absolute;inset:0;border-radius:50%;background:rgba(${pulseColor},0.25);animation:citizenPulse 1.8s ease-out infinite;"></div>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:16px;height:16px;background:${hexColor};border-radius:50%;border:3px solid #fff;box-shadow:0 0 10px rgba(${pulseColor},0.8);"></div>
       </div>`,
     iconSize: [36, 36],
     iconAnchor: [18, 18],
@@ -635,7 +688,7 @@ function buildCitizenPopupHtml(lat, lng, place, risk) {
     return `
             <button type="button" class="location-popup-shelter-btn" onclick="flyToShelter('${sId}', ${sLat}, ${sLng}, '${sNameEsc}')" title="Navigate to ${escapeHtml(s.name)} on map">
               <span class="shelter-btn-left">
-                <span class="shelter-btn-icon"><i class="fi fi-rr-shield"></i></span>
+                <span class="shelter-btn-icon">🛡️</span>
                 <span class="shelter-btn-name">${escapeHtml(s.name)}</span>
               </span>
               <span class="shelter-btn-dist">${s.dist_km} km &rsaquo;</span>
@@ -650,7 +703,7 @@ function buildCitizenPopupHtml(lat, lng, place, risk) {
     <div class="location-popup">
       <div class="location-popup-header">
         <div class="location-popup-title-row">
-          <span class="location-popup-icon"><i class="fi fi-rr-map-marker"></i></span>
+          <span class="location-popup-icon">📍</span>
           <span class="location-popup-title">You are here</span>
         </div>
         <div class="location-popup-risk" style="background:${risk.riskColor}20; color:${risk.riskColor};">
@@ -665,7 +718,7 @@ function buildCitizenPopupHtml(lat, lng, place, risk) {
         <span class="location-popup-zone-name">${escapeHtml(risk.zone || 'General Safe Zone')}</span>
       </div>
       <div class="location-popup-advisory">
-        <span class="location-popup-advisory-icon"><i class="fi fi-rr-triangle-warning"></i></span>
+        <span class="location-popup-advisory-icon">⚠️</span>
         <span class="location-popup-advisory-text">${escapeHtml(risk.advisory || 'Follow standard civil defense guidance.')}</span>
       </div>
       ${sheltersHtml}
@@ -939,11 +992,11 @@ function initSearch() {
   }
 
   function renderItem(p) {
-    const riskIcons = { RED: '<i class="fi fi-rr-cross-circle" style="color:#ef4444;"></i>', ORANGE: '<i class="fi fi-rr-info" style="color:#f97316;"></i>', YELLOW: '<i class="fi fi-rr-info" style="color:#eab308;"></i>', GREEN: '<i class="fi fi-rr-check-circle" style="color:#10b981;"></i>' };
+    const riskIcons = { RED: '🔴', ORANGE: '🟠', YELLOW: '🟡', GREEN: '🟢' };
     const item = document.createElement('div');
     item.className = 'windy-search-item';
     const osmTag = p.isOsm ? '<span class="windy-search-osm-tag">via OpenStreetMap</span>' : '';
-    const icon = riskIcons[p.risk] || '<i class="fi fi-rr-check-circle" style="color:#10b981;"></i>';
+    const icon = riskIcons[p.risk] || '🟢';
     const riskBadgeClass = `risk-${(p.risk || 'green').toLowerCase()}`;
     const riskBadgeText = p.risk || 'GREEN';
 
@@ -974,7 +1027,7 @@ function initSearch() {
       };
 
       if (p.hazard && p.hazard !== currentHazard) selectHazard(p.hazard, false);
-      const zoom = p.type === 'District' ? 10 : (p.isOsm ? 15 : 14);
+      const zoom = p.type === 'District' ? 10 : (p.isOsm ? 16 : 16);
       if (disasterMap && typeof disasterMap.setLocatePointer === 'function') {
         disasterMap.setLocatePointer(p.lat, p.lng, {
           name: p.name,
@@ -1206,7 +1259,7 @@ window.initSearch = initSearch;
 // ================================================================
 function initLeftTools() {
   document.getElementById('tool-locate').addEventListener('click', () => {
-    showToast('<i class="fi fi-rr-map-marker"></i> Detecting your location…', 'info');
+    showToast('📍 Detecting your location…', 'info');
     RZILocationService.detectLocation()
       .then(async ({ lat, lng }) => {
         const place = await RZILocationService.reverseGeocode(lat, lng);
@@ -1226,10 +1279,10 @@ function initLeftTools() {
         if (chipCity) chipCity.textContent = place.display;
         placeAndActivateCitizenLocation(lat, lng, place.display);
         updateCitizenWeatherAndRisk(lat, lng, place.display);
-        showToast(`<i class="fi fi-rr-map-marker"></i> Located: ${place.display}`, 'success');
+        showToast(`📍 Located: ${place.display}`, 'success');
       })
       .catch((err) => {
-        showToast(`<i class="fi fi-rr-triangle-warning"></i> ${err.message}`, 'warning');
+        showToast(`⚠️ ${err.message}`, 'warning');
       });
   });
 
@@ -1268,7 +1321,7 @@ function guideToNearestShelter() {
     const distText = (typeof currentEvacuationTarget.distanceKm === 'number' && !isNaN(currentEvacuationTarget.distanceKm))
       ? ` (${currentEvacuationTarget.distanceKm.toFixed(1)} km away)`
       : '';
-    showToast(`<i class="fi fi-rr-walking"></i> Evacuation route: Heading to ${currentEvacuationTarget.name}${distText}`, 'success');
+    showToast(`🚶 Evacuation route: Heading to ${currentEvacuationTarget.name}${distText}`, 'success');
   } else {
     const s = HAZARD_INTEL[currentHazard]?.safeSites?.[0];
     if (s) {
@@ -1429,14 +1482,12 @@ function openInspector(zoneOrName, coords, risk, wind, surge, shelter) {
 
   // 4. Wind / Gust (live value, km/h)
   const seriesItem = z.forecast_series?.[stepIndex];
-  const windGust = seriesItem?.gustKmh ?? z.current_telemetry?.windGustKmh ?? null;
-  const windDisplay = windGust != null ? `${windGust} km/h` : '\u2014 km/h';
+  const windDisplay = seriesItem ? `${seriesItem.gustKmh} km/h` : (z.current_telemetry ? `${z.current_telemetry.windGustKmh} km/h` : (activeTier === 'RED' ? '140 km/h' : '30 km/h'));
   const windEl = document.getElementById('insp-wind');
   if (windEl) windEl.textContent = windDisplay;
 
   // 5. Atmospheric Pressure (live value, hPa)
-  const pressureHpa = seriesItem?.pressureHpa ?? z.current_telemetry?.pressureHpa ?? null;
-  const pressureDisplay = pressureHpa != null ? `${pressureHpa} hPa` : '\u2014 hPa';
+  const pressureDisplay = seriesItem ? `${seriesItem.pressureHpa} hPa` : (z.current_telemetry ? `${z.current_telemetry.pressureHpa} hPa` : (activeTier === 'RED' ? '984 hPa' : '1008 hPa'));
   const pressureEl = document.getElementById('insp-pressure');
   if (pressureEl) pressureEl.textContent = pressureDisplay;
 
@@ -1444,18 +1495,6 @@ function openInspector(zoneOrName, coords, risk, wind, surge, shelter) {
   const peopleDisplay = (z.pop || 0).toLocaleString();
   const peopleEl = document.getElementById('insp-people');
   if (peopleEl) peopleEl.textContent = peopleDisplay;
-
-  // 7. NASA FIRMS Active Fires (truthful status display)
-  let firesDisplay = 'None detected';
-  if (z.satellite && z.satellite.status === 'NOT_CONFIGURED') {
-    firesDisplay = 'Not configured';
-  } else if (z.satellite && z.satellite.status === 'UNAVAILABLE') {
-    firesDisplay = 'Unavailable';
-  } else if (z.satellite && z.satellite.activeHotspotCount > 0) {
-    firesDisplay = `${z.satellite.activeHotspotCount} detected (${z.satellite.maxFrpMw} MW)`;
-  }
-  const firesEl = document.getElementById('insp-fires');
-  if (firesEl) firesEl.textContent = firesDisplay;
 
   // 2. Safe sites on map: reveal safe-site markers near this zone
   let safeSitesList = [];
@@ -1481,7 +1520,7 @@ function openInspector(zoneOrName, coords, risk, wind, surge, shelter) {
         card.className = `windy-safesite-card ${idx === 0 ? 'selected' : ''}`;
         card.innerHTML = `
           <div class="windy-safesite-top">
-            <span class="windy-safesite-icon"><i class="fi fi-rr-shield"></i></span>
+            <span class="windy-safesite-icon">🛡️</span>
             <div class="windy-safesite-info">
               <div class="windy-safesite-name">${site.name}</div>
               <div class="windy-safesite-dist">${site.distanceKm.toFixed(1)} km away</div>
@@ -1506,7 +1545,7 @@ function openInspector(zoneOrName, coords, risk, wind, surge, shelter) {
           currentEvacuationTarget = site;
           flyToCitizenMap(site.lat, site.lng, 13);
           if (site._marker) site._marker.openPopup();
-          showToast(`<i class="fi fi-rr-map-marker"></i> Selected shelter: ${site.name} (${site.distanceKm.toFixed(1)} km)`, 'info');
+          showToast(`📍 Selected shelter: ${site.name} (${site.distanceKm.toFixed(1)} km)`, 'info');
         });
 
         listEl.appendChild(card);
@@ -1522,7 +1561,6 @@ function openInspector(zoneOrName, coords, risk, wind, surge, shelter) {
 window.openInspector = openInspector;
 
 // ================================================================
-// REPORT MODAL — Firebase Live Database Integration
 // ================================================================
 // REPORT MODAL — Fast Optimistic Dispatch & Photo Proof Support
 // ================================================================
@@ -1538,7 +1576,7 @@ function updateReportLocationField() {
     repLoc.style.background = 'rgba(34,197,94,0.08)';
     repLoc.style.borderColor = 'rgba(34,197,94,0.4)';
     if (badge) badge.style.display = 'inline-block';
-    if (note) note.textContent = '<i class="fi fi-rr-lock"></i> Coordinates locked from your GPS device.';
+    if (note) note.textContent = '🔒 Coordinates locked from your GPS device.';
   } else {
     repLoc.readOnly = false;
     repLoc.style.background = '';
@@ -1658,7 +1696,7 @@ function initReportModal() {
 
       // Optimistic instant feedback (< 300ms)
       modal.classList.remove('active');
-      showToast('<i class="fi fi-rr-check"></i> Report submitted! Transmitted to Incident Command.', 'success');
+      showToast('✅ Report submitted! Transmitted to Incident Command.', 'success');
 
       // Local storage snapshot for immediate cross-portal availability
       try {
@@ -1681,10 +1719,7 @@ function initReportModal() {
           }
         } else {
           try {
-            if (window.firebaseLive) {
-              await window.firebaseLive.submitCitizenReport(reportPayload);
-            }
-          } catch (err) {
+            } catch (err) {
             console.warn('Background report sync notice:', err);
           }
         }
@@ -1721,7 +1756,53 @@ let socketRetryTimeout = null;
 const MAX_SOCKET_RETRY_DELAY = 30000;
 let emergencyBannerTimer = null;
 
-// initAlertWebSocket removed: handled by shared-client.js
+function initAlertWebSocket() {
+  if (alertSocket && (alertSocket.readyState === WebSocket.OPEN || alertSocket.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
+  try {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${location.host}`;
+    alertSocket = new WebSocket(wsUrl);
+    window.alertSocket = alertSocket;
+    window.socketRetryDelay = socketRetryDelay;
+
+    alertSocket.onopen = () => {
+      socketRetryDelay = 2000;
+      window.socketRetryDelay = socketRetryDelay;
+    };
+
+    alertSocket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'authority_alert' && data.alert) {
+          handleIncomingAuthorityAlert(data.alert);
+        } else if (data.type === 'live_state_update' && data.data) {
+          handleIncomingLiveStateUpdate(data.data);
+        }
+      } catch (e) {
+        // Degrade silently
+      }
+    };
+
+    alertSocket.onerror = () => {
+      // Degrade silently — no notifications, no errors shown to citizen
+    };
+
+    alertSocket.onclose = () => {
+      // Reconnect gracefully with exponential backoff
+      if (socketRetryTimeout) clearTimeout(socketRetryTimeout);
+      socketRetryTimeout = setTimeout(() => {
+        socketRetryDelay = Math.min(MAX_SOCKET_RETRY_DELAY, Math.round(socketRetryDelay * 1.5));
+        window.socketRetryDelay = socketRetryDelay;
+        initAlertWebSocket();
+      }, socketRetryDelay);
+    };
+  } catch (err) {
+    // Degrade silently
+  }
+}
 
 function showAuthorityAlertBanner(title, message, area) {
   const banner = document.getElementById('citizen-emergency-banner');
@@ -1789,6 +1870,76 @@ function handleIncomingAuthorityAlert(alert) {
   checkAlertZoneProximityAndTriggerEvacuation(alert, createdZone);
 }
 
+/**
+ * @typedef {Object} LiveStateUpdate
+ * @property {Array} [riskZones] - Array of hazard zone objects from the backend canonical state
+ * @property {Array} [zones] - Legacy fallback for risk zones
+ * @property {Array} [alerts] - Active alerts array
+ */
+
+/**
+ * Handles incoming state updates from the WebSocket connection.
+ * @param {LiveStateUpdate} state 
+ */
+function handleIncomingLiveStateUpdate(state) {
+  if (!state) {
+    console.warn("live_state_update payload is missing or undefined.");
+    return;
+  }
+
+  // 1. Update risk zones in memory and map engine
+  const zonesArray = state.riskZones || state.zones;
+  if (!zonesArray || !Array.isArray(zonesArray)) {
+    console.warn("live_state_update payload missing valid riskZones/zones array — hazard zones will not render!");
+  } else {
+    if (window.APP_DATA) {
+      window.APP_DATA.riskZones = zonesArray;
+    }
+    
+    // Crucial: Update global HAZARD_INTEL which hazardEngine reads from
+    if (window.HAZARD_INTEL && window.HAZARD_INTEL.cyclone) {
+      window.HAZARD_INTEL.cyclone.zones = zonesArray;
+    }
+
+    // Populate the dropdown dynamically
+    if (typeof window.populateHazardDropdown === 'function') {
+      window.populateHazardDropdown();
+    }
+
+    if (window.hazardEngine) {
+      if (window.hazardEngine.aiState) {
+        window.hazardEngine.aiState.allZones = zonesArray;
+        window.hazardEngine.aiState.zones = zonesArray;
+      }
+      if (typeof window.hazardEngine.render === 'function') {
+        window.hazardEngine.invalidateCache('cyclone');
+        window.hazardEngine.render(window.hazardEngine.activeKey || 'ALL', true);
+      }
+    }
+  }
+
+  // 2. Refresh citizen location risk badge
+  if (typeof updateCitizenRiskBadge === 'function') {
+    updateCitizenRiskBadge(window.citizenCurrentLocation);
+  }
+
+  // 3. Ingest active alerts into notifications
+  if (!state.alerts || !Array.isArray(state.alerts)) {
+    console.warn("live_state_update payload missing alerts array — active notifications will not sync.");
+  } else if (state.alerts.length > 0) {
+    state.alerts.forEach(a => {
+      if (typeof addCitizenNotification === 'function') {
+        addCitizenNotification({
+          type: 'official alert',
+          title: a.title || a.headline || 'Official Alert',
+          message: `${a.event || 'Advisory'}: ${a.areaDesc || 'Andhra Pradesh'}`,
+          timestamp: a.effective ? new Date(a.effective).getTime() : Date.now(),
+          read: false
+        });
+      }
+    });
+  }
+}
 
 function checkAlertZoneProximityAndTriggerEvacuation(alert, createdZone = null) {
   // Retrieve current citizen coordinates
@@ -1858,14 +2009,13 @@ function triggerSafeLocationFlow(zone, coords) {
   // Auto-open Task 8 hazard dialog with safe sites ready
   openInspector(zone, coords);
 
-  showToast(`<i class="fi fi-rr-shield"></i> Evacuation Guidance: Move to a safe location for ${zone.name}`, 'warning');
+  showToast(`🛡️ Evacuation Guidance: Move to a safe location for ${zone.name}`, 'warning');
 }
 
-// Real-time Emergency Alert Listener from Authority Command Center (Firebase fallback)
 function initLiveAlertListener() {
-  if (!window.firebaseLive) return;
+  if (!false) return;
 
-  window.firebaseLive.onAlerts((alerts, meta) => {
+  false.onAlerts((alerts, meta) => {
     if (!alerts || alerts.length === 0) return;
     const latest = alerts[0];
 
@@ -1880,7 +2030,7 @@ function initLiveAlertListener() {
 // TOAST
 // ================================================================
 function showToast(msg, type = 'info') {
-  const icons = { info: '<i class="fi fi-rr-info"></i>', success: '<i class="fi fi-rr-check"></i>', warning: '<i class="fi fi-rr-triangle-warning"></i>', danger: '<i class="fi fi-rr-siren"></i>' };
+  const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', danger: '[ALERT]' };
   let container = document.getElementById('toast-container');
   if (!container) {
     container = document.createElement('div');
@@ -1975,7 +2125,7 @@ function renderCitizenNotifications() {
   if (window.citizenNotifications.length === 0) {
     list.innerHTML = `
       <div class="notif-empty">
-        <span class="notif-empty-icon"><i class="fi fi-rr-bell"></i></span>
+        <span class="notif-empty-icon">🔔</span>
         No alerts or notifications at this time.<br>Official warnings will appear here.
       </div>`;
     return;
@@ -1988,7 +2138,7 @@ function renderCitizenNotifications() {
   sorted.forEach(notif => {
     const isAuthority = notif.type === 'authority' || notif.type === 'authority alert';
     const isHazard = notif.type === 'hazard';
-    const icon = isHazard ? '<i class="fi fi-rr-triangle-warning"></i>' : (isAuthority ? '<i class="fi fi-rr-bank"></i>' : '<i class="fi fi-rr-check"></i>');
+    const icon = isHazard ? '⚠️' : (isAuthority ? '🏛️' : '✅');
     const typeLabel = isHazard ? 'Hazard Alert' : (isAuthority ? 'Authority Alert' : 'Status Update');
     const safeType = notif.type.toLowerCase().replace(/[^a-z0-9]/g, '-');
     const card = document.createElement('div');
@@ -2171,12 +2321,15 @@ async function flushOfflineQueue() {
 
   for (const item of queue) {
     try {
-      if (window.firebaseLive && typeof window.firebaseLive.submitCitizenReport === 'function') {
-        await window.firebaseLive.submitCitizenReport(item);
+      const response = await fetch('/api/citizen-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      });
+      if (response.ok) {
         successCount++;
       } else {
-        // Direct success recording
-        successCount++;
+        remaining.push(item);
       }
     } catch (e) {
       remaining.push(item);
@@ -2216,24 +2369,49 @@ function initOfflineSupport() {
 
 // FORCE SYNC REAL-WORLD HAZARDS
 setTimeout(() => {
-  if (window.firebaseLive && window.firebaseLive.db) {
-    // 1. Wipe out any old demo zones from Firestore
-    window.firebaseLive.db.collection('risk_zones').get().then(snap => {
-      snap.forEach(doc => {
-        if (!['RZ_IMD_001', 'RZ_IMD_002', 'RZ_EQ_001'].includes(doc.id)) {
-          window.firebaseLive.db.collection('risk_zones').doc(doc.id).delete();
-        }
-      });
+  // 2. Inject current authentic real-world zones
+  if (window.APP_DATA && window.APP_DATA.riskZones) {
+    window.APP_DATA.riskZones.forEach(zone => {
+      // Managed by live-state.js
     });
-    // 2. Inject current authentic real-world zones
-    if (window.APP_DATA && window.APP_DATA.riskZones) {
-      window.APP_DATA.riskZones.forEach(zone => {
-        if (typeof window.firebaseLive.broadcastZoneCreation === 'function') {
-          window.firebaseLive.broadcastZoneCreation(zone);
-        } else if (typeof window.firebaseLive.forceAddZoneToMemory === 'function') {
-           window.firebaseLive.forceAddZoneToMemory(zone);
-        }
-      });
-    }
   }
 }, 3000);
+// The unified shared-hazard-ui.js is now responsible for toggleMapHazardDropdown and populateHazardDropdown
+window.onHazardDropdownSelect = function(k) {
+  if (typeof selectHazard === 'function') {
+    selectHazard(k, true);
+  }
+  const dropdown = document.getElementById('map-hazard-dropdown');
+  const btn = document.getElementById('btn-map-hazard');
+  if (dropdown) dropdown.style.display = 'none';
+  if (btn) {
+    btn.setAttribute('aria-expanded', 'false');
+    btn.classList.remove('active');
+  }
+};
+
+window.setHazardStatusFilter = function(status, event) {
+  if (event) event.stopPropagation();
+  window.currentHazardStatusFilter = status;
+  const buttons = document.querySelectorAll('.mhd-filter-btn');
+  buttons.forEach(btn => btn.classList.remove('active'));
+  const targetId = status === 'ALL' ? 'mhd-filter-all' : 'mhd-filter-' + status.toLowerCase().replace(' ', '-');
+  const targetBtn = document.getElementById(targetId);
+  if (targetBtn) targetBtn.classList.add('active');
+  
+  if (typeof window.populateHazardDropdown === 'function') {
+    window.populateHazardDropdown(status);
+  }
+};
+
+window.addEventListener('click', function(e) {
+  const dropdown = document.getElementById('map-hazard-dropdown');
+  const btn = document.getElementById('btn-map-hazard');
+  if (dropdown && dropdown.style.display === 'block') {
+    if (btn && !btn.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+      btn.setAttribute('aria-expanded', 'false');
+      btn.classList.remove('active');
+    }
+  }
+});

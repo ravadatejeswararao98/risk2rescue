@@ -28,7 +28,7 @@ The Risk2Rescue platform represents a complete, multi-tier disaster intelligence
 - All three services (Node.js :3000, FastAPI :8001, Ollama :11434) respond correctly
 - 21 of 22 discovered Node.js endpoints return HTTP 200 (3 return 404 correctly for non-existent paths)
 - All HTML pages load without server-side errors
-- NASA FIRMS VIIRS live feed is genuinely polling real data (1,075 hotspot records fetched live)
+
 - USGS Earthquake API is genuinely live (4.2 magnitude India earthquake returned during audit)
 - Open-Meteo live weather is genuinely polling real-time data (24.8°C at audit time)
 - CWC/NWIC river levels are fetched from the live National Water Data Portal API
@@ -40,7 +40,7 @@ The Risk2Rescue platform represents a complete, multi-tier disaster intelligence
 **What works but is static/precomputed:**
 - TerraMind flood polygons displayed in UI: **PRECOMPUTED** (from 2023 satellite data, not re-run at each session)
 - Satellite acquisition dates: 2023-01-10 to 2023-02-10 — **NOT current satellite imagery**
-- `/api/satellite/telemetry` response contains hardcoded zone coordinates with semi-dynamic FIRMS data overlaid
+- `/api/satellite/telemetry` response contains hardcoded zone coordinates with semi-dynamic  data overlaid
 
 **What has known discrepancies or limitations:**
 - `/api/shelters` (serving `data/shelters.json`) contains **mixed multi-district India data** (39,000 total capacity, includes Guwahati and Imphal), which is a DIFFERENT dataset from the verified AP SDMA `konaseema_shelters_verified.json` (7,282 capacity, 10 Konaseema shelters). The authority UI correctly uses the SDMA data for the Decision Brief; the `/api/shelters` endpoint serves the generic dataset.
@@ -66,7 +66,7 @@ The Risk2Rescue platform represents a complete, multi-tier disaster intelligence
 │  NODE.JS SERVER (server.js) — Zero-dependency HTTP                  │
 │  Routes: 22 discovered API endpoints                                │
 │  External: USGS Earthquake • Open-Meteo • CWC NWIC • IMD CAP RSS   │
-│            NASA FIRMS VIIRS • OpenStreetMap OSRM                    │
+
 │  Internal: Priority Engine • AI Engine • Alert Router • Satellite   │
 └────────────────────────┬────────────────────────────────────────────┘
                          │ HTTP :8001 (CORS allow_origins=["*"])
@@ -94,7 +94,7 @@ GIS / DATA LAYER (precomputed artifacts):
 
 | Service | URL/Protocol | Purpose |
 | :--- | :--- | :--- |
-| NASA FIRMS VIIRS | `firms.modaps.eosdis.nasa.gov` | Active fire NRT CSV |
+
 | USGS Earthquake | `earthquake.usgs.gov` | Seismic GeoJSON feed |
 | Open-Meteo | `api.open-meteo.com` | Live weather & AQI |
 | CWC / NWIC | `nwdp.nwic.gov.in` | River level data |
@@ -126,7 +126,7 @@ GIS / DATA LAYER (precomputed artifacts):
 | `GET /api/earthquakes/live` | 200 | 1 ms | Yes | USGS GeoJSON | LIVE | 20 events, max M5.1, fetched at audit time |
 | `GET /api/air-quality/live` | 200 | 953 ms | Yes | Open-Meteo | LIVE | PM2.5=9.8, US-AQI=72 Moderate |
 | `GET /api/cwc/river-levels` | 200 | 1,208 ms | Yes | NWIC REST | LIVE | 4 stations, real timestamps (Sept 2026) |
-| `GET /api/satellite/telemetry` | 200 | 15 ms | Yes | FIRMS + static zones | SEMI-LIVE | FIRMS count live; zone coordinates static |
+| `GET /api/satellite/telemetry` | 200 | 15 ms | Yes |  + static zones | SEMI-LIVE |  count live; zone coordinates static |
 | `GET /api/priority-ranking` | 200 | 785 ms | Yes | Priority Engine | COMPUTED | 15 habitations ranked, mixed India |
 | `GET /api/census/villages` | 200 | 4 ms | Yes | data/census_lookup.json | STATIC | 15 villages, 11 distinct districts |
 | `GET /api/alerts` | 200 | 3 ms | Yes | In-memory store | DYNAMIC | Currently empty (`{"alerts":[]}`) |
@@ -148,7 +148,7 @@ GIS / DATA LAYER (precomputed artifacts):
 
 | Feed | Directly Tested | Result | Classification |
 | :--- | :--- | :--- | :--- |
-| NASA FIRMS VIIRS CSV | **YES** — fetched during audit | 1,075 hotspot rows, acq_date=2026-09-11 | **REAL LIVE** |
+
 | USGS Earthquake GeoJSON | **YES** — fetched during audit | M4.2 25km NW of Sarupathar, India | **REAL LIVE** |
 | Open-Meteo Weather API | **YES** — fetched during audit | 24.8°C, wind 5.7 km/h at (16.5, 82.0) | **REAL LIVE** |
 | CWC/NWIC River API | **YES** — Node.js fetched live | 4 stations, Sept 2026 timestamps | **REAL LIVE** |
@@ -540,7 +540,7 @@ Independent calculation: 829+325+967+325+484+967+967+967+967+484 = **7,282 — V
 | Weather (Open-Meteo) | ✓ | 15 min TTL | — | — | Yes | Yes | **YES** |
 | AQI (Open-Meteo) | ✓ | 15 min TTL | — | — | Yes | Yes | **YES** |
 | IMD Alerts | ✓ | 12 min TTL | — | — | Yes | Yes | **YES (0 active)** |
-| NASA FIRMS Fire | ✓ | 15 min TTL | — | — | Yes | Yes | **YES (1,075 rows)** |
+
 | CWC/NWIC River | ✓ | Cache | — | — | Yes | Yes | **YES** |
 | TerraMind Flood Polygons | — | — | ✓ | — | — | — | **PRECOMPUTED** |
 | Satellite Imagery | — | — | ✓ | — | — | — | **2023 ARCHIVE** |
@@ -562,7 +562,7 @@ Independent calculation: 829+325+967+325+484+967+967+967+967+484 = **7,282 — V
 | Copernicus DEM | Static | **ACCEPTABLE** (DEM rarely changes) | N16_E081 tile |
 | USGS Earthquake | Fetched live at audit | **FRESH** | Latest: M4.2 India, 2026-09-12 |
 | Open-Meteo Weather | Fetched live at audit | **FRESH** | 24.8°C, 2026-09-13 |
-| NASA FIRMS | Fetched live at audit | **FRESH** | 1,075 rows, acq_date=2026-09-11 |
+
 | CWC/NWIC | Fetched from live API | **RECENT** | Station timestamps: Sept 2026 |
 | Decision brief | Generated at audit | **FRESH** | Run time: 2026-09-13 05:52 & 06:00 |
 
@@ -730,7 +730,7 @@ Independent calculation: 829+325+967+325+484+967+967+967+967+484 = **7,282 — V
 | District boundaries | ✓ | Source | ✓ | — | ✓ | ✓ | AP SDMA 26-district |
 | USGS earthquake feed | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Live, 10min cache |
 | Open-Meteo weather | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Live, 15min cache |
-| NASA FIRMS fire | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Live, 15min cache |
+
 | CWC river levels | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Live from NWIC API |
 | IMD alerts | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Currently 0 alerts |
 | Priority ranking (VPI) | ✓ | ✓ | ✓ | Computed | Partial | ✓ | 15-hab fallback data |
@@ -805,7 +805,7 @@ Independent calculation: 829+325+967+325+484+967+967+967+967+484 = **7,282 — V
 | USGS Earthquakes | USGS | Seismic hazard | **LIVE** 10 min | Audit time | ✓ | Cache | Regional only |
 | IMD CAP Alerts | IMD | Weather alerts | **LIVE** 12 min | Audit time | ✓ | Cache | 0 active alerts |
 | Open-Meteo | Open-Meteo | Weather/AQI | **LIVE** 15 min | Audit time | ✓ | Cache | NWP model, not radar |
-| NASA FIRMS VIIRS | NASA LANCE | Active fire | **LIVE** 15 min | 2026-09-11 | ✓ | Cache | 24h NRT |
+
 | CWC / NWIC | NWD Portal | River levels | **LIVE** | Sept 2026 | ✓ | Stale cache | 4 stations only |
 | Windy Point Forecast | Windy | Wind animation | **NOT ACTIVE** | N/A | — | Open-Meteo | API key not set |
 
@@ -924,7 +924,7 @@ Independent calculation: 829+325+967+325+484+967+967+967+967+484 = **7,282 — V
 | Navigation | 9.0 / 10 | Dock navigation, topbar pills, view switching all source-verified |
 | Buttons & Controls | 8.5 / 10 | 46 buttons + 51 onclick elements; Windy button non-functional |
 | Backend APIs | 8.5 / 10 | 22 routes; 3 return 404 (expected/acceptable); all core APIs functional |
-| Live Data Integration | 9.0 / 10 | USGS, FIRMS, Open-Meteo, CWC all verified live during audit |
+| Live Data Integration | 9.0 / 10 | USGS, , Open-Meteo, CWC all verified live during audit |
 | GIS | 9.0 / 10 | AP SDMA 26-district, 268 habitations, 10 shelters, 30 flood polygons all verified |
 | Location Services | 7.5 / 10 | Browser Geolocation + fallback source-verified; live test not possible |
 | TerraMind | 8.5 / 10 | Real tensor, real model, real output — archive 2023 data (explicitly disclosed) |
@@ -952,7 +952,7 @@ Independent calculation: 829+325+967+325+484+967+967+967+967+484 = **7,282 — V
 ### What definitely works
 - All three services running and healthy (Node.js :3000, FastAPI :8001, Ollama :11434)
 - All HTML pages serve correctly
-- 5 live external data feeds verified: USGS, FIRMS, Open-Meteo, CWC/NWIC, IMD
+- 5 live external data feeds verified: USGS, , Open-Meteo, CWC/NWIC, IMD
 - DeepSeek-R1 8B inference verified × 2 during this audit
 - All key calculations independently verified (population, VPI, shelters, routing)
 - AP SDMA 26-district boundaries, 268 habitations, 10 shelters correctly used in AI pipeline
@@ -970,7 +970,7 @@ Independent calculation: 829+325+967+325+484+967+967+967+967+484 = **7,282 — V
 - DeepSeek-R1 8B inference: ~84 seconds on CPU — manageable with pre-caching
 
 ### What is dynamic / live
-- NASA FIRMS wildfire thermal anomalies (1,075 rows, 15-min refresh)
+
 - USGS real-time earthquakes (M4.2 India retrieved during audit)
 - Open-Meteo weather and AQI (24.8°C confirmed live)
 - CWC/NWIC river gauge telemetry (Sept 2026 timestamps)

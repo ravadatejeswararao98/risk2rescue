@@ -149,8 +149,9 @@
     window._dsmReprobeRow = async function (sourceId, btn) {
       if (!btn) return;
       btn.disabled = true;
-      const orig = btn.textContent;
-      btn.textContent = '<i class="fi fi-rr-hourglass"></i>';
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<i class="fi fi-rr-hourglass"></i>';
+      btn.style.opacity = '0.5';
       try {
         const resp = await fetch('/api/sources/health?refresh=1');
         if (resp.ok) {
@@ -519,17 +520,7 @@
     // Immediate REST fetch (no cache bust on first load)
     triggerReprobe(false);
 
-    // Firestore realtime listener
-    function attachFirestoreListener() {
-      if (window.firebaseLive && typeof window.firebaseLive.onDatasources === 'function') {
-        window.firebaseLive.onDatasources((ds) => {
-          if (ds && ds.length > 0) renderPanelWithAutoRetry(ds);
-        });
-      } else {
-        setTimeout(attachFirestoreListener, 2000);
-      }
-    }
-    attachFirestoreListener();
+    // Live data is handled by Postgres polling now.
 
     // Listen for browser online event to immediately re-probe when internet reconnects
     window.addEventListener('online', () => {
