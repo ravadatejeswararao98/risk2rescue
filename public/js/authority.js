@@ -872,7 +872,6 @@ function renderHabitationsTable() {
 
   const habs = exposure ? exposure.habitations : window.REFERENCE_DATA.habitations;
 
-  // Group by district (optional, user said "grouped by district", but we can just sort by district then name)
   const sortedHabs = [...habs].sort((a, b) => {
     if (a.district !== b.district) return a.district.localeCompare(b.district);
     return a.name.localeCompare(b.name);
@@ -913,15 +912,15 @@ function renderHabitationsTable() {
     tr.onmouseover = () => tr.style.background = 'rgba(255,255,255,0.04)';
     tr.onmouseout = () => tr.style.background = 'transparent';
     
-    tr.innerHTML = \
-      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);">\</td>
-      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-weight:600; font-size:12px;">\</td>
-      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-size:12px;">\</td>
-      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); text-align:right; font-family:'JetBrains Mono',monospace; font-size:11px;">\</td>
-      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); text-align:center;">\ <span style="font-size:10px; color:var(--text-secondary); margin-left:4px;">\</span></td>
+    tr.innerHTML = `
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);">${totalDisplayed}</td>
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-weight:600; font-size:12px;">${hab.name}</td>
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-size:12px;">${hab.district || '--'}</td>
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); text-align:right; font-family:'JetBrains Mono',monospace; font-size:11px;">${(hab.pop || hab.censusPopulation || 0).toLocaleString()}</td>
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); text-align:center;">${badgeHtml} <span style="font-size:10px; color:var(--text-secondary); margin-left:4px;">${activeHazardName}</span></td>
       <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); text-align:right; font-size:11px; color:var(--text-secondary);">--</td>
       <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); text-align:right; font-size:11px; color:var(--text-secondary);">--</td>
-    \;
+    `;
     tbody.appendChild(tr);
   });
 
@@ -930,7 +929,7 @@ function renderHabitationsTable() {
   }
   
   const titleCount = document.getElementById('habitations-title-count');
-  if (titleCount) titleCount.textContent = \Habitations (\ Villages)\;
+  if (titleCount) titleCount.textContent = `Habitations (${totalDisplayed} Villages)`;
 }
 
 window.renderHabitationsTable = renderHabitationsTable;
@@ -2239,7 +2238,7 @@ function resolvePlaceData(lat, lng, explicitPlace) {
 
   if (explicitPlace && typeof explicitPlace === 'object') {
     const rawName = explicitPlace.name || explicitPlace.village_name || explicitPlace.zone || 'Selected Location';
-    const cleanName = rawName.replace(/\s+Mandal$/i, '');
+    const cleanName = rawName.replace(/s+Mandal$/i, '');
     const pLat = typeof explicitPlace.lat === 'number' ? explicitPlace.lat : lat;
     const pLng = typeof explicitPlace.lng === 'number' ? explicitPlace.lng : (typeof explicitPlace.lon === 'number' ? explicitPlace.lon : lng);
 
@@ -2349,7 +2348,7 @@ function resolvePlaceData(lat, lng, explicitPlace) {
       const mandals = window.RZILocationService.getAPMandals();
       mandals.forEach(m => {
         candidates.push({
-          name: m.name.replace(/\s+Mandal$/i, ''),
+          name: m.name.replace(/s+Mandal$/i, ''),
           fullName: m.name,
           lat: m.lat,
           lng: m.lng,
@@ -2367,7 +2366,7 @@ function resolvePlaceData(lat, lng, explicitPlace) {
       if (Array.isArray(hz.zones)) {
         hz.zones.forEach(z => {
           candidates.push({
-            name: (z.village_name || z.name).replace(/\s+Coastal Landfall Corridor$/i, '').replace(/\s+Coastal Sector$/i, ''),
+            name: (z.village_name || z.name).replace(/s+Coastal Landfall Corridor$/i, '').replace(/s+Coastal Sector$/i, ''),
             fullName: z.village_name || z.name,
             lat: z.epicenter ? z.epicenter.lat : z.lat,
             lng: z.epicenter ? z.epicenter.lng : z.lng,
@@ -2489,7 +2488,7 @@ function showPlaceInformationCard(place, clickCoords) {
   const popFormatted = Number(place.population || 0).toLocaleString();
   const latFormatted = Number(place.lat).toFixed(4);
   const lngFormatted = Number(place.lng).toFixed(4);
-  const escapedName = (place.name || '').replace(/'/g, "\\'");
+  const escapedName = (place.name || '').replace(/'/g, "'");
 
   const popupHtml = `
     <div class="authority-place-card">
@@ -3349,7 +3348,7 @@ function renderCommandAlertFeed(alerts = []) {
       tableBody.innerHTML = alerts.map(a => {
         const sevClass = (a.severity || 'Moderate').toLowerCase() === 'critical' ? 'risk-red' : (a.severity || 'Moderate').toLowerCase() === 'high' ? 'risk-orange' : 'risk-yellow';
         const hasCoords = Number.isFinite(Number(a.lat)) && Number.isFinite(Number(a.lng));
-        const safeTitle = (a.title || a.headline || 'Official Alert').replace(/'/g, "\\'");
+        const safeTitle = (a.title || a.headline || 'Official Alert').replace(/'/g, "'");
         return `<tr>
           <td><code>${escapeHtml(a.id || 'ALERT')}</code></td>
           <td>${escapeHtml(a.type || a.event || 'Advisory')}</td>
@@ -3728,7 +3727,7 @@ async function loadCWCRiverGauges() {
           <td><strong style="color: #0284c7;">${levelVal !== null ? Number(levelVal).toFixed(2) + ' m' + trendIcon : 'N/A'}</strong></td>
           <td><small style="color: var(--text-muted);">${st.observedAt || st.timestamp || 'Recent'}</small></td>
           <td>
-            ${lat && lon ? `<button class="btn btn-glass" style="padding: 2px 7px; font-size: 11px;" onclick="locateEntity({name:'${stName.replace(/'/g, "\\'")} River Gauge', lat:${lat}, lng:${lon}, zoom:14, level:'ORANGE', desc:'${rivName} (${st.basin}) &bull; Water Level: ${levelVal !== null ? Number(levelVal).toFixed(2) + ' m' : 'N/A'}'}, event)">Locate 🔍</button>` : '-'}
+            ${lat && lon ? `<button class="btn btn-glass" style="padding: 2px 7px; font-size: 11px;" onclick="locateEntity({name:'${stName.replace(/'/g, "'")} River Gauge', lat:${lat}, lng:${lon}, zoom:14, level:'ORANGE', desc:'${rivName} (${st.basin}) &bull; Water Level: ${levelVal !== null ? Number(levelVal).toFixed(2) + ' m' : 'N/A'}'}, event)">Locate 🔍</button>` : '-'}
           </td>
         </tr>
       `;
@@ -4141,7 +4140,7 @@ function allocateEmergencyZone(options = {}) {
         <div style="font-size:11px; color:#dc2626; font-weight:600; padding:6px; background:#fef2f2; border-radius:4px; margin-bottom:10px;">
           Radius: ${(radius/1000).toFixed(1)} km &bull; Directives: Evacuate immediately
         </div>
-        <button type="button" onclick="if(window.revokeAuthorityZone) window.revokeAuthorityZone('${name.replace(/'/g, "\\'")}')" style="width:100%; padding:6px; background:#ef4444; color:#fff; border:none; border-radius:6px; font-weight:600; font-size:12px; cursor:pointer;">
+        <button type="button" onclick="if(window.revokeAuthorityZone) window.revokeAuthorityZone('${name.replace(/'/g, "'")}')" style="width:100%; padding:6px; background:#ef4444; color:#fff; border:none; border-radius:6px; font-weight:600; font-size:12px; cursor:pointer;">
           Revoke Zone
         </button>
       </div>
@@ -4646,10 +4645,10 @@ function renderPriorityRankingTable(data) {
     const hLat = (typeof h.lat === 'number' && !isNaN(h.lat)) ? h.lat : (typeof h.latitude === 'number' ? h.latitude : null);
     const hLng = (typeof h.lng === 'number' && !isNaN(h.lng)) ? h.lng : (typeof h.longitude === 'number' ? h.longitude : (typeof h.lon === 'number' ? h.lon : null));
 
-    const safeName = (h.name || '').replace(/'/g, "\\'");
-    const safeDistrict = (h.district || '').replace(/'/g, "\\'");
-    const safeAction = (h.recommendedAction || '').replace(/'/g, "\\'");
-    const safeTier = (h.priorityLevel || 'MODERATE').replace(/'/g, "\\'");
+    const safeName = (h.name || '').replace(/'/g, "'");
+    const safeDistrict = (h.district || '').replace(/'/g, "'");
+    const safeAction = (h.recommendedAction || '').replace(/'/g, "'");
+    const safeTier = (h.priorityLevel || 'MODERATE').replace(/'/g, "'");
 
     // Store explanation data in lookup table (robust against special characters & apostrophes)
     const explainId = `explain-${rankNum}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -5139,7 +5138,7 @@ function renderSafeSitesCapacity(data) {
             ✏️ Update Occupancy
           </button>
           ${s.lat && s.lng ? `
-            <button class="btn btn-glass" style="font-size:11px; padding:6px 10px; color:#16a34a; border-color:rgba(22,163,74,0.3);" onclick="locateEntity({name:'${s.name.replace(/'/g, "\\'")}', lat:${s.lat}, lng:${s.lng}, zoom:14, level:'SAFE', desc:'Designated Relief Shelter (Cap: ${(cap || 2500).toLocaleString()}, Estimated Occ: ${hasOcc ? occ.toLocaleString() : 'UNKNOWN'})'}, event)" title="Locate Shelter on GIS Map">
+            <button class="btn btn-glass" style="font-size:11px; padding:6px 10px; color:#16a34a; border-color:rgba(22,163,74,0.3);" onclick="locateEntity({name:'${s.name.replace(/'/g, "'")}', lat:${s.lat}, lng:${s.lng}, zoom:14, level:'SAFE', desc:'Designated Relief Shelter (Cap: ${(cap || 2500).toLocaleString()}, Estimated Occ: ${hasOcc ? occ.toLocaleString() : 'UNKNOWN'})'}, event)" title="Locate Shelter on GIS Map">
               🗺️ Locate
             </button>
           ` : ''}
@@ -5440,8 +5439,8 @@ function parseDecisionBriefSections(rawText) {
     'LIMITATIONS / CONFIDENCE'
   ];
 
-  const headerPattern = requiredSections.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-  const regex = new RegExp('(?:###\\s*|\\*\\*|#\\s*)?(' + headerPattern + ')[\\s:*\\-]*\\n([\\s\\S]*?)(?=(?:###\\s*|\\*\\*|#\\s*)?(?:' + headerPattern + ')|$)', 'gi');
+  const headerPattern = requiredSections.map(s => s.replace(/[.*+?^${}()|[]]/g, '$&')).join('|');
+  const regex = new RegExp('(?:###s*|**|#s*)?(' + headerPattern + ')[s:*-]*n([sS]*?)(?=(?:###s*|**|#s*)?(?:' + headerPattern + ')|$)', 'gi');
 
   const result = {};
   let match;
@@ -5458,7 +5457,7 @@ function parseDecisionBriefSections(rawText) {
   // Fallback: If any section heading wasn't matched with newline, try broad search
   requiredSections.forEach(sec => {
     if (!result[sec]) {
-      const broadRegex = new RegExp('(?:###|\\*\\*|#)?\\s*' + sec.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\s:*\\-]*([\\s\\S]*?)(?=(?:###|\\*\\*|#)?\\s*(?:' + headerPattern + ')|$)', 'i');
+      const broadRegex = new RegExp('(?:###|**|#)?s*' + sec.replace(/[.*+?^${}()|[]]/g, '$&') + '[s:*-]*([sS]*?)(?=(?:###|**|#)?s*(?:' + headerPattern + ')|$)', 'i');
       const m = text.match(broadRegex);
       if (m && m[1]) result[sec] = m[1].trim();
     }
@@ -5473,7 +5472,7 @@ function formatSectionContent(text) {
   // Strip any <think> tags if still present
   let clean = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
-  const lines = clean.split('\n');
+  const lines = clean.split('n');
   let inList = false;
   let html = '';
 
@@ -5485,18 +5484,18 @@ function formatSectionContent(text) {
     }
 
     // Check for bullet lines
-    const bulletMatch = line.match(/^[-*•]\s+(.*)$/) || line.match(/^\d+\.\s+(.*)$/);
+    const bulletMatch = line.match(/^[-*•]s+(.*)$/) || line.match(/^d+.s+(.*)$/);
     if (bulletMatch) {
       if (!inList) {
         html += '<ul style="margin:4px 0 6px 18px; padding:0; list-style-type:disc;">';
         inList = true;
       }
       let content = bulletMatch[1];
-      content = content.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#f1f5f9;">$1</strong>');
+      content = content.replace(/**(.*?)**/g, '<strong style="color:#f1f5f9;">$1</strong>');
       html += `<li style="margin-bottom:5px; line-height:1.6; color:#cbd5e1;">${content}</li>`;
     } else {
       if (inList) { html += '</ul>'; inList = false; }
-      line = line.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#f1f5f9;">$1</strong>');
+      line = line.replace(/**(.*?)**/g, '<strong style="color:#f1f5f9;">$1</strong>');
       html += `<p style="margin:0 0 6px 0; line-height:1.6; color:#cbd5e1;">${line}</p>`;
     }
   }
@@ -6116,6 +6115,7 @@ function handleAuthorityLiveStateUpdate(data) {
 
 window.initAuthorityWebSocket = initAuthorityWebSocket;
 window.handleAuthorityLiveStateUpdate = handleAuthorityLiveStateUpdate;
+
 
 
 
