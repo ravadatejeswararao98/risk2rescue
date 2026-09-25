@@ -1,5 +1,47 @@
 [
   {
+    "id": "alert-1790309166119-299",
+    "timestamp": "2026-09-25T04:06:06.119Z",
+    "recipient": "incident-commander@ap-sdma.gov.in",
+    "sender": "alerts@resend.dev",
+    "subject": "🚨 [NDRF-SDMA ALERT] Kalingapatnam Port Corridor Cyclone - Coastal Landfall Corridor Escalated to ORANGE (CYCLONE)",
+    "provider": "Local Spool Log (Zero Cost / Offline Fallback)",
+    "status": "failed_resend_fallback_local",
+    "responseId": null,
+    "zone": "Kalingapatnam Port Corridor Cyclone - Coastal Landfall Corridor",
+    "tier": "ORANGE",
+    "population": 41975,
+    "preview": "Current operational picture shows calm conditions with no active RED zones and sensor telemetry indicating moderate gusts of 66.2 km/h, 1000 hPa pressure, and a maximum seismic reading of M3.6. Forecasts for the next 12 hours indicate no catastrophic peaks, and the historical recurrence multiplier remains at baseline 1.0×, so no escalation is expected. Sentinel‑1 satellite data are not configured for the latest observation, so no live confirmation of thermal anomaly or flood inundation can be provided at this time. Recommend maintaining readiness, continue monitoring for any unverified citizen reports, and prepare relocation resources for the listed deficit zones, noting that shelter occupancy telemetry is currently unknown."
+  },
+  {
+    "id": "alert-1790309164714-650",
+    "timestamp": "2026-09-25T04:06:04.714Z",
+    "recipient": "incident-commander@ap-sdma.gov.in",
+    "sender": "alerts@resend.dev",
+    "subject": "🚨 [NDRF-SDMA ALERT] Sompeta Coastal Reach Cyclone - Coastal Landfall Corridor Escalated to ORANGE (CYCLONE)",
+    "provider": "Local Spool Log (Zero Cost / Offline Fallback)",
+    "status": "failed_resend_fallback_local",
+    "responseId": null,
+    "zone": "Sompeta Coastal Reach Cyclone - Coastal Landfall Corridor",
+    "tier": "ORANGE",
+    "population": 55430,
+    "preview": "Current operational picture shows calm conditions with no active RED zones and sensor telemetry indicating moderate gusts of 66.2 km/h, 1000 hPa pressure, and a maximum seismic reading of M3.6. Forecasts for the next 12 hours indicate no catastrophic peaks, and the historical recurrence multiplier remains at baseline 1.0×, so no escalation is expected. Sentinel‑1 satellite data are not configured for the latest observation, so no live confirmation of thermal anomaly or flood inundation can be provided at this time. Recommend maintaining readiness, continue monitoring for any unverified citizen reports, and prepare relocation resources for the listed deficit zones, noting that shelter occupancy telemetry is currently unknown."
+  },
+  {
+    "id": "alert-1790309163934-506",
+    "timestamp": "2026-09-25T04:06:03.934Z",
+    "recipient": "incident-commander@ap-sdma.gov.in",
+    "sender": "alerts@resend.dev",
+    "subject": "🚨 [NDRF-SDMA ALERT] Palasa-Kasibugga Cyclone - Coastal Landfall Corridor Escalated to ORANGE (CYCLONE)",
+    "provider": "Local Spool Log (Zero Cost / Offline Fallback)",
+    "status": "failed_resend_fallback_local",
+    "responseId": null,
+    "zone": "Palasa-Kasibugga Cyclone - Coastal Landfall Corridor",
+    "tier": "ORANGE",
+    "population": 66133,
+    "preview": "Current operational picture shows calm conditions with no active RED zones and sensor telemetry indicating moderate gusts of 66.2 km/h, 1000 hPa pressure, and a maximum seismic reading of M3.6. Forecasts for the next 12 hours indicate no catastrophic peaks, and the historical recurrence multiplier remains at baseline 1.0×, so no escalation is expected. Sentinel‑1 satellite data are not configured for the latest observation, so no live confirmation of thermal anomaly or flood inundation can be provided at this time. Recommend maintaining readiness, continue monitoring for any unverified citizen reports, and prepare relocation resources for the listed deficit zones, noting that shelter occupancy telemetry is currently unknown."
+  },
+  {
     "id": "alert-1790279094417-432",
     "timestamp": "2026-09-24T19:44:54.417Z",
     "recipient": "incident-commander@ap-sdma.gov.in",
@@ -1356,47 +1398,5 @@
     "tier": "ORANGE",
     "population": 66133,
     "preview": "All sectors are currently maintaining stable low-to-moderate baselines. Automated sensor telemetry and 48-hour forward projections show no immediate threshold breaches across monitored habitations. Routine disaster grid surveillance and shelter readiness standbys remain active. Sentinel-1 observation (0b3e547f-7d81-4326-b0c7-bbf7003ff817) is catalogued; pixel-level surface anomaly processing is currently unavailable."
-  },
-  {
-    "id": "alert-1790230794629-908",
-    "timestamp": "2026-09-24T06:19:54.629Z",
-    "recipient": "incident-commander@ap-sdma.gov.in",
-    "sender": "alerts@resend.dev",
-    "subject": "🚨 [NDRF-SDMA ALERT] Srikakulam Urban Cyclone - Coastal Landfall Corridor Escalated to ORANGE (CYCLONE)",
-    "provider": "Local Spool Log (Zero Cost / Offline Fallback)",
-    "status": "failed_resend_fallback_local",
-    "responseId": null,
-    "zone": "Srikakulam Urban Cyclone - Coastal Landfall Corridor",
-    "tier": "ORANGE",
-    "population": 144830,
-    "preview": "All sectors are currently maintaining stable low-to-moderate baselines. Automated sensor telemetry and 48-hour forward projections show no immediate threshold breaches across monitored habitations. Routine disaster grid surveillance and shelter readiness standbys remain active. Sentinel-1 observation (0b3e547f-7d81-4326-b0c7-bbf7003ff817) is catalogued; pixel-level surface anomaly processing is currently unavailable."
-  },
-  {
-    "id": "alert-1790228287980-948",
-    "timestamp": "2026-09-24T05:38:07.980Z",
-    "recipient": "incident-commander@ap-sdma.gov.in",
-    "sender": "alerts@resend.dev",
-    "subject": "🚨 [NDRF-SDMA ALERT] Bheemunipatnam (Bheemili) Cyclone - Coastal Landfall Corridor Escalated to ORANGE (CYCLONE)",
-    "provider": "Local Spool Log (Zero Cost / Offline Fallback)",
-    "status": "failed_resend_fallback_local",
-    "responseId": null,
-    "zone": "Bheemunipatnam (Bheemili) Cyclone - Coastal Landfall Corridor",
-    "tier": "ORANGE",
-    "population": 63091,
-    "preview": "Current live sensor telemetry reports peak gusts of 63 km/h, a pressure of 994 hPa, and a maximum seismic reading of M3.6, with no active alerts or shelters approaching capacity. Satellite data from Sentinel‑1D was acquired at 2026‑09‑24T00:13:33.328486Z, but processing is unavailable and the latest surface water/flood inundation index is not configured, so no confirmed flooding is observed. Census baseline data show substantial deficits across multiple urban and coastal zones, and while the forecasted +12 h peak indicates no catastrophic events, continued monitoring and readiness for potential escalation remain essential."
-  },
-  {
-    "id": "alert-1790228287658-631",
-    "timestamp": "2026-09-24T05:38:07.658Z",
-    "recipient": "incident-commander@ap-sdma.gov.in",
-    "sender": "alerts@resend.dev",
-    "subject": "🚨 [NDRF-SDMA ALERT] Bobbili Cyclone - Coastal Landfall Corridor Escalated to ORANGE (CYCLONE)",
-    "provider": "Local Spool Log (Zero Cost / Offline Fallback)",
-    "status": "failed_resend_fallback_local",
-    "responseId": null,
-    "zone": "Bobbili Cyclone - Coastal Landfall Corridor",
-    "tier": "ORANGE",
-    "population": 65342,
-    "preview": "Current live sensor telemetry reports peak gusts of 63 km/h, a pressure of 994 hPa, and a maximum seismic reading of M3.6, with no active alerts or shelters approaching capacity. Satellite data from Sentinel‑1D was acquired at 2026‑09‑24T00:13:33.328486Z, but processing is unavailable and the latest surface water/flood inundation index is not configured, so no confirmed flooding is observed. Census baseline data show substantial deficits across multiple urban and coastal zones, and while the forecasted +12 h peak indicates no catastrophic events, continued monitoring and readiness for potential escalation remain essential."
   }
 ]

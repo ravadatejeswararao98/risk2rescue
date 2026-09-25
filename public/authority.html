@@ -158,6 +158,14 @@
         <button class="view-switch-btn" id="btn-mode-windy" onclick="setAuthorityBasemap('windy')" title="Show Windy Radar Overlay (Live Precipitation)"><i class="fi fi-rr-wind" aria-hidden="true"></i> Windy Radar</button>
       </div>
 
+      <!-- Pill 2.5: Search Bar (Restored Citizen-Style) -->
+      <div id="authority-search-pill" class="windy-search-pill topbar-pill">
+        <span class="windy-search-icon" id="authority-search-btn"><i class="fi fi-rr-search" aria-hidden="true"></i></span>
+        <input type="text" id="authority-search" class="windy-search-input" placeholder="Search a city, district or zone..." autocomplete="off">
+        <button id="authority-search-clear" class="windy-search-clear">&times;</button>
+        <div id="authority-search-dropdown" class="windy-search-dropdown"></div>
+      </div>
+
       <!-- Pill 3: View Title -->
       <div class="topbar-pill" style="display:flex; align-items:center; gap:8px;">
         <span id="topbar-view-title" style="font-weight:700; color:#0f172a; font-size:13px;">Live GIS Risk Map</span>
