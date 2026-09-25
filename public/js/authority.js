@@ -6,41 +6,7 @@ let authMapInstance = null;
 window.currentPriorityData = window.currentPriorityData || null;
 
 // Built-in Toast Notification for Authority Dashboard
-function showToast(msg, type = 'info') {
-  const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', danger: '[ALERT]' };
-  let container = document.getElementById('toast-container');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'toast-container';
-    container.style.cssText = 'position:fixed;bottom:80px;right:30px;z-index:99999;display:flex;flex-direction:column;gap:8px;pointer-events:none;';
-    document.body.appendChild(container);
-  }
-
-  const toast = document.createElement('div');
-  const borderColors = { info: '#1d4ed8', success: '#059669', warning: '#d97706', danger: '#dc2626' };
-  const bgColors = { info: '#eff6ff', success: '#ecfdf5', warning: '#fffbeb', danger: '#fef2f2' };
-
-  toast.style.cssText = `
-    background: ${bgColors[type] || '#ffffff'};
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(15, 23, 42, 0.12);
-    border-left: 4px solid ${borderColors[type] || borderColors.info};
-    color: #0f172a;
-    border-radius: 12px; padding: 10px 16px;
-    display: flex; align-items: center; gap: 10px;
-    font-size: 12px; font-weight: 600;
-    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
-    max-width: 360px; pointer-events: all;
-  `;
-  toast.innerHTML = `<span>${icons[type] || 'ℹ️'}</span><span>${msg}</span>`;
-  container.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transition = 'opacity 0.3s ease';
-    setTimeout(() => toast.remove(), 300);
-  }, 4000);
-}
+function showToast(msg, type = 'info') { console.log('Toast (' + type + '): ' + msg); }
 // ---- Dynamic Sync for Floating Content Panel & Icon Rail Layout ----
 function syncFloatingLayout() {
   const topbar = document.getElementById('map-topbar');
@@ -145,9 +111,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
 
   
   if (params.get('test_mobile_drawer') === '1') {
-    const sidebar = document.getElementById('sidebar');
     const backdrop = document.getElementById('sidebar-backdrop');
-    if (sidebar) sidebar.classList.add('mobile-open');
     if (backdrop) backdrop.classList.add('active');
   }
 
@@ -676,8 +640,7 @@ function switchView(viewKey) {
     'data-log':        'Data Source Log'
   };
 
-  const titleEl = document.getElementById('topbar-view-title');
-  if (titleEl) titleEl.textContent = titleMap[viewKey] || 'Home';
+  // topbar-view-title removed
   try {
     updateAIExplanation(viewKey);
   } catch (e) {
@@ -2787,32 +2750,7 @@ function openZoneInfoPanel(zone, lat, lng) {
       
       document.getElementById('zip-content').style.display = 'flex';
 
-      // 48h Chart
-      if (window.zipChartInst) window.zipChartInst.destroy();
-      const ctx = document.getElementById('zip-forecast-chart').getContext('2d');
-      if (data.hourly && data.hourly.time) {
-        window.zipChartInst = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: data.hourly.time.map(t => new Date(t).getHours() + ':00'),
-            datasets: [
-              { label: 'Wind (km/h)', data: data.hourly.wind_speed_10m, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', tension: 0.3, yAxisID: 'y', fill: true },
-              { label: 'Rain (mm)', data: data.hourly.precipitation, borderColor: '#0ea5e9', borderDash: [4, 4], tension: 0.3, yAxisID: 'y1' }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            scales: {
-              x: { ticks: { maxTicksLimit: 6, font: {size: 9} }, grid: {display: false} },
-              y: { position: 'left', title: {display: true, text: 'km/h', font: {size:9}}, ticks: {font: {size: 9}} },
-              y1: { position: 'right', title: {display: true, text: 'mm', font: {size:9}}, grid: {drawOnChartArea: false}, ticks: {font: {size: 9}} }
-            },
-            plugins: { legend: { labels: {boxWidth: 8, font: {size: 9}} } }
-          }
-        });
-      }
+      
 
       // Secondary fetch for AQI
       return fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=us_aqi,pm10,pm2_5`);
@@ -2887,84 +2825,7 @@ function inspectEntity(entity, event) {
     }
   }
 
-  const factorsCell = document.getElementById('iem-priority-factors-cell');
-  if (factorsCell) {
-    if (entity.factors) {
-      factorsCell.style.display = 'block';
-      const f = entity.factors;
-      const hazardVal = f.hazardSeverity ?? null;
-      const popVal = f.populationAtRisk ?? null;
-      const vulnVal = f.vulnerability ?? null;
-      const lifeVal = f.immediateLifeRisk ?? null;
-      const urgVal = f.responseUrgency ?? null;
-      const accVal = f.accessibility ?? null;
-
-      const factorHtml = (label, weight, val, color) => {
-        const isUnavail = val === null || val === undefined || isNaN(val);
-        let displayVal = val;
-        if (isUnavail) {
-          let warningReason = 'Data missing';
-          if (label === 'Population Risk') warningReason = 'No population matched';
-          else if (label === 'Hazard Severity') warningReason = 'Zone not matched';
-          else if (label === 'Vulnerability') warningReason = 'No census data for district';
-          else if (label === 'Immediate Life Risk') warningReason = 'No life risk reported';
-          else if (label === 'Response Urgency') warningReason = 'ETA not available';
-          else if (label === 'Accessibility') warningReason = 'No usable route data';
-          
-          console.warn(`[Authority] Priority Engine missing factor for incident ID ${entity.id || entity.name}: ${label} - ${warningReason}`);
-          displayVal = `Not available &ndash; ${warningReason}`;
-        }
-        
-        const barWidth = isUnavail ? 0 : Math.min(100, Math.max(0, val));
-        const barColor = isUnavail ? '#94a3b8' : color;
-        return `
-          <div style="margin-bottom:6px;">
-            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:2px;">
-              <span style="color:#475569;">${label} <span style="font-weight:600;">(${weight})</span></span>
-              <span style="font-weight:600; color:${isUnavail ? '#b91c1c' : '#0f172a'};">${displayVal}${isUnavail?'':'/100'}</span>
-            </div>
-            <div style="height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden;">
-              <div style="height:100%; width:${barWidth}%; background:${barColor}; border-radius:3px;"></div>
-            </div>
-          </div>
-        `;
-      };
-
-      const factorsGrid = document.getElementById('iem-factors-grid');
-      if (factorsGrid) {
-        factorsGrid.innerHTML = `
-          <div>
-            ${factorHtml('Hazard Severity', '25%', hazardVal, '#ef4444')}
-            ${factorHtml('Population Risk', '20%', popVal, '#f97316')}
-            ${factorHtml('Vulnerability', '15%', vulnVal, '#eab308')}
-          </div>
-          <div>
-            ${factorHtml('Immediate Life Risk', '15%', lifeVal, '#dc2626')}
-            ${factorHtml('Response Urgency', '15%', urgVal, '#8b5cf6')}
-            ${factorHtml('Accessibility', '10%', accVal, '#0284c7')}
-          </div>
-        `;
-      }
-
-      const scoreEl = document.getElementById('iem-score');
-      if (scoreEl) scoreEl.textContent = entity.score !== undefined && entity.score !== null ? entity.score : 'N/A';
-
-      const provEl = document.getElementById('iem-provenance');
-      if (provEl) {
-        const p = entity.provenance || {};
-        provEl.innerHTML = `
-          <div>&bull; <strong>Hazard:</strong> ${p.hazardSeverity?.description || p.hazardSeverity || 'Priority Engine Default/Inferred'}</div>
-          <div>&bull; <strong>Population:</strong> ${p.populationAtRisk?.description || p.populationAtRisk || 'Priority Engine Default/Inferred'}</div>
-          <div>&bull; <strong>Vulnerability:</strong> ${p.vulnerability?.description || p.vulnerability || 'Priority Engine Default/Inferred'}</div>
-          <div>&bull; <strong>Life Risk:</strong> ${p.immediateLifeRisk?.description || p.immediateLifeRisk || 'Priority Engine Default/Inferred'}</div>
-          <div>&bull; <strong>Routing/ETA:</strong> ${p.responseUrgency?.description || p.responseUrgency || 'Priority Engine Default/Inferred'}</div>
-          <div>&bull; <strong>Access:</strong> ${p.accessibility?.description || p.accessibility || 'Priority Engine Default/Inferred'}</div>
-        `;
-      }
-    } else {
-      factorsCell.style.display = 'none';
-    }
-  }
+  // iem-priority-factors-cell logic removed
 
   if (coordsEl) {
     const lat = Number(entity.lat ?? entity.latitude);
@@ -3349,28 +3210,7 @@ function openAiDiagnostics() {
 }
 window.openAiDiagnostics = openAiDiagnostics;
 
-function updateAiConfidenceBadge(confidence = null) {
-  const badge = document.getElementById('topbar-ai-confidence-badge');
-  const valEl = document.getElementById('topbar-ai-confidence-val');
-  if (!badge || !valEl) return;
-  badge.classList.remove('conf-high', 'conf-med', 'conf-low');
-  if (typeof confidence === 'number' && Number.isFinite(confidence)) {
-    valEl.textContent = confidence.toFixed(1) + '%';
-    if (confidence >= 85) {
-      badge.classList.add('conf-high');
-    } else if (confidence >= 70) {
-      badge.classList.add('conf-med');
-    } else {
-      badge.classList.add('conf-low');
-    }
-  } else if (typeof confidence === 'string' && confidence.trim()) {
-    valEl.textContent = confidence;
-    badge.classList.add('conf-high');
-  } else {
-    valEl.textContent = 'Active';
-    badge.classList.add('conf-high');
-  }
-}
+function updateAiConfidenceBadge(confidence = null) { return; }
 window.updateAiConfidenceBadge = updateAiConfidenceBadge;
 
 // ---- Command Center KPIs & Alerts ----
@@ -3889,7 +3729,7 @@ function renderVerificationQueue() {
   });
 
   // Dynamically update sidebar and dock queue badges
-  ['sidebar-queue-badge', 'dock-queue-badge'].forEach(id => {
+  ['dock-queue-badge'].forEach(id => {
     const badge = document.getElementById(id);
     if (badge) {
       badge.textContent = pending.length > 99 ? '99+' : pending.length;
@@ -4972,9 +4812,7 @@ function showPriorityExplanation(explainId) {
           <span>🤖</span>
           <span>DeepSeek Tactical AI Command Briefing</span>
         </div>
-        <button class="btn btn-primary" style="font-size:11.5px; padding:5px 14px; border-radius:999px;" onclick="fetchAIExplanationForIncident('${briefingKey}')" id="btn-fetch-explanation">
-          Ask DeepSeek for Briefing
-        </button>
+        
       </div>
       <div id="ai-briefing-result" style="font-size:12.5px; color:var(--text-primary); line-height:1.6; background:#ffffff; border:1px solid rgba(15,23,42,0.08); padding:12px 14px; border-radius:10px; display:none;"></div>
     </div>
@@ -5016,10 +4854,7 @@ async function fetchAIExplanationForIncident(keyOrData) {
 
   if (!data) return;
 
-  const btn = document.getElementById('btn-fetch-explanation');
   const resDiv = document.getElementById('ai-briefing-result');
-  
-  if(btn) btn.innerHTML = '⏳ Generating...';
   
   try {
     const liveWeather = (typeof LiveState !== 'undefined') ? LiveState.get().weather : null;
@@ -5598,10 +5433,7 @@ function renderDecisionBriefLoading(seconds = 0) {
 }
 
 function updateDecisionBriefLoadingTimer(seconds) {
-  const subtext = document.getElementById('dsb-loading-subtext');
-  if (subtext) {
-    subtext.innerHTML = `Elapsed: ${seconds}s &bull; DeepSeek-R1 8B CPU inference in progress via LangChain / Ollama`;
-  }
+  // dsb-loading-subtext removed
 }
 
 function renderDecisionBriefError(errMsg) {
@@ -6193,6 +6025,8 @@ function handleAuthorityLiveStateUpdate(data) {
 
 window.initAuthorityWebSocket = initAuthorityWebSocket;
 window.handleAuthorityLiveStateUpdate = handleAuthorityLiveStateUpdate;
+
+
 
 
 
