@@ -2725,7 +2725,7 @@ function openZoneInfoPanel(zone, lat, lng) {
      let targetZone = zone;
      if (!targetZone.polygon && window.authMapInstance && window.authMapInstance.hazardPolygons) {
        const matched = window.authMapInstance.hazardPolygons.find(hp => hp.id === zone.id || hp.name === zone.name);
-       if (matched && matched.polygon) targetZone = matched;
+       if (matched && matched.polygon) targetZone = { ...zone, polygon: matched.polygon };
      }
      if (targetZone.polygon) {
        const exp = computeHazardExposure([targetZone], window.REFERENCE_DATA.habitations || [], window.REFERENCE_DATA.safeSites || []);
@@ -2786,7 +2786,7 @@ function openZoneInfoPanel(zone, lat, lng) {
   document.getElementById('zip-pop-risk').textContent = (zone.stats && zone.stats.population) ? zone.stats.population.toLocaleString() : 'Est. 100,000+';
   document.getElementById('zip-coords').textContent = `${lat.toFixed(2)}° N, ${lng.toFixed(2)}° E`;
 
-  let habs = 'Pending Analysis...';
+  let habs = '0 habitations in impact sector';
   if (zone.stats && zone.stats.habitations && zone.stats.habitations.length) {
     habs = zone.stats.habitations.slice(0, 5).map(h => h.name || h.id).join(', ');
     if (zone.stats.habitations.length > 5) habs += ` (and ${zone.stats.habitations.length - 5} more)`;
@@ -2795,7 +2795,7 @@ function openZoneInfoPanel(zone, lat, lng) {
   }
   document.getElementById('zip-habitations').textContent = habs;
 
-  let sites = 'No immediate sites mapped';
+  let sites = '0 designated safe sites within range';
   if (zone.stats && zone.stats.shelters && zone.stats.shelters.length) {
     sites = zone.stats.shelters.slice(0, 2).map(s => `${s.name} (${s.beds || 0} beds available)`).join('<br/>');
   }
