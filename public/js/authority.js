@@ -856,25 +856,32 @@ function renderHabitationsTable() {
     return;
   }
   
-  const activeZones = (window.APP_DATA && window.APP_DATA.riskZones) ? window.APP_DATA.riskZones : [];
-  if (window.authMapInstance && window.authMapInstance.hazardPolygons) {
-    window.authMapInstance.hazardPolygons.forEach(hp => {
-      if (!activeZones.find(z => (z.id || z.name) === (hp.id || hp.name))) {
-         activeZones.push(hp);
-      }
-    });
-  }
+  const baseZones = (window.APP_DATA && window.APP_DATA.riskZones) ? [...window.APP_DATA.riskZones] : [];
+  const mapPolys = (window.authMapInstance && window.authMapInstance.hazardPolygons) ? window.authMapInstance.hazardPolygons : [];
+  
+  // Merge live zone state with polygon geometries
+  const mergedZones = baseZones.map(z => {
+    const match = mapPolys.find(hp => (hp.id || hp.name) === (z.id || z.name));
+    return match ? { ...z, polygon: match.polygon } : z;
+  });
+  
+  // Add any pure UI-drawn map polygons that aren't in APP_DATA
+  mapPolys.forEach(hp => {
+    if (!mergedZones.find(z => (z.id || z.name) === (hp.id || hp.name))) {
+      mergedZones.push(hp);
+    }
+  });
   
   let exposure = null;
   if (typeof computeHazardExposure === 'function') {
-    exposure = computeHazardExposure(activeZones, window.REFERENCE_DATA.habitations, window.REFERENCE_DATA.safeSites || []);
+    exposure = computeHazardExposure(mergedZones, window.REFERENCE_DATA.habitations, window.REFERENCE_DATA.safeSites || []);
   }
 
   const habs = exposure ? exposure.habitations : window.REFERENCE_DATA.habitations;
 
   const sortedHabs = [...habs].sort((a, b) => {
-    if (a.district !== b.district) return a.district.localeCompare(b.district);
-    return a.name.localeCompare(b.name);
+    if (a.district !== b.district) return (a.district || '').localeCompare(b.district || '');
+    return (a.name || '').localeCompare(b.name || '');
   });
 
   sortedHabs.forEach(hab => {
@@ -896,7 +903,7 @@ function renderHabitationsTable() {
     else if (riskTier === 'MODERATE' || riskTier === 'YELLOW') { riskTier = 'YELLOW'; activeHazardName = activeHazardName !== 'None' ? activeHazardName : 'Advisory'; }
     else { riskTier = 'GREEN'; activeHazardName = 'None'; }
     
-    if (q && !hab.name.toLowerCase().includes(q) && !(hab.district && hab.district.toLowerCase().includes(q))) return;
+    if (q && !(hab.name || '').toLowerCase().includes(q) && !(hab.district && hab.district.toLowerCase().includes(q))) return;
     if (filter !== 'ALL' && riskTier !== filter) return;
 
     totalDisplayed++;
@@ -6115,6 +6122,7 @@ function handleAuthorityLiveStateUpdate(data) {
 
 window.initAuthorityWebSocket = initAuthorityWebSocket;
 window.handleAuthorityLiveStateUpdate = handleAuthorityLiveStateUpdate;
+
 
 
 
