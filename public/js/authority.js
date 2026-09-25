@@ -844,10 +844,6 @@ function renderHabitationsTable() {
   if (!tbody) return;
   tbody.innerHTML = '';
   
-  const apDistricts = {
-    "Alluri Sitharama Raju":[17.89,82.2],"Anakapalli":[17.7,82.9],"Ananthapuramu":[14.68,77.6],"Annamayya":[14.15,78.85],"Bapatla":[15.9,80.47],"Chittoor":[13.22,79.1],"Dr. B.R. Ambedkar Konaseema":[16.62,82.02],"East Godavari":[17,81.78],"Eluru":[16.71,81.1],"Guntur":[16.3,80.44],"Kakinada":[16.98,82.24],"Krishna":[16.18,81.13],"Kurnool":[15.83,78.03],"Nandyal":[15.48,78.48],"NTR":[16.51,80.62],"Palnadu":[16.35,79.8],"Parvathipuram Manyam":[18.78,83.43],"Prakasam":[15.51,80.05],"SPSR Nellore":[14.44,79.99],"Sri Sathya Sai":[14.17,77.8],"Srikakulam":[18.3,83.9],"Tirupati":[13.63,79.41],"Visakhapatnam":[17.69,83.22],"Vizianagaram":[18.11,83.4],"West Godavari":[16.54,81.53],"Y.S.R. Kadapa":[14.47,78.82]
-  };
-
   const searchInput = document.getElementById('habitation-search');
   const filterInput = document.getElementById('habitation-hazard-filter');
   const q = searchInput ? searchInput.value.toLowerCase() : '';
@@ -855,52 +851,53 @@ function renderHabitationsTable() {
   
   let totalDisplayed = 0;
   
-  Object.keys(apDistricts).sort().forEach((dist) => {
-    let riskTier = 'GREEN';
-    let activeHazard = 'None';
-    
-    const activeZoneIds = new Set();
-    const rankMap = { 'GREEN': 1, 'LOW': 1, 'HISTORICAL': 2, 'YELLOW': 3, 'MODERATE': 3, 'ORANGE': 4, 'HIGH': 4, 'RED': 5, 'CRITICAL': 5 };
-    let maxRank = 0;
-
-    const liveZones = (window.APP_DATA && window.APP_DATA.riskZones) || [];
-    liveZones.forEach(z => {
-         const inZone = z.district?.toLowerCase() === dist.toLowerCase() || (z.districts && z.districts.some(d => d.toLowerCase() === dist.toLowerCase()));
-         if (inZone) {
-           activeZoneIds.add(z.id || z.name);
-           const level = (z.level || z.current_tier || 'GREEN').toUpperCase();
-           if ((rankMap[level] || 1) > maxRank) {
-             maxRank = rankMap[level] || 1;
-             riskTier = level;
-             activeHazard = z.hazardType ? z.hazardType.charAt(0).toUpperCase() + z.hazardType.slice(1) : 'Active Hazard';
-           }
-         }
+  if (!window.REFERENCE_DATA || !window.REFERENCE_DATA.habitations) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px; color: var(--text-secondary);">No reference data loaded.</td></tr>';
+    return;
+  }
+  
+  const activeZones = (window.APP_DATA && window.APP_DATA.riskZones) ? window.APP_DATA.riskZones : [];
+  if (window.authMapInstance && window.authMapInstance.hazardPolygons) {
+    window.authMapInstance.hazardPolygons.forEach(hp => {
+      if (!activeZones.find(z => (z.id || z.name) === (hp.id || hp.name))) {
+         activeZones.push(hp);
+      }
     });
+  }
+  
+  let exposure = null;
+  if (typeof computeHazardExposure === 'function') {
+    exposure = computeHazardExposure(activeZones, window.REFERENCE_DATA.habitations, window.REFERENCE_DATA.safeSites || []);
+  }
 
-    if (window.authMapInstance && window.authMapInstance.hazardPolygons) {
-       const pt = (typeof window.turf !== 'undefined') ? window.turf.point([apDistricts[dist][1], apDistricts[dist][0]]) : null;
-       window.authMapInstance.hazardPolygons.forEach(hp => {
-         if (hp.polygon && pt && window.turf.booleanPointInPolygon(pt, hp.polygon)) {
-           activeZoneIds.add(hp.id || hp.name || hp.hazardType);
-           const level = (hp.level || 'MODERATE').toUpperCase();
-           if ((rankMap[level] || 1) > maxRank) {
-             maxRank = rankMap[level] || 1;
-             riskTier = level;
-             activeHazard = hp.hazardType ? hp.hazardType.charAt(0).toUpperCase() + hp.hazardType.slice(1) : 'Active Hazard';
-           }
-         }
+  const habs = exposure ? exposure.habitations : window.REFERENCE_DATA.habitations;
+
+  // Group by district (optional, user said "grouped by district", but we can just sort by district then name)
+  const sortedHabs = [...habs].sort((a, b) => {
+    if (a.district !== b.district) return a.district.localeCompare(b.district);
+    return a.name.localeCompare(b.name);
+  });
+
+  sortedHabs.forEach(hab => {
+    let riskTier = hab.maxSeverity || 'GREEN';
+    let activeHazardName = 'None';
+    
+    if (hab.exposedZones && hab.exposedZones.length > 0) {
+       const highest = hab.exposedZones.reduce((prev, curr) => {
+         const rankMap = { 'GREEN': 1, 'YELLOW': 3, 'MODERATE': 3, 'ORANGE': 4, 'HIGH': 4, 'RED': 5, 'CRITICAL': 5 };
+         const currRank = rankMap[(curr.level || curr.current_tier || 'GREEN').toUpperCase()] || 1;
+         const prevRank = rankMap[(prev.level || prev.current_tier || 'GREEN').toUpperCase()] || 1;
+         return currRank > prevRank ? curr : prev;
        });
+       activeHazardName = highest.hazardType ? highest.hazardType.charAt(0).toUpperCase() + highest.hazardType.slice(1) : (highest.name || 'Active Hazard');
     }
 
-    if (riskTier === 'CRITICAL' || riskTier === 'RED') { riskTier = 'RED'; activeHazard = activeHazard !== 'None' ? activeHazard : 'High Threat'; }
-    else if (riskTier === 'HIGH ALERT' || riskTier === 'HIGH' || riskTier === 'ORANGE') { riskTier = 'ORANGE'; activeHazard = activeHazard !== 'None' ? activeHazard : 'Monitoring'; }
-    else if (riskTier === 'MODERATE' || riskTier === 'YELLOW') { riskTier = 'YELLOW'; activeHazard = activeHazard !== 'None' ? activeHazard : 'Advisory'; }
-    else { riskTier = 'GREEN'; activeHazard = 'None'; }
+    if (riskTier === 'CRITICAL' || riskTier === 'RED') { riskTier = 'RED'; activeHazardName = activeHazardName !== 'None' ? activeHazardName : 'High Threat'; }
+    else if (riskTier === 'HIGH ALERT' || riskTier === 'HIGH' || riskTier === 'ORANGE') { riskTier = 'ORANGE'; activeHazardName = activeHazardName !== 'None' ? activeHazardName : 'Monitoring'; }
+    else if (riskTier === 'MODERATE' || riskTier === 'YELLOW') { riskTier = 'YELLOW'; activeHazardName = activeHazardName !== 'None' ? activeHazardName : 'Advisory'; }
+    else { riskTier = 'GREEN'; activeHazardName = 'None'; }
     
-    const activeZones = activeZoneIds.size;
-    
-    // Apply Filters
-    if (q && !dist.toLowerCase().includes(q)) return;
+    if (q && !hab.name.toLowerCase().includes(q) && !(hab.district && hab.district.toLowerCase().includes(q))) return;
     if (filter !== 'ALL' && riskTier !== filter) return;
 
     totalDisplayed++;
@@ -916,22 +913,24 @@ function renderHabitationsTable() {
     tr.onmouseover = () => tr.style.background = 'rgba(255,255,255,0.04)';
     tr.onmouseout = () => tr.style.background = 'transparent';
     
-    tr.innerHTML = `
-      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);">${totalDisplayed}</td>
-      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-weight:600; font-size:12px;">${dist}</td>
-      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); text-align:center;">${badgeHtml}</td>
-      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-size:11px; color:var(--text-secondary);">${activeHazard}</td>
-      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); text-align:right; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-secondary);">${activeZones} Zones</td>
-    `;
+    tr.innerHTML = \
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);">\</td>
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-weight:600; font-size:12px;">\</td>
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-size:12px;">\</td>
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); text-align:right; font-family:'JetBrains Mono',monospace; font-size:11px;">\</td>
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); text-align:center;">\ <span style="font-size:10px; color:var(--text-secondary); margin-left:4px;">\</span></td>
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); text-align:right; font-size:11px; color:var(--text-secondary);">--</td>
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); text-align:right; font-size:11px; color:var(--text-secondary);">--</td>
+    \;
     tbody.appendChild(tr);
   });
 
   if (totalDisplayed === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px; color: var(--text-secondary);">No districts matched the search/filter criteria.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px; color: var(--text-secondary);">No habitations matched the search/filter criteria.</td></tr>';
   }
   
   const titleCount = document.getElementById('habitations-title-count');
-  if (titleCount) titleCount.textContent = `Habitations (${totalDisplayed} Districts)`;
+  if (titleCount) titleCount.textContent = \Habitations (\ Villages)\;
 }
 
 window.renderHabitationsTable = renderHabitationsTable;
@@ -2714,6 +2713,25 @@ window._telemetryCache = window._telemetryCache || {};
 function openZoneInfoPanel(zone, lat, lng) {
   const panel = document.getElementById('zone-info-panel');
   if (!panel) return;
+
+  const zoneId = zone.id || zone.name || 'unknown';
+  if (window.REFERENCE_DATA && typeof computeHazardExposure === 'function') {
+     let targetZone = zone;
+     if (!targetZone.polygon && window.authMapInstance && window.authMapInstance.hazardPolygons) {
+       const matched = window.authMapInstance.hazardPolygons.find(hp => hp.id === zone.id || hp.name === zone.name);
+       if (matched && matched.polygon) targetZone = matched;
+     }
+     if (targetZone.polygon) {
+       const exp = computeHazardExposure([targetZone], window.REFERENCE_DATA.habitations || [], window.REFERENCE_DATA.safeSites || []);
+       const stat = exp.zoneStats[zoneId];
+       if (stat) {
+         zone.stats = zone.stats || {};
+         zone.stats.habitations = stat.habitations;
+         zone.stats.shelters = stat.shelters;
+         zone.stats.population = stat.population;
+       }
+     }
+  }
 
   const rawRisk = String(zone.level || zone.current_tier || 'GREEN').toUpperCase();
   let riskBadgeText = 'GREEN';
@@ -6098,6 +6116,7 @@ function handleAuthorityLiveStateUpdate(data) {
 
 window.initAuthorityWebSocket = initAuthorityWebSocket;
 window.handleAuthorityLiveStateUpdate = handleAuthorityLiveStateUpdate;
+
 
 
 
