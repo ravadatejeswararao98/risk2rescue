@@ -1,3 +1,76 @@
+// ==========================================
+// GEOSPATIAL EXPOSURE ENGINE
+// ==========================================
+function computeHazardExposure(activeZones, habitations, safeSites) {
+  const result = {
+    habitations: [],
+    districts: {},
+    zoneStats: {}
+  };
+  
+  if (!habitations || !safeSites || !window.turf) return result;
+  
+  // Initialize district tracking
+  habitations.forEach(h => {
+    if (h.district && !result.districts[h.district]) {
+      result.districts[h.district] = { exposedCount: 0, maxSeverity: 'GREEN', affectedHabs: [], maxRank: 1 };
+    }
+  });
+  
+  const rankMap = { 'GREEN': 1, 'LOW': 1, 'HISTORICAL': 2, 'YELLOW': 3, 'MODERATE': 3, 'ORANGE': 4, 'HIGH': 4, 'RED': 5, 'CRITICAL': 5 };
+  
+  // Precompute points
+  const habPoints = habitations.map(h => ({ ...h, pt: window.turf.point([h.lng, h.lat]) }));
+  const sitePoints = safeSites.map(s => ({ ...s, pt: window.turf.point([s.lng, s.lat]) }));
+  
+  (activeZones || []).forEach(z => {
+    if (!z || !z.polygon) return;
+    const zoneId = z.id || z.name || 'unknown';
+    
+    // Init zone stats
+    result.zoneStats[zoneId] = { habitations: [], shelters: [], population: 0 };
+    
+    // Check habitations
+    habPoints.forEach(h => {
+      if (window.turf.booleanPointInPolygon(h.pt, z.polygon)) {
+        const level = (z.level || z.current_tier || 'GREEN').toUpperCase();
+        // Update per-zone stats
+        result.zoneStats[zoneId].habitations.push(h);
+        result.zoneStats[zoneId].population += (h.pop || h.censusPopulation || 0);
+        
+        // Update per-habitation exposure
+        if (!h.exposedZones) h.exposedZones = [];
+        h.exposedZones.push(z);
+        if (!h.maxSeverity || rankMap[level] > rankMap[h.maxSeverity]) h.maxSeverity = level;
+        
+        // Update per-district stats
+        if (h.district) {
+          const distStat = result.districts[h.district];
+          if (distStat) {
+            if (!distStat.affectedHabs.includes(h.name)) {
+              distStat.exposedCount++;
+              distStat.affectedHabs.push(h.name);
+            }
+            if (rankMap[level] > distStat.maxRank) {
+              distStat.maxRank = rankMap[level];
+              distStat.maxSeverity = level;
+            }
+          }
+        }
+      }
+    });
+    
+    // Check safe sites
+    sitePoints.forEach(s => {
+      if (window.turf.booleanPointInPolygon(s.pt, z.polygon)) {
+        result.zoneStats[zoneId].shelters.push(s);
+      }
+    });
+  });
+  
+  result.habitations = habPoints;
+  return result;
+}
 // ================================================================
 // AUTHORITY.JS — Command Dashboard, Analytics, & AI Explanation Panel
 // ================================================================
@@ -6025,6 +6098,7 @@ function handleAuthorityLiveStateUpdate(data) {
 
 window.initAuthorityWebSocket = initAuthorityWebSocket;
 window.handleAuthorityLiveStateUpdate = handleAuthorityLiveStateUpdate;
+
 
 
 
