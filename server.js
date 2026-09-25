@@ -4,6 +4,8 @@
  * Integrated with real-time live feeds: USGS Earthquakes, Open-Meteo Weather & Air Quality, and Windy Point Forecast
  */
 
+require('dns').setDefaultResultOrder('ipv4first'); // FIX: Prevent 15+ second IPv6 DNS timeouts on Windows
+
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
@@ -4941,6 +4943,39 @@ setTimeout(() => {
   pollWeather().catch(() => {});
   pollCwcRiver().catch(() => {});
 }, 2000);
+
+// Initialize Redis Subscriber for real-time Postgres events
+const { redisClient } = require('./db');
+if (redisClient) {
+  const redisSubClient = redisClient.duplicate();
+  redisSubClient.on('error', (err) => {
+    console.error('[Redis Sub] Client error:', err.message);
+  });
+  redisSubClient.subscribe('new-report', (err) => {
+    if (err) console.error('[Redis Sub] Failed to subscribe to new-report:', err.message);
+  });
+  redisSubClient.on('message', (channel, message) => {
+    if (channel === 'new-report') {
+      try {
+        const payload = JSON.parse(message);
+        
+        // Keep in-memory cache updated for cold loads (GET /api/reports)
+        if (typeof storedReports !== 'undefined') {
+          const existingIdx = storedReports.findIndex(r => r.id === payload.id || r.reportId === payload.id);
+          if (existingIdx !== -1) {
+            storedReports[existingIdx] = payload;
+          } else {
+            storedReports.unshift(payload);
+          }
+        }
+        
+        broadcastWsMessage({ type: 'NEW_REPORT', payload });
+      } catch (e) {
+        console.error('[Redis Sub] Error parsing new-report message:', e.message);
+      }
+    }
+  });
+}
 
 server.listen(PORT, () => {
   console.log('\n=============================================================');

@@ -1,0 +1,136 @@
+ function renderSafeSitesCapacity(data) {
+             </div>
+             ${allocatedList}
+           </div>
+         ` : ''}
+         <div style="margin-top:10px; display:flex; gap:6px;">
+           <button class="btn btn-glass" style="flex:1; font-size:11px; padding:6px 10px; border-color:rgba(2,132,199,0.3); color:#0284c7;" onclick="openShelterModal('${s.shelter_id || s.id}')">
+             ✏️ Update Occupancy
+           </button>
+           ${s.lat && s.lng ? `
+             <button class="btn btn-glass" style="font-size:11px; padding:6px 10px; color:#16a34a; border-color:rgba(22,163,74,0.3);" onclick="locateEntity({name:'${s.name.replace(/'/g, "\\'")}', lat:${s.lat}, lng:${s.lng}, zoom:14, level:'SAFE', desc:'Designated Relief Shelter (Cap: ${(cap || 2500).toLocaleString()}, Estimated Occ: ${hasOcc ? occ.toLocaleString() : 'UNKNOWN'})'}, event)" title="Locate Shelter on GIS Map">
+               🗺️ Locate
+             </button>
+           ` : ''}
+         </div>
+       `;
+       grid.appendChild(card);
+     });
+   }
+ 
+   // Render Deficit Reports
+-  if (deficitEl && data.deficitReports) {
++  if (deficitEl && data) {
+     deficitEl.innerHTML = '';
+-    data.deficitReports.forEach(d => {
+-      const hasDeficit = d.deficit > 0;
+-      const card = document.createElement('div');
+-      card.className = `deficit-card ${hasDeficit ? 'has-deficit' : 'sufficient'}`;
+-      card.innerHTML = `
+-        <div class="deficit-zone-title">
+-          <span>Zone ${d.zone_id} (${(d.hazard_type || 'Hazard').toUpperCase()})</span>
+-          <span class="alloc-badge ${hasDeficit ? 'alloc-unallocated' : 'alloc-full'}">
+-            ${hasDeficit ? '[ALERT] CAPACITY DEFICIT' : '✅ SUFFICIENT'}
+-          </span>
+-        </div>
+-        <div class="deficit-stat">
+-          <span>At-Risk Population:</span>
+-          <strong>${Number(d.total_at_risk).toLocaleString()}</strong>
+-        </div>
+-        <div class="deficit-stat">
+-          <span>Reachable Shelter Capacity:</span>
+-          <strong>${Number(d.total_reachable_capacity).toLocaleString()}</strong>
+-        </div>
+-        <div class="deficit-stat">
+-          <span>Relocation Deficit:</span>
+-          <strong style="color:${hasDeficit ? '#ef4444' : '#22c55e'};">${Number(d.deficit).toLocaleString()}</strong>
+-        </div>
+-      `;
+-      deficitEl.appendChild(card);
++    const habs = data.habitations || [];
++    const shelters = data.shelterStatus || [];
++    
++    const zoneMap = {};
++    
++    // Aggregate by District+Hazard
++    habs.forEach(h => {
++       if (h.priorityLevel === 'CRITICAL' || h.priorityLevel === 'HIGH') {
++           const dist = h.district || 'Unknown District';
++           const haz = h.hazardType ? h.hazardType.toUpperCase() : 'HAZARD';
++           const zId = `${haz} Zone (${dist})`;
++           
++           if (!zoneMap[zId]) zoneMap[zId] = { id: zId, district: dist, totalAtRisk: 0, allocated: 0, deficit: 0, hazard: haz };
++           
++           zoneMap[zId].totalAtRisk += (h.population || 0);
++           if (h.allocation_status === 'ALLOCATED') {
++               zoneMap[zId].allocated += (h.population || 0);
++           } else {
++               zoneMap[zId].deficit += (h.population || 0);
++           }
++       }
+     });
++    
++    const zoneKeys = Object.keys(zoneMap);
++    
++    if (zoneKeys.length === 0) {
++      deficitEl.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-secondary); font-size: 13px;">No critical capacity deficits detected.</div>';
++    } else {
++      zoneKeys.forEach(k => {
++        const d = zoneMap[k];
++        let freeSpace = 0;
++        shelters.forEach(s => {
++           if (s.district && s.district.toLowerCase() === d.district.toLowerCase()) {
++               freeSpace += Math.max(0, s.available_beds || 0);
++           }
++        });
++        d.reachableCap = d.allocated + freeSpace;
++        
++        const hasDeficit = d.deficit > 0;
++        const card = document.createElement('div');
++        card.className = `deficit-card ${hasDeficit ? 'has-deficit' : 'sufficient'}`;
++        card.innerHTML = `
++          <div class="deficit-zone-title">
++            <span>${d.id}</span>
++            <span class="alloc-badge ${hasDeficit ? 'alloc-unallocated' : 'alloc-full'}">
++              ${hasDeficit ? '[ALERT] CAPACITY DEFICIT' : '✅ SUFFICIENT'}
++            </span>
++          </div>
++          <div class="deficit-stat">
++            <span>At-Risk Population:</span>
++            <strong>${Number(d.totalAtRisk).toLocaleString()}</strong>
++          </div>
++          <div class="deficit-stat">
++            <span>Reachable Shelter Capacity:</span>
++            <strong>${Number(d.reachableCap).toLocaleString()}</strong>
++          </div>
++          <div class="deficit-stat">
++            <span>Relocation Deficit:</span>
++            <strong style="color:${hasDeficit ? '#ef4444' : '#22c55e'};">${Number(d.deficit).toLocaleString()}</strong>
++          </div>
++        `;
++        deficitEl.appendChild(card);
++      });
++    }
++  } else if (deficitEl) {
++    deficitEl.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-secondary); font-size: 13px;"><i class="fi fi-rr-spinner fi-spin"></i> Analyzing live capacity data...</div>';
+   }
+ }
+ 
+ // ---- AI Explanation Panel Assistant ----
+ function updateAIExplanation(contextKey) {
+   try {
+     const panel = document.getElementById('ai-explanation-text');
+     const title = document.getElementById('ai-explanation-sub');
+     if (!panel) return;
+ 
+     const pData = window.currentPriorityData;
+ 
+     // Dynamic habitations explanation using real computed VPI ranking
+     let habitationsHtml = `
+       <div class="ai-message">
+         <strong>Priority Ranking Engine:</strong> Computing real-time 6-factor composite scores across all vulnerable habitations...
+       </div>
+     `;
+     if (pData && pData.habitations && pData.habitations.length >= 2) {
+       const top1 = pData.habitations[0];
+@@ -5165,41 +5571,41 @@ function initAnalyticsChart() {

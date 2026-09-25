@@ -22,7 +22,7 @@ class DisasterSimulationEngine {
       { name: "Advisory Phase", label: "Advisory", desc: "Doppler radar & CWC telemetry identify escalating hazard signature.", riskLevel: "ELEVATED" },
       { name: "Red Zone Evacuation Order", label: "Evacuation", desc: "Mandatory evacuation ordered for all lowlands & coastal sectors.", riskLevel: "HIGH" },
       { name: "Surge & Peak Impact Window", label: "Peak Impact", desc: "Maximum storm surge / water flow peak. First responders secured.", riskLevel: "CRITICAL" },
-      { name: "Rescue & Shelter Containment", label: "Rescue", desc: "NDRF and boat rescue units active. Safe shelter containment verified.", riskLevel: "MITIGATION" },
+      { name: "Rescue & Shelter Containment", label: "Rescue", desc: "NDRF and boat rescue units active. Safe Shelter containment verified.", riskLevel: "MITIGATION" },
       { name: "All-Clear & Recovery", label: "Recovery", desc: "Hazard core dissipated. Damage assessment and relief distribution active.", riskLevel: "STABILIZED" }
     ];
 

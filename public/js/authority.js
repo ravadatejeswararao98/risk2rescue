@@ -85,7 +85,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   initAnalyticsChart();
   renderVerificationQueue();
   loadPriorityRanking(); // Phase 1 live priority engine loader
-  initDecisionSupport(); // Task 18 AI Decision Support (DeepSeek-R1 8B)
+  initDecisionSupport(); // Task 18 Risk Classification AI Engine (DeepSeek-R1 8B)
   updateAIExplanation('map-view');
   updateAiConfidenceBadge('Active');
   loadCWCRiverGauges(); // CWC Real-Time River Water Level Gauges (Requirement E)
@@ -110,6 +110,12 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   }, 3000);
 
   renderVerificationQueue();
+  
+  if (typeof reportManager !== 'undefined' && typeof reportManager.onReports === 'function') {
+    reportManager.onReports(() => {
+      if (typeof renderVerificationQueue === 'function') renderVerificationQueue();
+    });
+  }
 
   // Cross-tab real-time storage listener for instantaneous SOS synchronization
   window.addEventListener('storage', (e) => {
@@ -325,7 +331,7 @@ function initGISShell() {
     window.authMapInstance = authMapInstance;
     // authMapInstance.addSafeSiteMarkers();
     authMapInstance.addHazardMarkers();
-    authMapInstance.addHospitalMarkers();
+
     // authMapInstance.addHabitationMarkers();
 
     // Guarantee default light-theme basemap (Esri World Light Gray Base via LAYER_CONFIG.standard)
@@ -518,14 +524,24 @@ function initSidebar() {
     item.addEventListener('click', () => {
       const view = item.dataset.view;
       if (!view) return;
-      document.querySelectorAll('.dock-item[data-view]').forEach(i => i.classList.remove('active'));
-      item.classList.add('active');
-      if (window.location.hash !== '#' + view) {
-        try {
-          history.pushState(null, '', '#' + view);
-        } catch (e) {}
+      
+      const isActive = item.classList.contains('active');
+      
+      if (isActive && view !== 'map-view') {
+        // Toggle off: close the window and return to default map-view
+        if (window.location.hash !== '#map-view') {
+          try { history.pushState(null, '', '#map-view'); } catch (e) {}
+        }
+        switchView('map-view');
+      } else {
+        // Switch to the new view
+        document.querySelectorAll('.dock-item[data-view]').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        if (window.location.hash !== '#' + view) {
+          try { history.pushState(null, '', '#' + view); } catch (e) {}
+        }
+        switchView(view);
       }
-      switchView(view);
     });
   });
 
@@ -708,10 +724,10 @@ function switchView(viewKey) {
   const titleMap = {
     'map-view':        'Home',
     'command':         'Operational Command Center',
-    'decision-support':'AI Decision Support — Evidence-Grounded Brief',
+    'decision-support':'Risk Classification AI Engine — Evidence-Grounded Brief',
     'hazards':         'Hazard Intelligence & Real-Time Sensors',
     'habitations':     'Vulnerable Habitations & Red Zones',
-    'safesites':       'Safe Shelters & Carrying Capacity',
+    'safesites':       'Safe Sites & Carrying Capacity',
     'population-risk': 'Population at Risk — Hazard Zone Exposure',
     'reports':         'Citizen Field Report Queue',
     'datasources':     'Integrated Satellite & Multi-Agency Sensor Feeds',
@@ -852,24 +868,44 @@ function renderHabitationsTable() {
   if (!tbody) return;
   tbody.innerHTML = '';
   
-  const habitations = (window.APP_DATA && window.APP_DATA.habitations) || (typeof REFERENCE_DATA !== 'undefined' ? REFERENCE_DATA.habitations : []);
+  const apDistricts = {
+    "Alluri Sitharama Raju":[17.89,82.2],"Anakapalli":[17.7,82.9],"Ananthapuramu":[14.68,77.6],"Annamayya":[14.15,78.85],"Bapatla":[15.9,80.47],"Chittoor":[13.22,79.1],"Dr. B.R. Ambedkar Konaseema":[16.62,82.02],"East Godavari":[17,81.78],"Eluru":[16.71,81.1],"Guntur":[16.3,80.44],"Kakinada":[16.98,82.24],"Krishna":[16.18,81.13],"Kurnool":[15.83,78.03],"Nandyal":[15.48,78.48],"NTR":[16.51,80.62],"Palnadu":[16.35,79.8],"Parvathipuram Manyam":[18.78,83.43],"Prakasam":[15.51,80.05],"SPSR Nellore":[14.44,79.99],"Sri Sathya Sai":[14.17,77.8],"Srikakulam":[18.3,83.9],"Tirupati":[13.63,79.41],"Visakhapatnam":[17.69,83.22],"Vizianagaram":[18.11,83.4],"West Godavari":[16.54,81.53],"Y.S.R. Kadapa":[14.47,78.82]
+  };
+
+  const searchInput = document.getElementById('habitation-search');
+  const filterInput = document.getElementById('habitation-hazard-filter');
+  const q = searchInput ? searchInput.value.toLowerCase() : '';
+  const filter = filterInput ? filterInput.value : 'ALL';
   
-  if (!habitations || habitations.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px; color: var(--text-secondary);">No habitations found.</td></tr>';
-    return;
-  }
+  let totalDisplayed = 0;
   
-  habitations.forEach((hab, index) => {
-    // Dynamic risk check using Turf if hazardPolygons are active, else fall back to known properties
-    let riskTier = hab.risk || hab.tier || 'GREEN';
+  Object.keys(apDistricts).sort().forEach((dist) => {
+    let riskTier = 'GREEN';
     let activeHazard = 'None';
     
-    if (typeof window.turf !== 'undefined' && window.authMapInstance && window.authMapInstance.hazardPolygons) {
-       const pt = window.turf.point([hab.lng || hab.lon, hab.lat]);
-       let maxRank = 0;
-       const rankMap = { 'GREEN': 1, 'LOW': 1, 'HISTORICAL': 2, 'YELLOW': 3, 'MODERATE': 3, 'ORANGE': 4, 'HIGH': 4, 'RED': 5, 'CRITICAL': 5 };
+    const activeZoneIds = new Set();
+    const rankMap = { 'GREEN': 1, 'LOW': 1, 'HISTORICAL': 2, 'YELLOW': 3, 'MODERATE': 3, 'ORANGE': 4, 'HIGH': 4, 'RED': 5, 'CRITICAL': 5 };
+    let maxRank = 0;
+
+    const liveZones = (window.APP_DATA && window.APP_DATA.riskZones) || [];
+    liveZones.forEach(z => {
+         const inZone = z.district?.toLowerCase() === dist.toLowerCase() || (z.districts && z.districts.some(d => d.toLowerCase() === dist.toLowerCase()));
+         if (inZone) {
+           activeZoneIds.add(z.id || z.name);
+           const level = (z.level || z.current_tier || 'GREEN').toUpperCase();
+           if ((rankMap[level] || 1) > maxRank) {
+             maxRank = rankMap[level] || 1;
+             riskTier = level;
+             activeHazard = z.hazardType ? z.hazardType.charAt(0).toUpperCase() + z.hazardType.slice(1) : 'Active Hazard';
+           }
+         }
+    });
+
+    if (window.authMapInstance && window.authMapInstance.hazardPolygons) {
+       const pt = (typeof window.turf !== 'undefined') ? window.turf.point([apDistricts[dist][1], apDistricts[dist][0]]) : null;
        window.authMapInstance.hazardPolygons.forEach(hp => {
-         if (window.turf.booleanPointInPolygon(pt, hp.polygon)) {
+         if (hp.polygon && pt && window.turf.booleanPointInPolygon(pt, hp.polygon)) {
+           activeZoneIds.add(hp.id || hp.name || hp.hazardType);
            const level = (hp.level || 'MODERATE').toUpperCase();
            if ((rankMap[level] || 1) > maxRank) {
              maxRank = rankMap[level] || 1;
@@ -885,6 +921,14 @@ function renderHabitationsTable() {
     else if (riskTier === 'MODERATE' || riskTier === 'YELLOW') { riskTier = 'YELLOW'; activeHazard = activeHazard !== 'None' ? activeHazard : 'Advisory'; }
     else { riskTier = 'GREEN'; activeHazard = 'None'; }
     
+    const activeZones = activeZoneIds.size;
+    
+    // Apply Filters
+    if (q && !dist.toLowerCase().includes(q)) return;
+    if (filter !== 'ALL' && riskTier !== filter) return;
+
+    totalDisplayed++;
+    
     let badgeHtml = '';
     if (riskTier === 'RED') badgeHtml = '<span style="background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.3); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">CRITICAL</span>';
     else if (riskTier === 'ORANGE') badgeHtml = '<span style="background:rgba(249,115,22,0.1); color:#f97316; border:1px solid rgba(249,115,22,0.3); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">HIGH</span>';
@@ -892,23 +936,28 @@ function renderHabitationsTable() {
     else badgeHtml = '<span style="background:rgba(34,197,94,0.1); color:#22c55e; border:1px solid rgba(34,197,94,0.3); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">SAFE</span>';
 
     const tr = document.createElement('tr');
-    tr.style.borderBottom = '1px solid var(--border-color, #e2e8f0)';
+    tr.style.transition = 'background 0.2s ease';
+    tr.onmouseover = () => tr.style.background = 'rgba(255,255,255,0.04)';
+    tr.onmouseout = () => tr.style.background = 'transparent';
+    
     tr.innerHTML = `
-      <td style="padding:10px 14px; color:var(--text-muted); font-size:11px;">${index + 1}</td>
-      <td style="padding:10px 14px; font-weight:600; color:var(--text-primary);">${hab.name}</td>
-      <td style="padding:10px 14px; color:var(--text-secondary);">${hab.district}</td>
-      <td style="padding:10px 14px; text-align:right; font-weight:600; color:var(--text-primary);">${(hab.pop || hab.censusPopulation || 0).toLocaleString()}</td>
-      <td style="padding:10px 14px; text-align:center;">${badgeHtml} <span style="font-size:10px; display:block; color:var(--text-muted); margin-top:2px;">${activeHazard}</span></td>
-      <td style="padding:10px 14px; text-align:right; color:var(--text-secondary);">${hab.elevation || Math.floor(Math.random() * 20 + 2)}m</td>
-      <td style="padding:10px 14px; text-align:right;">
-        <button class="btn" style="background:var(--bg-elevated); border:1px solid var(--border-color); padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;" onclick="if(window.authMapInstance) window.authMapInstance.flyToLocation(${hab.lat}, ${hab.lng || hab.lon}, 14);">
-          Locate
-        </button>
-      </td>
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);">${totalDisplayed}</td>
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-weight:600; font-size:12px;">${dist}</td>
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); text-align:center;">${badgeHtml}</td>
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-size:11px; color:var(--text-secondary);">${activeHazard}</td>
+      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); text-align:right; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-secondary);">${activeZones} Zones</td>
     `;
     tbody.appendChild(tr);
   });
+
+  if (totalDisplayed === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px; color: var(--text-secondary);">No districts matched the search/filter criteria.</td></tr>';
+  }
+  
+  const titleCount = document.getElementById('habitations-title-count');
+  if (titleCount) titleCount.textContent = `Habitations (${totalDisplayed} Districts)`;
 }
+
 window.renderHabitationsTable = renderHabitationsTable;
 
 function setZoneManagerFilter(status) {
@@ -2662,14 +2711,190 @@ window.openInspector = function(zoneOrName, coords) {
   }
   const numLat = Number(cLat);
   const numLng = Number(cLng);
+  
   if (typeof window.isInsideAndhraPradesh === 'function' && !window.isInsideAndhraPradesh(numLat, numLng)) {
     return;
   }
+
+  // Check if it's a Hazard Zone from hazards.js (usually has hazardType, or level, or radius)
+  const isZone = typeof zoneOrName === 'object' && (zoneOrName.hazardType || zoneOrName.level || zoneOrName.baseRadius || zoneOrName.radius || zoneOrName.epicenter);
+
+  if (isZone) {
+    // Open right-side zone info panel
+    openZoneInfoPanel(zoneOrName, numLat, numLng);
+    
+    // Fly to it (keep existing behavior)
+    const mapInst = authMapInstance || (typeof window !== 'undefined' ? window.authMapInstance : null);
+    if (mapInst && mapInst.getMap()) {
+      mapInst.getMap().flyTo([numLat, numLng], 10, { duration: 1.2 });
+    }
+    return;
+  }
+
   const place = resolvePlaceData(numLat, numLng, zoneOrName);
   if (place) {
     showPlaceInformationCard(place, coords || { lat: numLat, lng: numLng });
   }
 };
+
+window._telemetryCache = window._telemetryCache || {};
+
+function openZoneInfoPanel(zone, lat, lng) {
+  const panel = document.getElementById('zone-info-panel');
+  if (!panel) return;
+
+  const rawRisk = String(zone.level || zone.current_tier || 'GREEN').toUpperCase();
+  let riskBadgeText = 'GREEN';
+  let badgeBg = 'rgba(34, 197, 94, 0.15)';
+  let badgeColor = '#15803d';
+
+  if (rawRisk.includes('RED') || rawRisk === 'CRITICAL') {
+    riskBadgeText = 'CRITICAL';
+    badgeBg = 'rgba(239, 68, 68, 0.15)';
+    badgeColor = '#dc2626';
+  } else if (rawRisk.includes('ORANGE') || rawRisk === 'HIGH') {
+    riskBadgeText = 'HIGH ALERT';
+    badgeBg = 'rgba(249, 115, 22, 0.15)';
+    badgeColor = '#ea580c';
+  } else if (rawRisk.includes('YELLOW') || rawRisk === 'MODERATE') {
+    riskBadgeText = 'MODERATE';
+    badgeBg = 'rgba(234, 179, 8, 0.18)';
+    badgeColor = '#a16207';
+  }
+
+  const badgeEl = document.getElementById('zip-risk-badge');
+  badgeEl.textContent = riskBadgeText;
+  badgeEl.style.color = badgeColor;
+  
+  document.getElementById('zip-name').textContent = zone.name || zone.title || 'Hazard Zone';
+  
+  const hzType = zone.hazardType ? zone.hazardType.charAt(0).toUpperCase() + zone.hazardType.slice(1) : 'General Hazard';
+  document.getElementById('zip-subtitle').innerHTML = `<span style="font-weight:700; color:${badgeColor};">${riskBadgeText} DANGER NOW:</span> ${hzType} &bull; active severe impact`;
+  
+  // District/Province logic
+  let distStr = 'Andhra Pradesh';
+  if (zone.district) distStr = zone.district;
+  else if (zone.districts && Array.isArray(zone.districts)) distStr = zone.districts.join(', ');
+  document.getElementById('zip-district').textContent = `${hzType} • ${distStr}`;
+
+  // Formation logic
+  let logicStr = 'Triggered by spatial analysis threshold.';
+  if (zone.trigger || zone.reason || zone.logic) {
+    logicStr = zone.trigger || zone.reason || zone.logic;
+  }
+  document.getElementById('zip-logic').textContent = logicStr;
+
+  // Overview Data
+  document.getElementById('zip-severity-tier').textContent = riskBadgeText;
+  document.getElementById('zip-severity-tier').style.color = badgeColor;
+  document.getElementById('zip-pop-risk').textContent = (zone.stats && zone.stats.population) ? zone.stats.population.toLocaleString() : 'Est. 100,000+';
+  document.getElementById('zip-coords').textContent = `${lat.toFixed(2)}° N, ${lng.toFixed(2)}° E`;
+
+  let habs = 'Pending Analysis...';
+  if (zone.stats && zone.stats.habitations && zone.stats.habitations.length) {
+    habs = zone.stats.habitations.slice(0, 5).map(h => h.name || h.id).join(', ');
+    if (zone.stats.habitations.length > 5) habs += ` (and ${zone.stats.habitations.length - 5} more)`;
+  } else if (zone.habitations) {
+    habs = zone.habitations.slice(0, 5).join(', ');
+  }
+  document.getElementById('zip-habitations').textContent = habs;
+
+  let sites = 'No immediate sites mapped';
+  if (zone.stats && zone.stats.shelters && zone.stats.shelters.length) {
+    sites = zone.stats.shelters.slice(0, 2).map(s => `${s.name} (${s.beds || 0} beds available)`).join('<br/>');
+  }
+  document.getElementById('zip-safe-sites').innerHTML = sites;
+
+  // Tabs Setup
+  const tabs = document.querySelectorAll('.zip-tab');
+  tabs.forEach(t => {
+    t.onclick = (e) => {
+      tabs.forEach(x => { x.classList.remove('active'); x.style.borderBottom = '2px solid transparent'; x.style.color = '#64748b'; });
+      const current = e.target;
+      current.classList.add('active');
+      current.style.borderBottom = '2px solid #0f172a';
+      current.style.color = '#0f172a';
+      
+      document.getElementById('zip-tab-overview').style.display = 'none';
+      document.getElementById('zip-tab-live').style.display = 'none';
+      document.getElementById('zip-tab-provencies').style.display = 'none';
+      
+      document.getElementById(`zip-tab-${current.dataset.tab}`).style.display = 'block';
+    };
+  });
+  if (tabs.length > 0) tabs[0].click(); // Reset to overview
+
+  // Show panel, show loading
+  panel.style.display = 'block';
+  document.getElementById('zip-content').style.display = 'none';
+  document.getElementById('zip-error').style.display = 'none';
+  document.getElementById('zip-loading').style.display = 'block';
+
+  // Close handler
+  document.getElementById('close-zone-panel').onclick = () => {
+    panel.style.display = 'none';
+  };
+
+  // Fetch telemetry via Open-Meteo with 48h hourly
+  fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,rain,showers,weather_code,surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=temperature_2m,wind_speed_10m,precipitation&forecast_days=2`)
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('zip-loading').style.display = 'none';
+      if (!data.current) throw new Error('Invalid telemetry response');
+      
+      const curr = data.current;
+      document.getElementById('zip-wind').textContent = `${curr.wind_speed_10m} km/h` + (curr.wind_direction_10m ? ` (${curr.wind_direction_10m}°)` : '');
+      document.getElementById('zip-gust').textContent = curr.wind_gusts_10m ? `${curr.wind_gusts_10m} km/h` : 'N/A';
+      document.getElementById('zip-precip').textContent = `${curr.precipitation || 0} mm/h`;
+      document.getElementById('zip-pressure').textContent = `${curr.surface_pressure || 'N/A'} hPa`;
+      document.getElementById('zip-aqi').textContent = 'Fetching...';
+      
+      document.getElementById('zip-content').style.display = 'flex';
+
+      // 48h Chart
+      if (window.zipChartInst) window.zipChartInst.destroy();
+      const ctx = document.getElementById('zip-forecast-chart').getContext('2d');
+      if (data.hourly && data.hourly.time) {
+        window.zipChartInst = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.hourly.time.map(t => new Date(t).getHours() + ':00'),
+            datasets: [
+              { label: 'Wind (km/h)', data: data.hourly.wind_speed_10m, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', tension: 0.3, yAxisID: 'y', fill: true },
+              { label: 'Rain (mm)', data: data.hourly.precipitation, borderColor: '#0ea5e9', borderDash: [4, 4], tension: 0.3, yAxisID: 'y1' }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+              x: { ticks: { maxTicksLimit: 6, font: {size: 9} }, grid: {display: false} },
+              y: { position: 'left', title: {display: true, text: 'km/h', font: {size:9}}, ticks: {font: {size: 9}} },
+              y1: { position: 'right', title: {display: true, text: 'mm', font: {size:9}}, grid: {drawOnChartArea: false}, ticks: {font: {size: 9}} }
+            },
+            plugins: { legend: { labels: {boxWidth: 8, font: {size: 9}} } }
+          }
+        });
+      }
+
+      // Secondary fetch for AQI
+      return fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=us_aqi,pm10,pm2_5`);
+    })
+    .then(r => r.json())
+    .then(aqiData => {
+      if (aqiData && aqiData.current) {
+        document.getElementById('zip-aqi').textContent = `${aqiData.current.us_aqi || 'N/A'} (PM2.5: ${aqiData.current.pm2_5 || 'N/A'} µg/m³)`;
+      } else {
+        document.getElementById('zip-aqi').textContent = 'Unavailable';
+      }
+    })
+    .catch(err => {
+      document.getElementById('zip-loading').style.display = 'none';
+      document.getElementById('zip-error').style.display = 'block';
+      document.getElementById('zip-error').textContent = 'Live telemetry unavailable: ' + err.message;
+    });
+}
 
 // ================================================================
 // ENTITY INSPECTION SYSTEM (Issue 5)
@@ -2725,6 +2950,86 @@ function inspectEntity(entity, event) {
       tierEl.style.border = '1px solid rgba(245, 158, 11, 0.25)';
     }
   }
+
+  const factorsCell = document.getElementById('iem-priority-factors-cell');
+  if (factorsCell) {
+    if (entity.factors) {
+      factorsCell.style.display = 'block';
+      const f = entity.factors;
+      const hazardVal = f.hazardSeverity ?? null;
+      const popVal = f.populationAtRisk ?? null;
+      const vulnVal = f.vulnerability ?? null;
+      const lifeVal = f.immediateLifeRisk ?? null;
+      const urgVal = f.responseUrgency ?? null;
+      const accVal = f.accessibility ?? null;
+
+      const factorHtml = (label, weight, val, color) => {
+        const isUnavail = val === null || val === undefined || isNaN(val);
+        let displayVal = val;
+        if (isUnavail) {
+          let warningReason = 'Data missing';
+          if (label === 'Population Risk') warningReason = 'No population matched';
+          else if (label === 'Hazard Severity') warningReason = 'Zone not matched';
+          else if (label === 'Vulnerability') warningReason = 'No census data for district';
+          else if (label === 'Immediate Life Risk') warningReason = 'No life risk reported';
+          else if (label === 'Response Urgency') warningReason = 'ETA not available';
+          else if (label === 'Accessibility') warningReason = 'No usable route data';
+          
+          console.warn(`[Authority] Priority Engine missing factor for incident ID ${entity.id || entity.name}: ${label} - ${warningReason}`);
+          displayVal = `Not available &ndash; ${warningReason}`;
+        }
+        
+        const barWidth = isUnavail ? 0 : Math.min(100, Math.max(0, val));
+        const barColor = isUnavail ? '#94a3b8' : color;
+        return `
+          <div style="margin-bottom:6px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:2px;">
+              <span style="color:#475569;">${label} <span style="font-weight:600;">(${weight})</span></span>
+              <span style="font-weight:600; color:${isUnavail ? '#b91c1c' : '#0f172a'};">${displayVal}${isUnavail?'':'/100'}</span>
+            </div>
+            <div style="height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden;">
+              <div style="height:100%; width:${barWidth}%; background:${barColor}; border-radius:3px;"></div>
+            </div>
+          </div>
+        `;
+      };
+
+      const factorsGrid = document.getElementById('iem-factors-grid');
+      if (factorsGrid) {
+        factorsGrid.innerHTML = `
+          <div>
+            ${factorHtml('Hazard Severity', '25%', hazardVal, '#ef4444')}
+            ${factorHtml('Population Risk', '20%', popVal, '#f97316')}
+            ${factorHtml('Vulnerability', '15%', vulnVal, '#eab308')}
+          </div>
+          <div>
+            ${factorHtml('Immediate Life Risk', '15%', lifeVal, '#dc2626')}
+            ${factorHtml('Response Urgency', '15%', urgVal, '#8b5cf6')}
+            ${factorHtml('Accessibility', '10%', accVal, '#0284c7')}
+          </div>
+        `;
+      }
+
+      const scoreEl = document.getElementById('iem-score');
+      if (scoreEl) scoreEl.textContent = entity.score !== undefined && entity.score !== null ? entity.score : 'N/A';
+
+      const provEl = document.getElementById('iem-provenance');
+      if (provEl) {
+        const p = entity.provenance || {};
+        provEl.innerHTML = `
+          <div>&bull; <strong>Hazard:</strong> ${p.hazardSeverity?.description || p.hazardSeverity || 'Priority Engine Default/Inferred'}</div>
+          <div>&bull; <strong>Population:</strong> ${p.populationAtRisk?.description || p.populationAtRisk || 'Priority Engine Default/Inferred'}</div>
+          <div>&bull; <strong>Vulnerability:</strong> ${p.vulnerability?.description || p.vulnerability || 'Priority Engine Default/Inferred'}</div>
+          <div>&bull; <strong>Life Risk:</strong> ${p.immediateLifeRisk?.description || p.immediateLifeRisk || 'Priority Engine Default/Inferred'}</div>
+          <div>&bull; <strong>Routing/ETA:</strong> ${p.responseUrgency?.description || p.responseUrgency || 'Priority Engine Default/Inferred'}</div>
+          <div>&bull; <strong>Access:</strong> ${p.accessibility?.description || p.accessibility || 'Priority Engine Default/Inferred'}</div>
+        `;
+      }
+    } else {
+      factorsCell.style.display = 'none';
+    }
+  }
+
   if (coordsEl) {
     const lat = Number(entity.lat ?? entity.latitude);
     const lng = Number(entity.lng ?? entity.lon ?? entity.longitude);
@@ -3651,8 +3956,8 @@ function renderVerificationQueue() {
   ['sidebar-queue-badge', 'dock-queue-badge'].forEach(id => {
     const badge = document.getElementById(id);
     if (badge) {
-      badge.textContent = pending.length;
-      badge.style.display = pending.length > 0 ? 'inline-block' : 'none';
+      badge.textContent = pending.length > 99 ? '99+' : pending.length;
+      badge.style.display = pending.length > 0 ? 'inline-flex' : 'none';
     }
   });
 
@@ -3718,9 +4023,17 @@ function renderVerificationQueue() {
       </div>
 
       <div class="report-actions">
-        <button class="btn-verify" onclick="handleVerifyReport('${rep.id}')">
-          ✓ Verify & Allocate Active Red Zone
-        </button>
+        <div style="position:relative; display:inline-block; vertical-align:middle;">
+          <button class="btn-verify" onclick="window.openZonePopover(event, '${rep.id}')" aria-haspopup="true">
+            ✓ Verify & Allocate Zone
+          </button>
+          <div id="popover-${rep.id}" class="zone-popover" style="display:none; position:absolute; bottom:110%; left:0; background:#fff; border:1px solid #cbd5e1; border-radius:6px; box-shadow:0 10px 15px -3px rgba(0,0,0,0.1); z-index:1000; width:230px; overflow:hidden; text-align:left;">
+            <div style="padding:8px 12px; cursor:pointer; color:#ef4444; font-weight:600; font-size:12px; border-bottom:1px solid #f1f5f9; transition:background 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='transparent'" onclick="handleVerifyAllocate('${rep.id}', 'RED')">🔴 Critical (Red)</div>
+            <div style="padding:8px 12px; cursor:pointer; color:#f97316; font-weight:600; font-size:12px; border-bottom:1px solid #f1f5f9; transition:background 0.2s;" onmouseover="this.style.background='#fff7ed'" onmouseout="this.style.background='transparent'" onclick="handleVerifyAllocate('${rep.id}', 'ORANGE')">🟠 High Alert (Orange)</div>
+            <div style="padding:8px 12px; cursor:pointer; color:#eab308; font-weight:600; font-size:12px; border-bottom:1px solid #f1f5f9; transition:background 0.2s;" onmouseover="this.style.background='#fefce8'" onmouseout="this.style.background='transparent'" onclick="handleVerifyAllocate('${rep.id}', 'YELLOW')">🟡 Moderate (Yellow)</div>
+            <div style="padding:8px 12px; cursor:pointer; color:#22c55e; font-weight:600; font-size:12px; transition:background 0.2s;" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='transparent'" onclick="handleVerifyAllocate('${rep.id}', 'GREEN')">🟢 No Detected Hazard (Green)</div>
+          </div>
+        </div>
         <button class="btn-investigate" onclick="handleInvestigateReport('${rep.id}')">
           🔍 Task NDRF Drone Recon
         </button>
@@ -3733,7 +4046,32 @@ function renderVerificationQueue() {
   });
 }
 
-function handleVerifyReport(id, officerNotes) {
+window.openZonePopover = function(e, id) {
+  e.stopPropagation();
+  // Close all other popovers
+  document.querySelectorAll('.zone-popover').forEach(p => p.style.display = 'none');
+  const pop = document.getElementById(`popover-${id}`);
+  if (pop) pop.style.display = 'block';
+  
+  // Close on outside click or escape
+  const closePopover = (evt) => {
+    if (evt.type === 'keydown' && evt.key !== 'Escape') return;
+    if (pop) pop.style.display = 'none';
+    document.removeEventListener('click', closePopover);
+    document.removeEventListener('keydown', closePopover);
+  };
+  
+  setTimeout(() => {
+    document.addEventListener('click', closePopover);
+    document.addEventListener('keydown', closePopover);
+  }, 10);
+};
+
+window.handleVerifyAllocate = function(id, level) {
+  handleVerifyReport(id, null, level);
+};
+
+function handleVerifyReport(id, officerNotes, level = 'RED') {
   let rep = null;
   if (typeof reportManager !== 'undefined') {
     rep = reportManager.getReportById ? reportManager.getReportById(id) : null;
@@ -3765,7 +4103,7 @@ function handleVerifyReport(id, officerNotes) {
     fetch(`/api/reports/${encodeURIComponent(id)}/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ officerNotes: officerNotes || 'Confirmed by Incident Commander', verifiedBy: 'Incident Commander' })
+      body: JSON.stringify({ officerNotes: officerNotes || 'Confirmed by Incident Commander', verifiedBy: 'Incident Commander', allocatedZone: level })
     }).catch(() => {});
   }
 
@@ -3774,11 +4112,10 @@ function handleVerifyReport(id, officerNotes) {
   const locName = rep?.location || 'Designated Vicinity';
   const desc = rep?.desc || 'Emergency hazard verified by Incident Commander.';
 
-  // Requirement F2: Automatically allocate new Red Zone on the GIS map if valid coordinates exist
   if (coords.isValid) {
     allocateEmergencyZone({
       name: `${repType}: ${locName}`,
-      level: 'RED',
+      level: level,
       lat: coords.lat,
       lng: coords.lng,
       radius: 2500,
@@ -3786,7 +4123,8 @@ function handleVerifyReport(id, officerNotes) {
     });
   }
 
-  showToast(`✅ Incident ${id} verified! New Red Zone allocated & regional alert pushed.`, 'danger');
+  const colors = { 'RED': 'danger', 'ORANGE': 'warning', 'YELLOW': 'warning', 'GREEN': 'success' };
+  showToast(`✅ Incident ${id} verified! New ${level} Zone allocated & regional alert pushed.`, colors[level] || 'info');
   renderVerificationQueue();
   initCommandCenter();
   updateAIExplanation('reports');
@@ -4387,6 +4725,25 @@ function renderPriorityRankingTable(data) {
   container.innerHTML = '';
 
   habitations.forEach((h, idx) => {
+    // 1. Calculate the priority score from real inputs using the shared PriorityEngine
+    const p = (typeof window.PriorityEngine !== 'undefined') 
+      ? window.PriorityEngine.calculatePriority(h) 
+      : { score: h.priorityScore, level: h.priorityLevel, factors: h.factorScores || {} };
+
+    // Update h with the real computed values so it matches everywhere
+    if (p.factors) {
+      h.priorityScore = p.score;
+      h.priorityLevel = p.level;
+      h.factorScores = p.factors;
+      h.riskFactor = p.riskFactor;
+      h.reasons = p.reasons;
+      h.recommendedAction = p.recommendedAction;
+      h.overrideApplied = p.overrideApplied;
+      h.unavailableFactors = p.unavailableFactors;
+      h.isPartial = p.isPartial;
+      h.provenance = p.provenance;
+    }
+
     const rankNum = h.rank != null ? h.rank : (idx + 1);
     const tierUpper = (h.priorityLevel || 'MODERATE').toUpperCase();
     let tierDisplay = 'Moderate';
@@ -4402,11 +4759,13 @@ function renderPriorityRankingTable(data) {
       tierClass = 'tier-low';
     }
 
-    const popRisk = h.factorScores ? (h.factorScores.populationAtRisk ?? null) : null;
-    const lifeRisk = h.factorScores ? (h.factorScores.immediateLifeRisk ?? null) : null;
-    const urgency = h.factorScores ? (h.factorScores.responseUrgency ?? null) : null;
-    const hazardSeverity = h.factorScores ? (h.factorScores.hazardSeverity ?? null) : null;
-    const etaScore = h.factorScores ? (h.factorScores.accessibility ?? null) : null;
+    const f = h.factorScores || {};
+    const popRisk = f.populationAtRisk ?? 'Unavailable';
+    const lifeRisk = f.immediateLifeRisk ?? 'Unavailable';
+    const urgency = f.responseUrgency ?? 'Unavailable';
+    const hazardSeverity = f.hazardSeverity ?? 'Unavailable';
+    const vuln = f.vulnerability ?? 'Unavailable';
+    const access = f.accessibility ?? 'Unavailable';
 
     // Actual incident response travel time (travelTimeMins)
     const rawTravelTime = (h.travelTimeMins !== undefined && h.travelTimeMins !== null && !isNaN(Number(h.travelTimeMins)))
@@ -4415,25 +4774,7 @@ function renderPriorityRankingTable(data) {
           ? Number(h.travel_time_mins)
           : null);
     
-    let responseTimeDisplay = 'Unavailable';
-    if (rawTravelTime !== null && rawTravelTime >= 0) {
-      responseTimeDisplay = `${Math.round(rawTravelTime)} min`;
-    }
-
-    // Dynamic Risk Factor: hazard × exposure × vulnerability (normalized 0-100)
-    let calculatedRf = null;
-    if (h.riskFactor !== undefined && h.riskFactor !== null && !isNaN(Number(h.riskFactor))) {
-      calculatedRf = Math.round(Number(h.riskFactor));
-    } else if (h.factorScores && typeof window.PriorityEngine?.calculateRiskFactor === 'function') {
-      calculatedRf = window.PriorityEngine.calculateRiskFactor(
-        h.factorScores.hazardSeverity,
-        h.factorScores.populationAtRisk,
-        h.factorScores.vulnerability
-      );
-    } else if (h.factorScores && h.factorScores.hazardSeverity != null && h.factorScores.populationAtRisk != null && h.factorScores.vulnerability != null) {
-      calculatedRf = Math.round((Number(h.factorScores.hazardSeverity) / 100) * (Number(h.factorScores.populationAtRisk) / 100) * (Number(h.factorScores.vulnerability) / 100) * 100);
-    }
-    const riskFactorDisplay = calculatedRf !== null ? calculatedRf : 'Unavailable';
+    const riskFactorDisplay = h.riskFactor !== null && h.riskFactor !== undefined ? h.riskFactor : 'Unavailable';
 
     const hLat = (typeof h.lat === 'number' && !isNaN(h.lat)) ? h.lat : (typeof h.latitude === 'number' ? h.latitude : null);
     const hLng = (typeof h.lng === 'number' && !isNaN(h.lng)) ? h.lng : (typeof h.longitude === 'number' ? h.longitude : (typeof h.lon === 'number' ? h.lon : null));
@@ -4450,7 +4791,7 @@ function renderPriorityRankingTable(data) {
       score: h.priorityScore,
       level: h.priorityLevel,
       factors: h.factorScores,
-      riskFactor: calculatedRf,
+      riskFactor: h.riskFactor,
       travelTimeMins: rawTravelTime,
       unavailableFactors: h.unavailableFactors || [],
       isPartial: h.isPartial || false,
@@ -4480,18 +4821,30 @@ function renderPriorityRankingTable(data) {
         </div>
       </div>
 
-      <div class="priority-metrics">
-        <div class="priority-metric">
-          <span class="priority-metric-label">RISK FACTOR</span>
-          <span class="priority-metric-value" ${riskFactorDisplay === 'Unavailable' ? 'style="font-size:15px; font-weight:700;"' : ''}>${riskFactorDisplay}</span>
-        </div>
-        <div class="priority-metric">
-          <span class="priority-metric-label">EST. RESPONSE TIME</span>
-          <span class="priority-metric-value" ${responseTimeDisplay === 'Unavailable' ? 'style="font-size:15px; font-weight:700;"' : ''}>${responseTimeDisplay}</span>
-        </div>
+      <div class="priority-metrics" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px;">
         <div class="priority-metric">
           <span class="priority-metric-label">HAZARD SEVERITY</span>
-          <span class="priority-metric-value">${hazardSeverity != null ? hazardSeverity : 'Unavailable'}</span>
+          <span class="priority-metric-value" ${hazardSeverity === 'Unavailable' ? 'style="font-size:12px; font-weight:700;"' : ''}>${hazardSeverity}</span>
+        </div>
+        <div class="priority-metric">
+          <span class="priority-metric-label">POPULATION RISK</span>
+          <span class="priority-metric-value" ${popRisk === 'Unavailable' ? 'style="font-size:12px; font-weight:700;"' : ''}>${popRisk}</span>
+        </div>
+        <div class="priority-metric">
+          <span class="priority-metric-label">VULNERABILITY</span>
+          <span class="priority-metric-value" ${vuln === 'Unavailable' ? 'style="font-size:12px; font-weight:700;"' : ''}>${vuln}</span>
+        </div>
+        <div class="priority-metric">
+          <span class="priority-metric-label">IMMEDIATE LIFE RISK</span>
+          <span class="priority-metric-value" ${lifeRisk === 'Unavailable' ? 'style="font-size:12px; font-weight:700;"' : ''}>${lifeRisk}</span>
+        </div>
+        <div class="priority-metric">
+          <span class="priority-metric-label">RESPONSE URGENCY</span>
+          <span class="priority-metric-value" ${urgency === 'Unavailable' ? 'style="font-size:12px; font-weight:700;"' : ''}>${urgency}</span>
+        </div>
+        <div class="priority-metric">
+          <span class="priority-metric-label">ACCESSIBILITY</span>
+          <span class="priority-metric-value" ${access === 'Unavailable' ? 'style="font-size:12px; font-weight:700;"' : ''}>${access}</span>
         </div>
       </div>
 
@@ -4501,7 +4854,7 @@ function renderPriorityRankingTable(data) {
       </div>
 
       <div class="priority-action-row">
-        <button type="button" class="priority-action-btn" onclick="inspectEntity({name:'${safeName}', tier:'${safeTier}', lat:${hLat !== null ? hLat : 'null'}, lng:${hLng !== null ? hLng : 'null'}, population:${h.population || 0}, habitations:'District: ${safeDistrict} &bull; Recommended: ${safeAction}'}, event)" aria-label="Inspect ${safeName}">
+        <button type="button" class="priority-action-btn" onclick="const d = priorityExplanationData['${explainId}']; inspectEntity({name:'${safeName}', tier:'${safeTier}', lat:${hLat !== null ? hLat : 'null'}, lng:${hLng !== null ? hLng : 'null'}, population:${h.pop || h.population || 0}, habitations:'District: ${safeDistrict} &bull; Recommended: ${safeAction}', factors: d.factors, score: d.score, provenance: d.provenance}, event)" aria-label="Inspect ${safeName}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
             <circle cx="12" cy="12" r="3"></circle>
@@ -4574,7 +4927,20 @@ function showPriorityExplanation(explainId) {
 
   const factorCell = (label, weight, val, color) => {
     const isUnavail = val === null || val === undefined || isNaN(val);
-    const displayVal = isUnavail ? 'Unavailable' : val;
+    let displayVal = val;
+    if (isUnavail) {
+      let warningReason = 'Data missing';
+      if (label === 'Population Risk') warningReason = 'No population matched';
+      else if (label === 'Hazard Severity') warningReason = 'Zone not matched';
+      else if (label === 'Vulnerability') warningReason = 'No census data for district';
+      else if (label === 'Immediate Life Risk') warningReason = 'No life risk reported';
+      else if (label === 'Response Urgency') warningReason = 'ETA not available';
+      else if (label === 'Accessibility') warningReason = 'No usable route data';
+      
+      console.warn(`[Authority] Priority Engine missing factor for incident ID ${data.id || data.name}: ${label} - ${warningReason}`);
+      displayVal = `Not available &ndash; ${warningReason}`;
+    }
+
     const barWidth = isUnavail ? 0 : Math.min(100, Math.max(0, val));
     const barColor = isUnavail ? '#94a3b8' : color;
     return `
@@ -4584,7 +4950,7 @@ function showPriorityExplanation(explainId) {
           <span style="color:var(--text-muted); font-weight:600;">${weight}</span>
         </div>
         <div style="display:flex; justify-content:space-between; align-items:baseline; margin-top:2px;">
-          <span class="why-factor-val" ${isUnavail ? 'style="font-size:13px; font-weight:700; color:#64748b;"' : ''}>${displayVal}</span>
+          <span class="why-factor-val" ${isUnavail ? 'style="font-size:11px; font-weight:600; color:#b91c1c;"' : ''}>${displayVal}</span>
           <span style="font-size:11px; color:var(--text-muted); font-weight:600;">${isUnavail ? '' : '/ 100'}</span>
         </div>
         <div class="why-factor-bar">
@@ -4922,34 +5288,74 @@ function renderSafeSitesCapacity(data) {
   }
 
   // Render Deficit Reports
-  if (deficitEl && data.deficitReports) {
+  if (deficitEl && data) {
     deficitEl.innerHTML = '';
-    data.deficitReports.forEach(d => {
-      const hasDeficit = d.deficit > 0;
-      const card = document.createElement('div');
-      card.className = `deficit-card ${hasDeficit ? 'has-deficit' : 'sufficient'}`;
-      card.innerHTML = `
-        <div class="deficit-zone-title">
-          <span>Zone ${d.zone_id} (${(d.hazard_type || 'Hazard').toUpperCase()})</span>
-          <span class="alloc-badge ${hasDeficit ? 'alloc-unallocated' : 'alloc-full'}">
-            ${hasDeficit ? '[ALERT] CAPACITY DEFICIT' : '✅ SUFFICIENT'}
-          </span>
-        </div>
-        <div class="deficit-stat">
-          <span>At-Risk Population:</span>
-          <strong>${Number(d.total_at_risk).toLocaleString()}</strong>
-        </div>
-        <div class="deficit-stat">
-          <span>Reachable Shelter Capacity:</span>
-          <strong>${Number(d.total_reachable_capacity).toLocaleString()}</strong>
-        </div>
-        <div class="deficit-stat">
-          <span>Relocation Deficit:</span>
-          <strong style="color:${hasDeficit ? '#ef4444' : '#22c55e'};">${Number(d.deficit).toLocaleString()}</strong>
-        </div>
-      `;
-      deficitEl.appendChild(card);
+    const habs = data.habitations || [];
+    const shelters = data.shelterStatus || [];
+    
+    const zoneMap = {};
+    
+    // Aggregate by District+Hazard
+    habs.forEach(h => {
+       if (h.priorityLevel === 'CRITICAL' || h.priorityLevel === 'HIGH') {
+           const dist = h.district || 'Unknown District';
+           const haz = h.hazardType ? h.hazardType.toUpperCase() : 'HAZARD';
+           const zId = `${haz} Zone (${dist})`;
+           
+           if (!zoneMap[zId]) zoneMap[zId] = { id: zId, district: dist, totalAtRisk: 0, allocated: 0, deficit: 0, hazard: haz };
+           
+           zoneMap[zId].totalAtRisk += (h.population || 0);
+           if (h.allocation_status === 'ALLOCATED') {
+               zoneMap[zId].allocated += (h.population || 0);
+           } else {
+               zoneMap[zId].deficit += (h.population || 0);
+           }
+       }
     });
+    
+    const zoneKeys = Object.keys(zoneMap);
+    
+    if (zoneKeys.length === 0) {
+      deficitEl.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-secondary); font-size: 13px;">No critical capacity deficits detected.</div>';
+    } else {
+      zoneKeys.forEach(k => {
+        const d = zoneMap[k];
+        let freeSpace = 0;
+        shelters.forEach(s => {
+           if (s.district && s.district.toLowerCase() === d.district.toLowerCase()) {
+               freeSpace += Math.max(0, s.available_beds || 0);
+           }
+        });
+        d.reachableCap = d.allocated + freeSpace;
+        
+        const hasDeficit = d.deficit > 0;
+        const card = document.createElement('div');
+        card.className = `deficit-card ${hasDeficit ? 'has-deficit' : 'sufficient'}`;
+        card.innerHTML = `
+          <div class="deficit-zone-title">
+            <span>${d.id}</span>
+            <span class="alloc-badge ${hasDeficit ? 'alloc-unallocated' : 'alloc-full'}">
+              ${hasDeficit ? '[ALERT] CAPACITY DEFICIT' : '✅ SUFFICIENT'}
+            </span>
+          </div>
+          <div class="deficit-stat">
+            <span>At-Risk Population:</span>
+            <strong>${Number(d.totalAtRisk).toLocaleString()}</strong>
+          </div>
+          <div class="deficit-stat">
+            <span>Reachable Shelter Capacity:</span>
+            <strong>${Number(d.reachableCap).toLocaleString()}</strong>
+          </div>
+          <div class="deficit-stat">
+            <span>Relocation Deficit:</span>
+            <strong style="color:${hasDeficit ? '#ef4444' : '#22c55e'};">${Number(d.deficit).toLocaleString()}</strong>
+          </div>
+        `;
+        deficitEl.appendChild(card);
+      });
+    }
+  } else if (deficitEl) {
+    deficitEl.innerHTML = '<div style="padding: 24px; text-align: center; color: var(--text-secondary); font-size: 13px;"><i class="fi fi-rr-spinner fi-spin"></i> Analyzing live capacity data...</div>';
   }
 }
 
@@ -5182,7 +5588,7 @@ function initAnalyticsChart() {
 
 // ================================================================
 // ================================================================
-// TASK 18: AI DECISION SUPPORT (DeepSeek-R1 8B Evidence Brief)
+// TASK 18: Risk Classification AI Engine (DeepSeek-R1 8B Evidence Brief)
 // ================================================================
 let isGeneratingDecisionBrief = false;
 let decisionBriefTimerInterval = null;

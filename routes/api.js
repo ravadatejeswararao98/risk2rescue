@@ -126,6 +126,10 @@ router.post('/citizen-reports', async (req, res) => {
        ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, timestamp = EXCLUDED.timestamp, location = EXCLUDED.location`,
       params
     );
+    
+    // Publish to Redis for real-time WebSocket sync
+    db.redisClient.publish('new-report', JSON.stringify({ ...report, id, timestamp }));
+    
     res.json({ success: true, id });
   } catch (err) {
     res.status(500).json({ error: err.message });

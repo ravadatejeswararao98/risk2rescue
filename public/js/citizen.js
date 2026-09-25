@@ -563,12 +563,24 @@ function flyToShelter(id, lat, lng, name) {
       const occDisplay = hasOcc ? `${occVal.toLocaleString()} (${pct}%)` : '<span style="color:#94a3b8; font-weight:normal;">Unconfirmed (UNKNOWN)</span>';
       const capColor = (pct && pct > 85) ? '#ef4444' : (pct && pct > 60) ? '#f97316' : '#22c55e';
       const amenitiesHtml = (fallbackSite.amenities || ['Food', 'Water', 'Medical']).map(a => `<span>${escapeHtml(a)}</span>`).join('');
+      
+      let distanceRowHtml = '';
+      if (window.citizenCurrentLocation && window.citizenCurrentLocation.lat && window.citizenCurrentLocation.lng) {
+        const citLoc = window.citizenCurrentLocation;
+        const dist = distanceKm(citLoc.lat, citLoc.lng, numLat, numLng);
+        const distText = dist > 0.1 ? `${dist.toFixed(1)} km (Straight line)` : 'Nearby';
+        const etaMins = dist > 0.1 ? Math.round((dist / 40) * 60) : 0;
+        const etaText = etaMins > 0 ? `~${etaMins} mins (Est @ 40km/h)` : 'Arrived';
+        distanceRowHtml = `<div class="popup-stat"><span>Distance</span><strong>${distText} &bull; ${etaText}</strong></div>`;
+      }
+
       L.popup({ className: 'custom-popup', offset: [0, -10] })
         .setLatLng([numLat, numLng])
         .setContent(`
           <div class="map-popup">
             <div class="popup-header"><span class="risk-badge risk-green">SAFE SITE</span><span class="popup-name">${escapeHtml(fallbackSite.name)}</span></div>
             <div class="popup-body">
+              ${distanceRowHtml}
               <div class="popup-stat"><span>Capacity</span><strong>${(fallbackSite.capacity || 0).toLocaleString()}</strong></div>
               <div class="popup-stat"><span>Current</span><strong style="color:${capColor}">${occDisplay}</strong></div>
               <div class="popup-stat"><span>Type</span><strong>${escapeHtml(fallbackSite.type || 'Relief Shelter')}</strong></div>

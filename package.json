@@ -31,7 +31,8 @@
   "devDependencies": {
     "concurrently": "^10.0.5",
     "eslint": "^10.11.0",
-    "husky": "^9.1.7"
+    "husky": "^9.1.7",
+    "playwright": "^1.63.0"
   },
   "dependencies": {
     "@flaticon/flaticon-uicons": "^3.3.1",

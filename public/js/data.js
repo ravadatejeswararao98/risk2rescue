@@ -51,14 +51,7 @@ const REFERENCE_DATA = {
   ],
 
   // ---- Authoritative Hospital Directory (Andhra Pradesh Civil Register) ----
-  hospitals: [
-    { id: 'HOSP001', name: 'GGH Kakinada',                             lat: 16.9800, lng: 82.2400, beds: 1500, emergency: true, district: 'Kakinada',      tier: 'REFERENCE', sourceId: 'ap_sdma_shelters' },
-    { id: 'HOSP002', name: 'King George Hospital (KGH) Visakhapatnam', lat: 17.7088, lng: 83.3056, beds: 1200, emergency: true, district: 'Visakhapatnam', tier: 'REFERENCE', sourceId: 'ap_sdma_shelters' },
-    { id: 'HOSP003', name: 'GGH Vijayawada',                           lat: 16.5120, lng: 80.6380, beds: 1000, emergency: true, district: 'NTR',           tier: 'REFERENCE', sourceId: 'ap_sdma_shelters' },
-    { id: 'HOSP004', name: 'RIMS Ongole',                              lat: 15.5120, lng: 80.0450, beds: 800,  emergency: true, district: 'Prakasam',      tier: 'REFERENCE', sourceId: 'ap_sdma_shelters' },
-    { id: 'HOSP005', name: 'SVIMS Tirupati',                           lat: 13.6380, lng: 79.4080, beds: 900,  emergency: true, district: 'Tirupati',      tier: 'REFERENCE', sourceId: 'ap_sdma_shelters' },
-    { id: 'HOSP006', name: 'District Hospital Rajahmundry',            lat: 17.0050, lng: 81.7820, beds: 650,  emergency: true, district: 'East Godavari', tier: 'REFERENCE', sourceId: 'ap_sdma_shelters' }
-  ]
+  hospitals: []
 };
 
 // ================================================================

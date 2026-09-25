@@ -55,15 +55,24 @@
       return !isNaN(val) ? Math.max(0, Math.min(100, Math.round(val))) : null;
     }
     const hazardStr = String(incident.hazardType || incident.hazard_type || '').toLowerCase().trim();
-    if (!hazardStr) return null;
+    if (hazardStr) {
+      if (hazardStr.includes('cyclone') || hazardStr.includes('hurricane')) return 85;
+      if (hazardStr.includes('flood') || hazardStr.includes('tsunami') || hazardStr.includes('surge')) return 75;
+      if (hazardStr.includes('landslide')) return 80;
+      if (hazardStr.includes('earthquake') || hazardStr.includes('seismic')) return 90;
+      if (hazardStr.includes('fire') || hazardStr.includes('wildfire')) return 85;
+      if (hazardStr.includes('squall') || hazardStr.includes('cloudburst') || hazardStr.includes('storm')) return 70;
+      return 60; // Identified hazard type
+    }
 
-    if (hazardStr.includes('cyclone') || hazardStr.includes('hurricane')) return 85;
-    if (hazardStr.includes('flood') || hazardStr.includes('tsunami') || hazardStr.includes('surge')) return 75;
-    if (hazardStr.includes('landslide')) return 80;
-    if (hazardStr.includes('earthquake') || hazardStr.includes('seismic')) return 90;
-    if (hazardStr.includes('fire') || hazardStr.includes('wildfire')) return 85;
-    if (hazardStr.includes('squall') || hazardStr.includes('cloudburst') || hazardStr.includes('storm')) return 70;
-    return 60; // Identified hazard type
+    // Fallback for incidents/reports lacking explicit hazardType
+    const sev = String(incident.severity || incident.tier || incident.priorityLevel || '').toLowerCase().trim();
+    if (sev === 'critical' || sev === 'red') return 95;
+    if (sev === 'high' || sev === 'orange') return 80;
+    if (sev === 'moderate' || sev === 'yellow') return 60;
+    if (sev === 'low' || sev === 'green' || sev === 'safe') return 20;
+
+    return null;
   }
 
   /**
@@ -77,12 +86,19 @@
       ? incident.populationAtRisk
       : (incident.population !== undefined && incident.population !== null
           ? incident.population
-          : (incident.growth_adjusted_pop !== undefined && incident.growth_adjusted_pop !== null
-              ? incident.growth_adjusted_pop
-              : null));
+          : (incident.pop !== undefined && incident.pop !== null
+              ? incident.pop
+              : (incident.growth_adjusted_pop !== undefined && incident.growth_adjusted_pop !== null
+                  ? incident.growth_adjusted_pop
+                  : null)));
 
-    if (rawPop === null || rawPop === undefined || isNaN(Number(rawPop))) return null;
-    const pop = Number(rawPop);
+    let pop = 0;
+    if (rawPop !== null && rawPop !== undefined && !isNaN(Number(rawPop))) {
+      pop = Number(rawPop);
+    } else {
+      return null;
+    }
+
     if (pop <= 0) return 0;
     if (pop > 10000) return 100;
     if (pop > 5000) return 85;
@@ -192,6 +208,11 @@
     if (incident.monitored === true || incident.status === 'MONITORED' || incident.status === 'ACTIVE') {
       return 0;
     }
+
+    // Check if incident itself has a severity hinting at life risk
+    const sev = String(incident.severity || incident.tier || incident.priorityLevel || '').toLowerCase().trim();
+    if (sev === 'critical' || sev === 'red') return 80;
+    if (sev === 'high' || sev === 'orange') return 60;
 
     return null;
   }

@@ -670,6 +670,7 @@ const SOURCES = [
     dataType: 'Enumerated Civil Infrastructure GeoJSON',
     category: 'reference',
     tier: 'OFFICIAL_BASELINE',
+    note: 'Illustrative dataset curated from published historical figures (NDMA, CAG), not a live APSDMA GIS pull.',
     role: 'PRIMARY',
     timeoutMs: 3000,
     cadenceMs: 86400000,

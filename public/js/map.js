@@ -223,7 +223,7 @@ class DisasterMap {
     this.overlayLayers = {};
     this.activeBaseLayer = 'standard';
     this.riskZoneCircles = [];
-    this.markers = { safeSites: [], hospitals: [], habitations: null, hazards: [] };
+    this.markers = { safeSites: [], habitations: null, hazards: [] };
     this.userMarker = null;
     this.locateMarker = null;
     this._hasActiveLocate = false;
@@ -339,7 +339,7 @@ class DisasterMap {
     this.drawRiskZones();
     // this.addSafeSiteMarkers();
     this.addHazardMarkers();
-    this.addHospitalMarkers();
+
     // this.addHabitationMarkers();
     this.updateZoomVisibility(); // Initial visibility check
   }
@@ -481,30 +481,6 @@ class DisasterMap {
     });
   }
 
-  addHospitalMarkers() {
-    APP_DATA.hospitals.forEach(h => {
-      if (window.isInsideAndhraPradesh && !window.isInsideAndhraPradesh(h.lat, h.lng)) {
-        return;
-      }
-      const icon = L.divIcon({
-        html: `<div class="map-poi-pin poi-hospital" title="Hospital: ${h.name}">H</div>`,
-        className: '', iconSize: [22, 22], iconAnchor: [11, 11]
-      });
-      const marker = L.marker([h.lat, h.lng], { icon });
-      marker.bindPopup(`
-        <div class="map-popup">
-          <div class="popup-header"><span class="risk-badge" style="background:rgba(220,38,38,0.2);color:#f87171;border:1px solid rgba(220,38,38,0.4)">HOSPITAL</span><span class="popup-name">${h.name}</span></div>
-          <div class="popup-body">
-            <div class="popup-stat"><span>Beds</span><strong>${h.beds || 'Available'}</strong></div>
-            <div class="popup-stat"><span>Trauma Unit</span><strong>${h.trauma ? 'Yes' : 'Level 2'}</strong></div>
-            <div class="popup-desc">${h.address || 'Emergency medical facility on standby'}</div>
-          </div>
-        </div>
-      `, { className: 'custom-popup' });
-      // Hidden by default, shown when hospital layer is active
-      this.markers.hospitals.push(marker);
-    });
-  }
 
   addHabitationMarkers() {
     return; // Habitations completely removed as per user request to declutter map
@@ -639,9 +615,7 @@ class DisasterMap {
           }
         });
         break;
-      case 'hospitals':
-        this.markers.hospitals.forEach(m => visible ? m.addTo(this.map) : this.map.removeLayer(m));
-        break;
+
       case 'habitations':
         if (this.markers.habitations) {
           if (visible) this.map.addLayer(this.markers.habitations);

@@ -174,10 +174,10 @@
 
 ### 8. Official Reference Baselines (OFFICIAL_BASELINE)
 
-#### `ap_sdma_shelters` — Authoritative Evacuation Shelter Directory
-- **Source:** Andhra Pradesh State Disaster Management Authority (AP SDMA)
+#### `ap_sdma_shelters` — Illustrative Evacuation Shelter Directory
+- **Provenance / Source:** Illustrative dataset curated from published historical figures (NDMA/World Bank cyclone shelter program, CAG Performance Audit Report 2013). This is NOT a live APSDMA GIS pull (which requires authenticated portal access unavailable for this prototype).
 - **Storage:** `data/shelters.json`
-- **Role:** Enumerated civil capacity ground truth. Total Capacity: **28,000 beds** across 5 regional centers.
+- **Role:** Enumerated civil capacity proxy for demonstration purposes. Distributed across 17 illustrative shelters mapping to the coastal districts, with an aggregate capacity of ~22,000 beds (conforming to 1,000-1,500 standard MPCS design capacity).
 
 #### `census_india_ap` — Coastal Habitations Demographics Baseline
 - **Source:** Census of India (2011), Ministry of Home Affairs

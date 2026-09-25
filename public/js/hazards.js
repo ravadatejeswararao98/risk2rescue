@@ -67,12 +67,7 @@ const HAZARD_INTEL = {
       { year: 2014, name: 'Cyclone Hudhud',   lat: 17.68, lng: 83.21, affected: 500000, note: 'Catastrophic impact Visakhapatnam' },
       { year: 1990, name: 'AP Super Cyclone', lat: 16.18, lng: 81.13, affected: 1000000, note: 'Historic Machilipatnam disaster' }
     ],
-    habitations: [],
-    hospitals: [
-      { name: 'Kakinada Government General Hospital', lat: 16.9604, lng: 82.2381, beds: 450, trauma: true },
-      { name: 'Visakhapatnam King George Hospital', lat: 17.7088, lng: 83.3056, beds: 1000, trauma: true },
-      { name: 'Machilipatnam District Hospital', lat: 16.1820, lng: 81.1340, beds: 280, trauma: false }
-    ]
+    habitations: []
   },
 
   flood: {
@@ -259,7 +254,7 @@ class HazardEngine {
     this.map = map;
     this.group = L.layerGroup().addTo(map);
     this.revealedSafeSitesGroup = L.layerGroup().addTo(map);
-    this.visible = { zones: true, safe: false, alerts: true, habitations: false, hospitals: true };
+    this.visible = { zones: true, safe: false, alerts: true, habitations: false };
     this.activeKey = null;
     this.layerCache = {}; // Cache compiled Leaflet layers by hazard key
     this.timelineStep = 0; // 0=Now, 1=+3h, 2=+6h, 3=+12h, 4=+24h, 5=+48h
@@ -531,7 +526,7 @@ class HazardEngine {
       if (this.visible.safe && cached.safe) cached.safe.forEach(l => this.group.addLayer(l));
       if (this.visible.alerts && cached.alerts) cached.alerts.forEach(l => this.group.addLayer(l));
       if (this.visible.habitations && cached.habitations) cached.habitations.forEach(l => this.group.addLayer(l));
-      if (this.visible.hospitals && cached.hospitals) cached.hospitals.forEach(l => this.group.addLayer(l));
+
       return this.stats(key);
     }
 
@@ -539,8 +534,7 @@ class HazardEngine {
       zones: [],
       safe: [],
       alerts: [],
-      habitations: [],
-      hospitals: []
+      habitations: []
     };
 
     const greenZoneData = [];    // Collect green zones for merging
@@ -805,7 +799,7 @@ class HazardEngine {
             });
 
             bucket.zones.unshift(greenLayer);  // Add FIRST in array so it renders behind danger zones
-            this.renderedZoneLayers.push({ polygonLayer: greenLayer, geojson: greenHull, zone: { level: 'GREEN', name: 'Andhra Pradesh Safe Perimeter' }, hazard: h, level: 'GREEN' });
+            this.renderedZoneLayers.push({ polygonLayer: greenLayer, geojson: greenHull, zone: { level: 'GREEN', name: 'Andhra Pradesh No Detected Hazard Perimeter' }, hazard: h, level: 'GREEN' });
           } else if (!greenHullValid) {
             console.warn('[HazardEngine] Green hull omitted due to carving failure against danger zones.');
           }
@@ -844,7 +838,7 @@ class HazardEngine {
           ['Occupancy', `${s.current.toLocaleString()} (${Math.round((s.current / s.capacity) * 100)}%)`],
           ['Available beds', free.toLocaleString()],
           ['Resources', s.resources ? s.resources.join(', ') : 'Medical, Water, Power']
-        ], 'Designated cyclone / flood multi-purpose safe shelter.'), { className: 'custom-popup' });
+        ], 'Designated cyclone / flood multi-purpose Safe Shelter.'), { className: 'custom-popup' });
       bucket.safe.push(marker);
       if (this.visible.safe) this.group.addLayer(marker);
     });
@@ -869,19 +863,6 @@ class HazardEngine {
 
     // 4. At-Risk Habitations (Removed as per user request to declutter map)
     let habCluster = null;
-
-    // 6. Emergency Hospitals & Trauma Centers
-    if (h.hospitals) {
-      h.hospitals.forEach((hosp, i) => {
-        const marker = L.marker([hosp.lat, hosp.lng], { icon: this.hospitalIcon(i * 35) })
-          .bindPopup(this.popup('Emergency Care', 'red', hosp.name, [
-            ['Total Beds', hosp.beds.toLocaleString()],
-            ['Trauma Care', hosp.trauma ? 'Level 1 Trauma Available' : 'Basic Emergency Unit']
-          ], 'Designated primary receiving hospital for disaster casualties.'), { className: 'custom-popup' });
-        bucket.hospitals.push(marker);
-        if (this.visible.hospitals) this.group.addLayer(marker);
-      });
-    }
 
     // Apply active status visibility filter if one is active
     if (typeof window !== 'undefined' && window.currentHazardStatusFilter && window.currentHazardStatusFilter !== 'ALL') {
@@ -1115,15 +1096,6 @@ class HazardEngine {
     return L.divIcon({
       html: `<div class="alert-pin" style="--pin:${col}; --drop-delay:${delayMs}ms;"><span>!</span></div>`,
       className: '', iconSize: [24, 24], iconAnchor: [12, 12]
-    });
-  }
-
-  hospitalIcon(delayMs = 0) {
-    return L.divIcon({
-      html: `<div class="map-poi-pin poi-hospital" style="--drop-delay:${delayMs}ms;" title="Emergency Hospital / Trauma Care">H</div>`,
-      className: '',
-      iconSize: [22, 22],
-      iconAnchor: [11, 11]
     });
   }
 
@@ -1458,17 +1430,16 @@ function classifyLocationType(item) {
     return { tier: 2, type: item.type || 'Locality / Habitation' };
   }
 
-  // Tier 3: Emergency & Hazard facilities (Shelters, Relief Camps, Evacuation Hubs, Hospitals, Hazard Zones)
+  // Tier 3: Emergency & Hazard facilities (Shelters, Relief Camps, Evacuation Hubs, Hazard Zones)
   const isEmergency =
     rawType.includes('shelter') || rawType.includes('relief') || rawType.includes('camp') ||
     rawType.includes('evacuation') || rawType.includes('hazard') || rawType.includes('danger') ||
-    rawType.includes('hospital') || rawName.includes('relief camp') || rawName.includes('shelter') ||
+    rawName.includes('relief camp') || rawName.includes('shelter') ||
     rawSub.includes('shelter') || rawSub.includes('relief');
 
   if (isEmergency) {
     let displayType = 'Civil Shelter';
     if (rawName.includes('relief camp') || rawSub.includes('relief')) displayType = 'Relief Camp';
-    else if (rawType.includes('hospital') || rawName.includes('hospital')) displayType = 'Emergency Hospital';
     else if (rawType.includes('hazard') || rawType.includes('danger')) displayType = 'Hazard Zone';
     return { tier: 3, type: item.type || displayType };
   }

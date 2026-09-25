@@ -1,0 +1,121 @@
+ function renderHabitationsTable() {
+   const tbody = document.getElementById('habitations-table-body');
+   if (!tbody) return;
+   tbody.innerHTML = '';
+   
+-  const habitations = (window.APP_DATA && window.APP_DATA.habitations) || (typeof REFERENCE_DATA !== 'undefined' ? REFERENCE_DATA.habitations : []);
++  const apDistricts = {
++    "Alluri Sitharama Raju":[17.89,82.2],"Anakapalli":[17.7,82.9],"Ananthapuramu":[14.68,77.6],"Annamayya":[14.15,78.85],"Bapatla":[15.9,80.47],"Chittoor":[13.22,79.1],"Dr. B.R. Ambedkar Konaseema":[16.62,82.02],"East Godavari":[17,81.78],"Eluru":[16.71,81.1],"Guntur":[16.3,80.44],"Kakinada":[16.98,82.24],"Krishna":[16.18,81.13],"Kurnool":[15.83,78.03],"Nandyal":[15.48,78.48],"NTR":[16.51,80.62],"Palnadu":[16.35,79.8],"Parvathipuram Manyam":[18.78,83.43],"Prakasam":[15.51,80.05],"SPSR Nellore":[14.44,79.99],"Sri Sathya Sai":[14.17,77.8],"Srikakulam":[18.3,83.9],"Tirupati":[13.63,79.41],"Visakhapatnam":[17.69,83.22],"Vizianagaram":[18.11,83.4],"West Godavari":[16.54,81.53],"Y.S.R. Kadapa":[14.47,78.82]
++  };
++
++  const searchInput = document.getElementById('habitation-search');
++  const filterInput = document.getElementById('habitation-hazard-filter');
++  const q = searchInput ? searchInput.value.toLowerCase() : '';
++  const filter = filterInput ? filterInput.value : 'ALL';
+   
+-  if (!habitations || habitations.length === 0) {
+-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px; color: var(--text-secondary);">No habitations found.</td></tr>';
+-    return;
+-  }
++  let totalDisplayed = 0;
+   
+-  habitations.forEach((hab, index) => {
+-    // Dynamic risk check using Turf if hazardPolygons are active, else fall back to known properties
+-    let riskTier = hab.risk || hab.tier || 'GREEN';
++  Object.keys(apDistricts).sort().forEach((dist) => {
++    let riskTier = 'GREEN';
+     let activeHazard = 'None';
+     
+-    if (typeof window.turf !== 'undefined' && window.authMapInstance && window.authMapInstance.hazardPolygons) {
+-       const pt = window.turf.point([hab.lng || hab.lon, hab.lat]);
+-       let maxRank = 0;
+-       const rankMap = { 'GREEN': 1, 'LOW': 1, 'HISTORICAL': 2, 'YELLOW': 3, 'MODERATE': 3, 'ORANGE': 4, 'HIGH': 4, 'RED': 5, 'CRITICAL': 5 };
++    const activeZoneIds = new Set();
++    const rankMap = { 'GREEN': 1, 'LOW': 1, 'HISTORICAL': 2, 'YELLOW': 3, 'MODERATE': 3, 'ORANGE': 4, 'HIGH': 4, 'RED': 5, 'CRITICAL': 5 };
++    let maxRank = 0;
++
++    const liveZones = (window.APP_DATA && window.APP_DATA.riskZones) || [];
++    liveZones.forEach(z => {
++         const inZone = z.district?.toLowerCase() === dist.toLowerCase() || (z.districts && z.districts.some(d => d.toLowerCase() === dist.toLowerCase()));
++         if (inZone) {
++           activeZoneIds.add(z.id || z.name);
++           const level = (z.level || z.current_tier || 'GREEN').toUpperCase();
++           if ((rankMap[level] || 1) > maxRank) {
++             maxRank = rankMap[level] || 1;
++             riskTier = level;
++             activeHazard = z.hazardType ? z.hazardType.charAt(0).toUpperCase() + z.hazardType.slice(1) : 'Active Hazard';
++           }
++         }
++    });
++
++    if (window.authMapInstance && window.authMapInstance.hazardPolygons) {
++       const pt = (typeof window.turf !== 'undefined') ? window.turf.point([apDistricts[dist][1], apDistricts[dist][0]]) : null;
+        window.authMapInstance.hazardPolygons.forEach(hp => {
+-         if (window.turf.booleanPointInPolygon(pt, hp.polygon)) {
++         if (hp.polygon && pt && window.turf.booleanPointInPolygon(pt, hp.polygon)) {
++           activeZoneIds.add(hp.id || hp.name || hp.hazardType);
+            const level = (hp.level || 'MODERATE').toUpperCase();
+            if ((rankMap[level] || 1) > maxRank) {
+              maxRank = rankMap[level] || 1;
+              riskTier = level;
+              activeHazard = hp.hazardType ? hp.hazardType.charAt(0).toUpperCase() + hp.hazardType.slice(1) : 'Active Hazard';
+            }
+          }
+        });
+     }
+ 
+     if (riskTier === 'CRITICAL' || riskTier === 'RED') { riskTier = 'RED'; activeHazard = activeHazard !== 'None' ? activeHazard : 'High Threat'; }
+     else if (riskTier === 'HIGH ALERT' || riskTier === 'HIGH' || riskTier === 'ORANGE') { riskTier = 'ORANGE'; activeHazard = activeHazard !== 'None' ? activeHazard : 'Monitoring'; }
+     else if (riskTier === 'MODERATE' || riskTier === 'YELLOW') { riskTier = 'YELLOW'; activeHazard = activeHazard !== 'None' ? activeHazard : 'Advisory'; }
+     else { riskTier = 'GREEN'; activeHazard = 'None'; }
+     
++    const activeZones = activeZoneIds.size;
++    
++    // Apply Filters
++    if (q && !dist.toLowerCase().includes(q)) return;
++    if (filter !== 'ALL' && riskTier !== filter) return;
++
++    totalDisplayed++;
++    
+     let badgeHtml = '';
+     if (riskTier === 'RED') badgeHtml = '<span style="background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.3); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">CRITICAL</span>';
+     else if (riskTier === 'ORANGE') badgeHtml = '<span style="background:rgba(249,115,22,0.1); color:#f97316; border:1px solid rgba(249,115,22,0.3); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">HIGH</span>';
+     else if (riskTier === 'YELLOW') badgeHtml = '<span style="background:rgba(234,179,8,0.1); color:#eab308; border:1px solid rgba(234,179,8,0.3); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">MODERATE</span>';
+     else badgeHtml = '<span style="background:rgba(34,197,94,0.1); color:#22c55e; border:1px solid rgba(34,197,94,0.3); padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700;">SAFE</span>';
+ 
+     const tr = document.createElement('tr');
+-    tr.style.borderBottom = '1px solid var(--border-color, #e2e8f0)';
++    tr.style.transition = 'background 0.2s ease';
++    tr.onmouseover = () => tr.style.background = 'rgba(255,255,255,0.04)';
++    tr.onmouseout = () => tr.style.background = 'transparent';
++    
+     tr.innerHTML = `
+-      <td style="padding:10px 14px; color:var(--text-muted); font-size:11px;">${index + 1}</td>
+-      <td style="padding:10px 14px; font-weight:600; color:var(--text-primary);">${hab.name}</td>
+-      <td style="padding:10px 14px; color:var(--text-secondary);">${hab.district}</td>
+-      <td style="padding:10px 14px; text-align:right; font-weight:600; color:var(--text-primary);">${(hab.pop || hab.censusPopulation || 0).toLocaleString()}</td>
+-      <td style="padding:10px 14px; text-align:center;">${badgeHtml} <span style="font-size:10px; display:block; color:var(--text-muted); margin-top:2px;">${activeHazard}</span></td>
+-      <td style="padding:10px 14px; text-align:right; color:var(--text-secondary);">${hab.elevation || Math.floor(Math.random() * 20 + 2)}m</td>
+-      <td style="padding:10px 14px; text-align:right;">
+-        <button class="btn" style="background:var(--bg-elevated); border:1px solid var(--border-color); padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;" onclick="if(window.authMapInstance) window.authMapInstance.flyToLocation(${hab.lat}, ${hab.lng || hab.lon}, 14);">
+-          Locate
+-        </button>
+-      </td>
++      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);">${totalDisplayed}</td>
++      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-weight:600; font-size:12px;">${dist}</td>
++      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); text-align:center;">${badgeHtml}</td>
++      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); font-size:11px; color:var(--text-secondary);">${activeHazard}</td>
++      <td style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.05); text-align:right; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-secondary);">${activeZones} Zones</td>
+     `;
+     tbody.appendChild(tr);
+   });
++
++  if (totalDisplayed === 0) {
++    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px; color: var(--text-secondary);">No districts matched the search/filter criteria.</td></tr>';
++  }
++  
++  const titleCount = document.getElementById('habitations-title-count');
++  if (titleCount) titleCount.textContent = `Habitations (${totalDisplayed} Districts)`;
+ }
++
+ window.renderHabitationsTable = renderHabitationsTable
