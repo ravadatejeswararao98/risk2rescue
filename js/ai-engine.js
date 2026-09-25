@@ -599,12 +599,13 @@ class AIEngine {
         pressureHpa: currPressure,
         mag: currMagnitude,
         elevationM: hab.elevation_m || 10,
-        vulnerability: hab.vulnerability_score || 0.5
+        vulnerability: hab.vulnerability_score || 0.5,
+        weatherUnavailable: weather.success === false && weather.status === 'UNAVAILABLE'
       };
 
       // Evaluate ALL hazards dynamically and lock onto the most severe threat
       const hazardsToCheck = ['cyclone', 'flood', 'cloudburst', 'landslide', 'earthquake'];
-      const tierRanks = { RED: 5, ORANGE: 4, YELLOW: 3, HISTORICAL: 2, GREEN: 1 };
+      const tierRanks = { RED: 6, ORANGE: 5, YELLOW: 4, HISTORICAL: 3, 'DATA UNAVAILABLE': 2, GREEN: 1 };
       
       let currentTier = 'GREEN';
       let hType = (hab.hazard_type || 'cyclone').toLowerCase();
@@ -678,7 +679,9 @@ class AIEngine {
       // Note explaining ongoing vs approaching trajectory and recurrence
       let note = '';
       const gustDisplay = (currWindGust !== null && currWindGust !== undefined) ? `${currWindGust} km/h` : 'N/A';
-      if (currentTier === 'RED') {
+      if (currentTier === 'DATA UNAVAILABLE') {
+        note = `ERROR: Live telemetry unreachable. Hazard severity cannot be computed.`;
+      } else if (currentTier === 'RED') {
         note = `CRITICAL DANGER NOW: Observed peak gusts ${gustDisplay} • active severe impact`;
       } else if (forecastTiers[3] === 'RED' || forecastTiers[4] === 'RED') {
         const peakGust = forecastSeries[3]?.gustKmh ?? gustDisplay;
@@ -686,7 +689,13 @@ class AIEngine {
       } else {
         note = `Current: ${currentTier} (${gustDisplay}) • Monitoring status across 48h horizon`;
       }
-      if (recurrence.elevated) {
+      
+      if (weather.stale && currentTier !== 'DATA UNAVAILABLE') {
+         const timeStr = weather.lastUpdated ? new Date(weather.lastUpdated).toLocaleTimeString() : 'unknown time';
+         note = `STALE DATA (Last updated: ${timeStr}): ${note}`;
+      }
+      
+      if (recurrence.elevated && currentTier !== 'DATA UNAVAILABLE') {
         note += ` • Recurrence: ${recurrence.multiplier}x risk multiplier (${recurrence.count} prior events)`;
       }
 
@@ -748,8 +757,12 @@ class AIEngine {
    * Physical threshold classifier with recurrence risk multiplier
    */
   classifySeverityTier(hazardType, inputs, recurrenceMultiplier = 1.0) {
-    const { windGustKmh = 0, precipMm = 0, pressureHpa = 1010, mag = 0, elevationM = 10, vulnerability = 0.5 } = inputs;
+    const { windGustKmh = 0, precipMm = 0, pressureHpa = 1010, mag = 0, elevationM = 10, vulnerability = 0.5, weatherUnavailable = false } = inputs;
     
+    if (hazardType !== 'earthquake' && weatherUnavailable) {
+      return 'DATA UNAVAILABLE';
+    }
+
     // Disable historical multiplier on live data telemetry
     const mult = 1.0; 
 

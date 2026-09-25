@@ -292,6 +292,12 @@ h6,
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
+.risk-data-unavailable {
+  background: rgba(156, 163, 175, 0.15);
+  color: #6b7280;
+  border: 1px solid rgba(156, 163, 175, 0.3);
+}
+
 .risk-dot {
   width: 8px;
   height: 8px;

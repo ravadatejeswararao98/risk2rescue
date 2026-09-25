@@ -789,7 +789,7 @@ function renderZoneManager(filterStatus = window.currentZoneManagerFilter) {
     tr.onmouseout = () => tr.style.background = 'transparent';
     
     // Risk level badge mapping
-    const riskLower = (zone.level || zone.current_tier || 'green').toLowerCase();
+    const riskLower = (zone.level || zone.current_tier || 'green').toLowerCase().replace(/ /g, '-');
     const riskBadgeClass = `risk-${riskLower}`;
 
     // Source attribution badge
@@ -2756,6 +2756,10 @@ function openZoneInfoPanel(zone, lat, lng) {
     riskBadgeText = 'MODERATE';
     badgeBg = 'rgba(234, 179, 8, 0.18)';
     badgeColor = '#a16207';
+  } else if (rawRisk === 'DATA UNAVAILABLE') {
+    riskBadgeText = 'DATA UNAVAILABLE';
+    badgeBg = 'rgba(156, 163, 175, 0.15)';
+    badgeColor = '#6b7280';
   }
 
   const badgeEl = document.getElementById('zip-risk-badge');
