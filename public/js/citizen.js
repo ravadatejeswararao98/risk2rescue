@@ -1335,8 +1335,28 @@ function guideToNearestShelter() {
       : '';
     showToast(`🚶 Evacuation route: Heading to ${currentEvacuationTarget.name}${distText}`, 'success');
   } else {
-    const s = HAZARD_INTEL[currentHazard]?.safeSites?.[0];
-    if (s) {
+    let sites = [];
+    if (currentHazard === 'ALL' || !HAZARD_INTEL[currentHazard]) {
+      const seen = new Set();
+      Object.values(HAZARD_INTEL).forEach(hazard => {
+        if (hazard.safeSites) {
+          hazard.safeSites.forEach(s => {
+            if (!seen.has(s.name)) { seen.add(s.name); sites.push(s); }
+          });
+        }
+      });
+    } else {
+      sites = HAZARD_INTEL[currentHazard]?.safeSites || [];
+    }
+
+    if (sites.length > 0) {
+      if (window.citizenCurrentLocation) {
+        sites = sites.map(s => ({
+          ...s,
+          distanceKm: distanceKm(window.citizenCurrentLocation.lat, window.citizenCurrentLocation.lng, s.lat, s.lng)
+        })).sort((a, b) => a.distanceKm - b.distanceKm);
+      }
+      const s = sites[0];
       flyToCitizenMap(s.lat, s.lng, 12);
       showToast(`Nearest safe place: ${s.name}`, 'success');
     }
@@ -1513,7 +1533,20 @@ function openInspector(zoneOrName, coords, risk, wind, surge, shelter) {
   if (window.hazardEngine && typeof window.hazardEngine.revealSafeSitesNear === 'function') {
     safeSitesList = window.hazardEngine.revealSafeSitesNear(lat, lng, 120);
   } else {
-    safeSitesList = (h.safeSites || []).map(s => ({
+    let sites = [];
+    if (currentHazard === 'ALL' || !HAZARD_INTEL[currentHazard]) {
+      const seen = new Set();
+      Object.values(HAZARD_INTEL).forEach(hazard => {
+        if (hazard.safeSites) {
+          hazard.safeSites.forEach(s => {
+            if (!seen.has(s.name)) { seen.add(s.name); sites.push(s); }
+          });
+        }
+      });
+    } else {
+      sites = h.safeSites || [];
+    }
+    safeSitesList = sites.map(s => ({
       ...s,
       distanceKm: distanceKm(lat, lng, s.lat, s.lng)
     })).sort((a, b) => a.distanceKm - b.distanceKm);

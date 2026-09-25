@@ -3,7 +3,6 @@
 // ================================================================
 
 let authMapInstance = null;
-let riskChart = null;
 window.currentPriorityData = window.currentPriorityData || null;
 
 // Built-in Toast Notification for Authority Dashboard
@@ -82,7 +81,6 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   }
 
   initCommandCenter();
-  initAnalyticsChart();
   renderVerificationQueue();
   loadPriorityRanking(); // Phase 1 live priority engine loader
   initDecisionSupport(); // Task 18 Risk Classification AI Engine (DeepSeek-R1 8B)
@@ -145,9 +143,7 @@ if (typeof document !== 'undefined' && typeof document.addEventListener === 'fun
   const params = new URLSearchParams(window.location.search);
   const currentPath = window.location.pathname;
 
-  if (params.get('test_collapse') === '1') {
-    collapseSidebar();
-  }
+  
   if (params.get('test_mobile_drawer') === '1') {
     const sidebar = document.getElementById('sidebar');
     const backdrop = document.getElementById('sidebar-backdrop');
@@ -268,61 +264,6 @@ function initLiveClock() {
 }
 
 // ---- Sidebar Collapse & Expand Functions ----
-function collapseSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const page = document.querySelector('.authority-page');
-  const toggleBtn = document.getElementById('sidebar-toggle');
-  if (!sidebar) return;
-  
-  if (!sidebar.classList.contains('collapsed')) {
-    sidebar.classList.add('collapsed');
-    if (page) page.classList.add('sidebar-collapsed');
-    if (toggleBtn) {
-      toggleBtn.innerHTML = '&#10140;'; // ➔
-      toggleBtn.setAttribute('title', 'Expand Sidebar');
-    }
-    setTimeout(() => {
-      if (authMapInstance && authMapInstance.getMap()) {
-        authMapInstance.getMap().invalidateSize();
-      }
-    }, 300);
-  }
-}
-
-function expandSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const page = document.querySelector('.authority-page');
-  const toggleBtn = document.getElementById('sidebar-toggle');
-  if (!sidebar) return;
-  
-  if (sidebar.classList.contains('collapsed')) {
-    sidebar.classList.remove('collapsed');
-    if (page) page.classList.remove('sidebar-collapsed');
-    if (toggleBtn) {
-      toggleBtn.innerHTML = '&#11013;'; // ⬅
-      toggleBtn.setAttribute('title', 'Collapse Sidebar');
-    }
-    setTimeout(() => {
-      if (authMapInstance && authMapInstance.getMap()) {
-        authMapInstance.getMap().invalidateSize();
-      }
-    }, 300);
-  }
-}
-
-function toggleSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  if (!sidebar) return;
-  if (sidebar.classList.contains('collapsed')) {
-    expandSidebar();
-  } else {
-    collapseSidebar();
-  }
-}
-window.collapseSidebar = collapseSidebar;
-window.expandSidebar = expandSidebar;
-window.toggleSidebar = toggleSidebar;
-
 // ---- GIS Shell & Map Initialization ----
 function initGISShell() {
   // Initialize Leaflet map immediately on load for GIS-first experience
@@ -388,7 +329,6 @@ function initGISShell() {
       '#content-panel',
       '.dock-nav',
       '#map-topbar',
-      '#map-hazard-control',
       '#map-hazard-dropdown',
       '#hazard-zone-table-card',
       '#ai-diagnostics-drawer',
@@ -1307,10 +1247,6 @@ function initMapHazardButton() {
   // Listen to Windy mode changes to hide hazard button
   const observer = new MutationObserver(() => {
     const isWindy = document.body.classList.contains('windy-mode-active') || document.querySelector('.windy-active');
-    const hazardControl = document.getElementById('map-hazard-control');
-    if (hazardControl) {
-      hazardControl.style.display = isWindy ? 'none' : 'block';
-    }
     if (isWindy) {
       dropdown.style.display = 'none';
       if (btn) btn.setAttribute('aria-expanded', 'false');
@@ -1320,7 +1256,7 @@ function initMapHazardButton() {
 
   // Close dropdown on outside click
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('#map-hazard-control') && !e.target.closest('#btn-map-hazard') && !e.target.closest('#map-hazard-dropdown')) {
+    if (!e.target.closest('#btn-map-hazard') && !e.target.closest('#map-hazard-dropdown')) {
       dropdown.style.display = 'none';
       if (btn) {
         btn.setAttribute('aria-expanded', 'false');
@@ -1388,16 +1324,16 @@ function showHazardZoneTableCard(hazard) {
   if (!card) return;
   currentHazardCardData = hazard;
 
-  const iconEl = document.getElementById('hz-card-icon') || document.getElementById('hztc-icon');
-  const titleEl = document.getElementById('hz-card-title') || document.getElementById('hztc-name');
-  const badgeEl = document.getElementById('hz-card-badge') || document.getElementById('hztc-tier');
-  const descEl = document.getElementById('hz-card-desc') || document.getElementById('hztc-type');
-  const tierEl = document.getElementById('hz-card-tier') || document.getElementById('hztc-stat-tier');
-  const zonesCountEl = document.getElementById('hz-card-zones-count');
-  const popEl = document.getElementById('hz-card-population') || document.getElementById('hztc-stat-pop');
+  const iconEl = document.getElementById('hztc-icon');
+  const titleEl = document.getElementById('hztc-name');
+  const badgeEl = document.getElementById('hztc-tier');
+  const descEl = document.getElementById('hztc-type');
+  const tierEl = document.getElementById('hztc-stat-tier');
+  const zonesCountEl = document.getElementById('hztc-zones-count');
+  const popEl = document.getElementById('hztc-stat-pop');
   const coordsEl = document.getElementById('hztc-stat-coords');
   const teleEl = document.getElementById('hztc-stat-telemetry');
-  const tableWrap = document.getElementById('hz-card-table-wrap');
+  const tableWrap = document.getElementById('hztc-table-wrap');
 
   if (iconEl) {
     if (hazard.icon && hazard.icon.includes('<')) {
@@ -1548,9 +1484,9 @@ window.closeHazardZoneTableCard = closeHazardZoneTableCard;
 // ================================================================
 
 function initAuthoritySearch() {
-  const input = document.getElementById('authority-search') || document.getElementById('topbar-search-input');
-  const dropdown = document.getElementById('authority-search-dropdown') || document.getElementById('topbar-search-dropdown');
-  const clearBtn = document.getElementById('authority-search-clear') || document.getElementById('topbar-search-clear');
+  const input = document.getElementById('authority-search');
+  const dropdown = document.getElementById('authority-search-dropdown');
+  const clearBtn = document.getElementById('authority-search-clear');
   const searchBtn = document.getElementById('authority-search-btn') || (document.getElementById('authority-search-pill') ? document.getElementById('authority-search-pill').querySelector('.windy-search-icon') : null);
   if (!input || !dropdown) return;
 
@@ -5525,67 +5461,6 @@ function updateAIExplanation(contextKey) {
   }
 }
 
-// ---- Chart.js Multi-Risk Analytics ----
-function initAnalyticsChart() {
-  const ctx = document.getElementById('riskChart');
-  if (!ctx) return;
-
-  const data = APP_DATA.multiRiskBreakdown;
-  riskChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: data.labels,
-      datasets: [
-        {
-          label: 'Population at Risk (x1,000)',
-          data: data.affected.map(v => v / 1000),
-          backgroundColor: 'rgba(59, 130, 246, 0.65)',
-          borderColor: '#3b82f6',
-          borderWidth: 1,
-          borderRadius: 6
-        },
-        {
-          label: 'Composite Severity Score (0-10)',
-          data: data.riskScores,
-          backgroundColor: 'rgba(239, 68, 68, 0.65)',
-          borderColor: '#ef4444',
-          borderWidth: 1,
-          borderRadius: 6,
-          yAxisID: 'y1'
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          labels: { color: '#94a3b8', font: { family: 'Inter', size: 11 } }
-        }
-      },
-      scales: {
-        x: {
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } }
-        },
-        y: {
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          ticks: { color: '#94a3b8', font: { family: 'Inter', size: 11 } },
-          title: { display: true, text: 'Population Affected (k)', color: '#94a3b8' }
-        },
-        y1: {
-          position: 'right',
-          grid: { drawOnChartArea: false },
-          ticks: { color: '#ef4444', font: { family: 'Inter', size: 11 } },
-          min: 0,
-          max: 10,
-          title: { display: true, text: 'Severity (0-10)', color: '#ef4444' }
-        }
-      }
-    }
-  });
-}
-
 // ================================================================
 // ================================================================
 // TASK 18: Risk Classification AI Engine (DeepSeek-R1 8B Evidence Brief)
@@ -5713,9 +5588,6 @@ function renderDecisionBriefLoading(seconds = 0) {
       <div>
         <div class="dsb-loading-text" style="font-weight:700; font-size:13px; color:#c4b5fd;">
           Generating evidence-grounded decision brief…
-        </div>
-        <div id="dsb-loading-subtext" style="font-size:11.5px; color:#94a3b8; margin-top:4px;">
-          Elapsed: ${seconds}s &bull; DeepSeek-R1 8B CPU inference in progress via LangChain / Ollama
         </div>
         <div style="font-size:10.5px; color:rgba(148,163,184,0.6); margin-top:4px;">
           Assembling Copernicus Sentinel-1 latest satellite observations, AP SDMA habitations &amp; shelters, and OSRM driving routes. Dashboard remains 100% interactive.
@@ -6321,6 +6193,8 @@ function handleAuthorityLiveStateUpdate(data) {
 
 window.initAuthorityWebSocket = initAuthorityWebSocket;
 window.handleAuthorityLiveStateUpdate = handleAuthorityLiveStateUpdate;
+
+
 
 
 

@@ -1039,10 +1039,25 @@ class HazardEngine {
     }
     this.revealedSafeSitesGroup.clearLayers();
 
-    const h = HAZARD_INTEL[this.activeKey || 'cyclone'];
-    if (!h || !h.safeSites) return [];
+    let sites = [];
+    if (this.activeKey === 'ALL' || !HAZARD_INTEL[this.activeKey || 'cyclone']) {
+      const seen = new Set();
+      Object.values(HAZARD_INTEL).forEach(hazard => {
+        if (hazard.safeSites) {
+          hazard.safeSites.forEach(s => {
+            if (!seen.has(s.name)) {
+              seen.add(s.name);
+              sites.push(s);
+            }
+          });
+        }
+      });
+    } else {
+      sites = HAZARD_INTEL[this.activeKey || 'cyclone'].safeSites || [];
+    }
+    if (sites.length === 0) return [];
 
-    const withDist = h.safeSites.map(s => ({
+    const withDist = sites.map(s => ({
       ...s,
       distanceKm: this.calcDistanceKm(lat, lng, s.lat, s.lng)
     })).sort((a, b) => a.distanceKm - b.distanceKm);
