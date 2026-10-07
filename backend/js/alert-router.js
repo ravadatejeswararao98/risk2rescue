@@ -12,7 +12,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const LOG_FILE = path.join(__dirname, '..', 'data', 'alert_dispatches_log.json');
+const LOG_FILE = path.join(__dirname, '..', '..', 'data', 'alert_dispatches_log.json');
 const DEDUPLICATION_COOLDOWN_MS = 30 * 60 * 1000; // 30 minutes cooldown per zone
 
 class AlertRouter {

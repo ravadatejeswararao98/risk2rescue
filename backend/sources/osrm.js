@@ -32,7 +32,7 @@ const OSRM_TIMEOUT_MS = 6000;
 // Load official Andhra Pradesh boundary for validation
 let apBoundaryGeom = null;
 try {
-  const boundaryPath = path.join(__dirname, '..', 'data', 'andhra_pradesh_boundary.geojson');
+  const boundaryPath = path.join(__dirname, '..', '..', 'data', 'andhra_pradesh_boundary.geojson');
   if (fs.existsSync(boundaryPath)) {
     const raw = JSON.parse(fs.readFileSync(boundaryPath, 'utf8'));
     if (raw && raw.features && raw.features[0]) {

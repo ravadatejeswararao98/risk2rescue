@@ -80,7 +80,7 @@ for (const [key, expected] of Object.entries(expectedShapes)) {
 if (isProbe) {
   console.log('\n--- PROBING SOURCES ---');
   // Load source registry and run probes to get actual HTTP status
-  const SourceRegistry = require('../source-registry.js');
+  const SourceRegistry = require('../backend/source-registry.js');
   
   SourceRegistry.checkAllSources(true).then(health => {
     health.sources.forEach(src => {

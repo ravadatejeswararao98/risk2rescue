@@ -38,7 +38,7 @@ let tokenExpiresAt = 0;
 // Load Authoritative Andhra Pradesh Boundary
 let apBoundaryCoords = null;
 try {
-  const boundaryPath = path.join(__dirname, '..', 'data', 'andhra_pradesh_boundary.geojson');
+  const boundaryPath = path.join(__dirname, '..', '..', 'data', 'andhra_pradesh_boundary.geojson');
   if (fs.existsSync(boundaryPath)) {
     const raw = fs.readFileSync(boundaryPath, 'utf8');
     const geojson = JSON.parse(raw);

@@ -340,7 +340,7 @@ class AIEngine {
   }
 
   loadHabitations() {
-    const p = path.join(__dirname, '..', 'data', 'census_lookup.json');
+    const p = path.join(__dirname, '..', '..', 'data', 'census_lookup.json');
     if (fs.existsSync(p)) {
       return JSON.parse(fs.readFileSync(p, 'utf8'));
     }
@@ -348,7 +348,7 @@ class AIEngine {
   }
 
   loadShelters() {
-    const p = path.join(__dirname, '..', 'data', 'shelters.json');
+    const p = path.join(__dirname, '..', '..', 'data', 'shelters.json');
     if (fs.existsSync(p)) {
       return JSON.parse(fs.readFileSync(p, 'utf8'));
     }

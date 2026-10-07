@@ -12,26 +12,26 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 const crypto = require('crypto');
-const PriorityEngine = require('./js/priority-engine.js');
-const AIEngine = require('./js/ai-engine.js');
-const AlertRouter = require('./js/alert-router.js');
-const SatelliteSignal = require('./js/satellite-signal.js');
-const LiveState = require('./js/live-state.js');
+const PriorityEngine = require('./backend/js/priority-engine.js');
+const AIEngine = require('./backend/js/ai-engine.js');
+const AlertRouter = require('./backend/js/alert-router.js');
+const SatelliteSignal = require('./backend/js/satellite-signal.js');
+const LiveState = require('./backend/js/live-state.js');
 const { WebSocketServer } = require('ws');
 
 // Integrated Source Registry & Dynamic Upstream Feeds
-const SourceRegistry = require('./source-registry.js');
-const { safeObject } = require('./js/redact.js');
-const { getOfficialCapAlerts, getCapFeed, CAP_FEEDS } = require('./sources/cap-feed.js');
-const { getCpcbAirQuality, getOpenAqAirQuality } = require('./sources/cpcb-air.js');
-const { getApWeather } = require('./sources/ap-weather.js');
-const { getGdacsEvents } = require('./sources/gdacs.js');
-const { getCWCRiverLevels } = require('./sources/cwc-nwic.js');
+const SourceRegistry = require('./backend/source-registry.js');
+const { safeObject } = require('./backend/js/redact.js');
+const { getOfficialCapAlerts, getCapFeed, CAP_FEEDS } = require('./backend/sources/cap-feed.js');
+const { getCpcbAirQuality, getOpenAqAirQuality } = require('./backend/sources/cpcb-air.js');
+const { getApWeather } = require('./backend/sources/ap-weather.js');
+const { getGdacsEvents } = require('./backend/sources/gdacs.js');
+const { getCWCRiverLevels } = require('./backend/sources/cwc-nwic.js');
 
-const { getLatestSentinel1Observation, processLatestSentinel1Observation, verifySentinel1ProductAccess } = require('./sources/copernicus.js');
+const { getLatestSentinel1Observation, processLatestSentinel1Observation, verifySentinel1ProductAccess } = require('./backend/sources/copernicus.js');
 
-const { correlateMultiHazards } = require('./sources/multi-hazard.js');
-const OsrmService = require('./sources/osrm.js');
+const { correlateMultiHazards } = require('./backend/sources/multi-hazard.js');
+const OsrmService = require('./backend/sources/osrm.js');
 
 // Process-level unhandled promise rejection guard
 process.on('unhandledRejection', (reason) => {

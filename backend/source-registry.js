@@ -677,7 +677,7 @@ const SOURCES = [
     requiresKey: null,
     consumers: ['kpi-shelter-cap', 'evacuation-routing', 'view-datasources', 'safesites-list'],
     probe: async (src) => {
-      const filePath = path.join(__dirname, 'data', 'shelters.json');
+      const filePath = path.join(__dirname, '..', 'data', 'shelters.json');
       if (fs.existsSync(filePath)) {
         const shelters = JSON.parse(fs.readFileSync(filePath, 'utf8'));
         const count = Array.isArray(shelters) ? shelters.length : 0;
@@ -701,7 +701,7 @@ const SOURCES = [
     requiresKey: null,
     consumers: ['kpi-pop-risk', 'population-exposure-grid', 'view-datasources', 'priority-engine'],
     probe: async (src) => {
-      const filePath = path.join(__dirname, 'data', 'census_lookup.json');
+      const filePath = path.join(__dirname, '..', 'data', 'census_lookup.json');
       if (fs.existsSync(filePath)) {
         const villages = JSON.parse(fs.readFileSync(filePath, 'utf8'));
         const count = Array.isArray(villages) ? villages.length : 0;
@@ -725,7 +725,7 @@ const SOURCES = [
     requiresKey: null,
     consumers: ['ap-boundary-clipping', 'point-in-polygon', 'view-datasources'],
     probe: async (src) => {
-      const filePath = path.join(__dirname, 'data', 'andhra_pradesh_boundary.geojson');
+      const filePath = path.join(__dirname, '..', 'data', 'andhra_pradesh_boundary.geojson');
       if (fs.existsSync(filePath)) {
         const geojson = JSON.parse(fs.readFileSync(filePath, 'utf8'));
         const featCount = geojson.features ? geojson.features.length : 1;

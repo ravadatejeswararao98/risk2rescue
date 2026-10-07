@@ -66,7 +66,7 @@ function xmlTag(block, tagName) {
 // Load authoritative Andhra Pradesh operational boundary GeoJSON
 let apBoundaryGeom = null;
 try {
-  const boundaryPath = path.join(__dirname, '..', 'data', 'andhra_pradesh_boundary.geojson');
+  const boundaryPath = path.join(__dirname, '..', '..', 'data', 'andhra_pradesh_boundary.geojson');
   if (fs.existsSync(boundaryPath)) {
     const raw = JSON.parse(fs.readFileSync(boundaryPath, 'utf8'));
     if (raw && raw.features && raw.features[0]) {

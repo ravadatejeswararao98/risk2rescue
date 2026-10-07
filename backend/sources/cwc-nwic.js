@@ -27,7 +27,7 @@ const stationHistory = new Map(); // stationName -> array of { timestamp, waterL
 // Authoritative AP Boundary
 let apBoundaryGeom = null;
 try {
-  const boundaryPath = path.join(__dirname, '..', 'data', 'andhra_pradesh_boundary.geojson');
+  const boundaryPath = path.join(__dirname, '..', '..', 'data', 'andhra_pradesh_boundary.geojson');
   if (fs.existsSync(boundaryPath)) {
     const raw = JSON.parse(fs.readFileSync(boundaryPath, 'utf8'));
     apBoundaryGeom = raw.features && raw.features[0] ? raw.features[0].geometry : null;

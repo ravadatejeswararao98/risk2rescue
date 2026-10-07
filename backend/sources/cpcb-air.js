@@ -17,7 +17,7 @@ let cpcbCache = { data: null, expiresAt: 0 };
 
 let apPolygon = null;
 try {
-  const bPath = path.join(__dirname, '../data/andhra_pradesh_boundary.geojson');
+  const bPath = path.join(__dirname, '../../data/andhra_pradesh_boundary.geojson');
   if (fs.existsSync(bPath)) {
     const geo = JSON.parse(fs.readFileSync(bPath, 'utf8'));
     apPolygon = geo.features ? geo.features[0].geometry : geo;
