@@ -1,6 +1,6 @@
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
-const db = require('../db');
+const db = require('../backend/db');
 
 async function seed() {
   // Take command line arguments or use defaults

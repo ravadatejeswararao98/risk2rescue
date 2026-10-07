@@ -60,13 +60,13 @@ try {
 }
 
 // Ensure DB connects AFTER environment variables are loaded
-const db = require('./db');
+const db = require('./backend/db');
 const bcrypt = require('bcryptjs');
 
 // Initialize Express Postgres Router
 const express = require('express');
 const expressApp = express();
-const apiRoutes = require('./routes/api.js');
+const apiRoutes = require('./backend/routes/api.js');
 expressApp.use('/api', apiRoutes);
 
 // Normalize Copernicus / Sentinel Hub environment aliases
@@ -1590,7 +1590,7 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/health' && req.method === 'GET') {
     try {
       // 1. Check Primary Postgres
-      const db = require('./db');
+      const db = require('./backend/db');
       await db.query('SELECT 1 as ok');
 
       // 2. Check Redis
@@ -4945,7 +4945,7 @@ setTimeout(() => {
 }, 2000);
 
 // Initialize Redis Subscriber for real-time Postgres events
-const { redisClient } = require('./db');
+const { redisClient } = require('./backend/db');
 if (redisClient) {
   const redisSubClient = redisClient.duplicate();
   redisSubClient.on('error', (err) => {

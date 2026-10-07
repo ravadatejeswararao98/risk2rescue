@@ -85,7 +85,7 @@ async function runMigrations() {
     console.log('✅ PostGIS extension confirmed.');
 
     // 2. Run schema migrations
-    const migrationsDir = path.join(__dirname, '..', 'db', 'migrations');
+    const migrationsDir = path.join(__dirname, '..', 'backend', 'db', 'migrations');
     const files = ['01_base_schema.sql', '02_roles_and_rls.sql', '03_additional_tables.sql'];
 
     for (const file of files) {

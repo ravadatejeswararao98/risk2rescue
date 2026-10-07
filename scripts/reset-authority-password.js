@@ -1,6 +1,6 @@
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
-const db = require('../db');
+const db = require('../backend/db');
 
 async function resetPassword() {
   const args = process.argv.slice(2);
