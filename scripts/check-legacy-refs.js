@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const DIRECTORIES_TO_SCAN = [
-  'public',
+  'frontend',
   'src',
   'scripts',
   'js'

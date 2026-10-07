@@ -106,7 +106,7 @@ if (!process.env.WINDY_MAP_KEY) {
 if (!process.env.WINDY_API_MAP_KEY) process.env.WINDY_API_MAP_KEY = process.env.WINDY_MAP_KEY;
 
 const PORT = process.env.PORT || 3000;
-const PUBLIC_DIR = path.join(__dirname, 'public');
+const PUBLIC_DIR = path.join(__dirname, 'frontend');
 const WINDY_DATA_KEY = process.env.WINDY_POINT_KEY || process.env.WINDY_DATA_KEY || '';
 const WINDY_MAP_KEY = process.env.WINDY_MAP_KEY || '';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';

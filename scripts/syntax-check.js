@@ -3,7 +3,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const dirsToCheck = [
-  path.join(__dirname, '../public/js'),
+  path.join(__dirname, '../frontend/js'),
   path.join(__dirname, '../js')
 ];
 
