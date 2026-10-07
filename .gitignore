@@ -48,3 +48,5 @@ ai-service/node_modules/
 ai-service/__pycache__/
 
 firebase-service-account.json
+
+data/alert_dispatches_log.json
