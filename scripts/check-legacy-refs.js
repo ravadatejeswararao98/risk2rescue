@@ -5,11 +5,11 @@ const DIRECTORIES_TO_SCAN = [
   'frontend',
   'src',
   'scripts',
-  'js'
+  'backend/js'
 ];
 
 const FILES_TO_SCAN = [
-  'server.js'
+  'backend/server.js'
 ];
 
 const EXTENSIONS_TO_SCAN = ['.js', '.html'];
