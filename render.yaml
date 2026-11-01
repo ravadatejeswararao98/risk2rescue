@@ -19,7 +19,12 @@ projects:
       buildCommand: npm install
       startCommand: node server.js
       autoDeployTrigger: commit
+      healthCheckPath: /health
       envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: risk2rescue-db
+          property: connectionString
       - key: DB_HOST
         fromDatabase:
           name: risk2rescue-db
@@ -45,6 +50,12 @@ projects:
           name: risk2rescue-redis
           type: keyvalue
           property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: RENDER_REGION
+        value: ohio
 
     - type: keyvalue
       name: risk2rescue-redis

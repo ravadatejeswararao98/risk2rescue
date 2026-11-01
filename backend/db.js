@@ -1,21 +1,37 @@
+try {
+  require('dotenv').config();
+} catch (e) {}
+
 const { Pool } = require('pg');
 const Redis = require('ioredis');
 
 // ==========================================
 // 1. PostgreSQL Connection Pool
 // ==========================================
-const poolConfig = process.env.DATABASE_URL
+let connectionString = process.env.DATABASE_URL;
+if (connectionString && connectionString.includes('@dpg-') && !connectionString.includes('.render.com')) {
+  const region = process.env.RENDER_REGION || 'ohio';
+  connectionString = connectionString.replace(/@dpg-([a-z0-9-]+)([:\/])/i, `@dpg-$1.${region}-postgres.render.com$2`);
+}
+
+let dbHost = process.env.DB_HOST || 'localhost';
+if (dbHost.startsWith('dpg-') && !dbHost.includes('.')) {
+  const region = process.env.RENDER_REGION || 'ohio';
+  dbHost = `${dbHost}.${region}-postgres.render.com`;
+}
+
+const poolConfig = connectionString
   ? {
-      connectionString: process.env.DATABASE_URL,
+      connectionString,
       ssl: { rejectUnauthorized: false }
     }
   : {
-      user: process.env.DB_USER || 'risk2rescue',
-      password: process.env.DB_PASSWORD || 'secret_password',
-      host: process.env.DB_HOST || 'localhost',
-      database: process.env.DB_NAME || 'risk2rescue_db',
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || 'postgres',
+      host: dbHost,
+      database: process.env.DB_NAME || 'risk2rescue',
       port: parseInt(process.env.DB_PORT, 10) || 5432,
-      ssl: process.env.DB_HOST && process.env.DB_HOST !== 'localhost'
+      ssl: dbHost && dbHost !== 'localhost'
         ? { rejectUnauthorized: false }
         : false
     };

@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const db = require('../db');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'risk2rescue_super_secret';
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'risk2rescue_super_secret';
 
 /**
  * Express middleware to verify JWT and set up Postgres RLS connection
